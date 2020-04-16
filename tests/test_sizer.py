@@ -2,7 +2,8 @@ import pytest
 
 import filecmp
 import numpy as np
-import HPHWSizer 
+import os
+import HPWHSizer
 
 
 def file_regression(fileRef, fileResults):
@@ -11,7 +12,7 @@ def file_regression(fileRef, fileResults):
 @pytest.fixture
 def empty_sizer():
     '''Returns a HPWHsizer instance initialized to zeros'''
-    return HPWHSizer()
+    return HPWHSizer.HPWHSizer()
 
 def test_default_initial_amount(empty_sizer):
     assert (empty_sizer.nBR  == np.zeros(6)).all()
@@ -25,7 +26,8 @@ def test_default_initial_amount(empty_sizer):
     assert empty_sizer.compRuntime  == 0.; # The runtime?
     assert empty_sizer.metered    == 0; # If the building as individual metering on the apartment or not
     assert empty_sizer.percentUseable == 0; #The  percent of useable storage
-    
+    assert empty_sizer.aquaFract == 0.; # The aquastat fraction
+
     assert empty_sizer.schematic  == ""; # The schematic for sizing maybe just primary maybe with temperature maintenance.
     assert empty_sizer.swingOnT   == 0.; # The temperature the swing tank turns on at
     assert empty_sizer.nApt       == 0.; # The number of apartments
@@ -34,14 +36,14 @@ def test_default_initial_amount(empty_sizer):
     
     
 @pytest.mark.parametrize("file1", [
-    "test_60UnitSwing.txt",
-    "test_200UnitSwing.txt"
+    "tests/test_60UnitSwing.txt",
+    "tests/test_200UnitSwing.txt"
 ])
 def test_hpwh_from_file(empty_sizer, file1):
     empty_sizer.initializeFromFile(file1);
     empty_sizer.sizeSystem();
-    empty_sizer.writeOutput("/output/"+file1);
+    empty_sizer.writeOutput("tests/output/"+os.path.basename(file1));
     
-    assert file_regression("/ref/"+file1, "/output/"+file1);
-
+    assert file_regression("tests/ref/"+os.path.basename(file1), 
+                           "tests/output/"+os.path.basename(file1));
 
