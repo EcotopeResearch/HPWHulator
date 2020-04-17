@@ -5,7 +5,7 @@ primaryHeatingRate, 549.375
 primaryHeatCap, 509.914 
 primaryVol, 688.769 
 TMCap, 105.435 
-TMVol, 467.468 
+TMVol, 420.721 
 primaryCurve_vol, [688.77,563.99,441.44,329.63,218.11,127.48, 42.09,  0.  ,  0.  ,  0.  ]
 primaryCurve_heatCap, [509.91,532.08,556.27,582.76,611.9 ,644.1 ,679.88,719.88,764.87,815.86]
 
@@ -24,8 +24,8 @@ defrostFactor, 0.900
 schematic, tempmaint
 nApt, 200
 Wapt, 100.000 
-returnT, 117.000 
-fdotRecirc, 45.385 
+returnT, 115.000 
+fdotRecirc, 27.231 
 UAFudge, 3
 swingOnT, 0.000 
 setpointTM, 135

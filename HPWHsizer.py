@@ -176,12 +176,14 @@ class HPWHSizer:
             self.W_TO_BTUHR * self.offTime / (self.storageT - self.swingOnT);
         self.TMCap = 1.5 * (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.;  #FACTOR OF 1.5!?!?
         
-    def sizeTemperatureMaintenance(self):####FIX
+    def sizeTemperatureMaintenance(self):
         minRunTime = 1; # Hour
         self.TMCap =  24./self.TMRuntime * (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.; #should we have this factor
         self.TMVol =  (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
             self.W_TO_BTUHR * minRunTime / (self.setpointTM - self.returnT);
-        ###FINISH
+        # Check against a minimum size
+        #self.TMVol = max( self.TMVol, self.fdotRecirc * 30)
+         
        
 # Helper Functions for reading and writing files 
     def __importArrLine(self, line, setLength):
@@ -268,6 +270,7 @@ class HPWHSizer:
             else:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.    
+        
         self.__calcedVariables()
         if self.schematic == 'tempmaint':
             self.setRecircVars(Wapt, returnT, fdotRecirc)
