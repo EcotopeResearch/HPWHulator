@@ -11,5 +11,8 @@ schematic tempmaint
 swingOnT 122
 nApt 200
 Wapt 90   
+returnT 115
 TMRuntime 16
+setpointTM 130
 aquafract 30
+defrostFactor 0.9

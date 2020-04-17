@@ -11,5 +11,5 @@ schematic swingtank
 swingOnT 122
 nApt 60
 Wapt 90
-TMRuntime 16
 aquaFract 0.3
+defrostFactor 0.9
