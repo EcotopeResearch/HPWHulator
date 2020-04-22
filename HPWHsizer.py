@@ -63,6 +63,8 @@ class HPWHSizer:
         self.defrostFactor  = defrostFactor; # The defrost factor. Derates the output power for defrost cycles.
 
         self.schematic      = schematic; # The schematic for sizing maybe just primary maybe with temperature maintenance.
+        
+        self.__checkInputs();
         self.__calcedVariables()
     
     def initByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
@@ -84,6 +86,7 @@ class HPWHSizer:
         
         self.nApt           = nApt;
         
+        self.__checkInputs();
         self.__calcedVariables();
 
     def __calcedVariables(self):
@@ -99,7 +102,20 @@ class HPWHSizer:
         #self.totalLoadShape = self.loadShapeNorm * self.totalHWLoad;
         self.UAFudge = 3;
         self.offTime = sum(np.append(self.loadShapeNorm,self.loadShapeNorm)[22:36] < 1./48.) #The overnight design for off time. 
-     
+    
+    def __checkInputs(self):
+        """Checks inputs are all valid"""
+        if len(self.loadShapeNorm) != 24 :
+            raise Exception("loadShapeNorm is not of length 24 but instead "+str(len(self.loadShapeNorm))+".")
+        if self.schematic not in self.schematicNames:                    
+            raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')    
+        if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('\nERROR: Invalid input given for percentUseable.\n')    
+        if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('\nERROR: Invalid input given for aquaFract.\n') 
+        if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('\nERROR: Invalid input given for defrostFactor.\n')  
+                
     def setRecircVars(self, Wapt, returnT, fdotRecirc):
         """Takes the recirc variables and solves for one that's set to zero"""
         if any(x < 0 for x in [Wapt, returnT, fdotRecirc]):
@@ -122,35 +138,70 @@ class HPWHSizer:
             raise Exception("In setting the recirculation variables one needs to be zero to solve for it.")
         
     def setTMVars(self, TMRuntime, setpointTM, Wapt, returnT, fdotRecirc):
+        if self.schematic != "tempmaint":
+            raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the temperature maintenance sizing init")
+
         self.TMRuntime = TMRuntime;
         self.setpointTM = setpointTM;
         self.setRecircVars(Wapt, returnT, fdotRecirc);
         
     def setSwingVars(self, swingOnT, Wapt):
+        if self.schematic != "swingtank":
+            raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the swing tank sizing init")
         self.swingOnT = swingOnT;
         self.Wapt = Wapt;      
-        
-# The meat of the script        
+# End functions for initilization 
+       
+# The meat of the script   
+    def getPeakIndices(self,diff1):
+          """Returns an array that gives the indices when the array diff goes from positive to negative"""
+          diff1 = np.array(diff1);
+          return np.where(np.diff(np.sign(diff1))<0)[0]+1;
+          
     def primaryHeatHrs2kBTUHR(self, heathours):
         """Returns the heating capacity in kBTU/hr for the heating hours given by, heathours"""
+        if isinstance(heathours, np.ndarray):
+            if any(heathours > 24) or any(heathours <= 0):
+                raise Exception("Heat hours is not within 1 - 24 hours")
+        else:
+            if heathours > 24 or heathours <= 0:
+                raise Exception("Heat hours is not within 1 - 24 hours")
+                
         heatCap = self.totalHWLoad / heathours * self.rhoCp * \
             (self.storageT - self.incomingT) / self.defrostFactor /1000.;
         return heatCap;
     
     def sizePrimaryTankVolume(self, heatHrs):
         """Sizes the primary HPWH plant with the new methodology"""
-        if heatHrs <= 0 or heatHrs > 24:
-            raise Exception("The heating capacity scaled to hours is invalid, value is "+ heatHrs)
-            
-        diffN = 1/heatHrs - np.append(self.loadShapeNorm,self.loadShapeNorm); 
-        diffN = np.cumsum(diffN[np.argmax(diffN < 0.):]); #Get the rest of the day from the start of the peak
-
-        runningVol = -min(np.append(diffN[diffN<0.], -0.)); #Minimum value less than 0 or 0.
-        totalVol = runningVol / (1-self.aquaFract) / self.percentUseable;
+        diffN = 1/heatHrs - np.append(self.loadShapeNorm,self.loadShapeNorm);         
+        diffInd = self.getPeakIndices(diffN[0:23]); #Days repeat so just get first day!
         
+        runningVol = 0;
+        if len(diffInd) == 0:
+            raise Exception("The heating rate is greater than the peak volume the system is oversized!")
+        else:
+            for peakInd in diffInd:
+                diffCum = np.cumsum(diffN[peakInd:]); #Get the rest of the day from the start of the peak
+                runningVol = max(runningVol, -min(diffCum[diffCum<0.])); #Minimum value less than 0 or 0.
+        
+        # Find total volume
+        totalVol = runningVol / (1-self.aquaFract) / self.percentUseable;
         return totalVol * self.totalHWLoad * (self.supplyT - self.incomingT) / \
             (self.storageT - self.incomingT);
 
+    def sizeSwing(self):
+        self.TMVol = (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
+            self.W_TO_BTUHR * self.offTime / (self.storageT - self.swingOnT);
+        self.TMCap = (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.;  
+        
+    def sizeTemperatureMaintenance(self):
+        minRunTime = 1; # Hour
+        self.TMCap =  24./self.TMRuntime * (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.; #should we have this factor
+        self.TMVol =  (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
+            self.W_TO_BTUHR * minRunTime / (self.setpointTM - self.returnT);
+        # Check against a minimum size
+        #self.TMVol = max( self.TMVol, self.fdotRecirc * 30 *0.5) #Flush rate --> min volume then check against HP capacity to see the rate we recover
+         
     def sizeSystem(self):
         """ Size system based on schemtic """    
         self.primaryHeatingRate = self.totalHWLoad / self.compRuntime;
@@ -160,42 +211,26 @@ class HPWHSizer:
             self.sizeSwing();
         elif self.schematic == "tempmaint":
             self.sizeTemperatureMaintenance();
-        
-        #return [self.primaryHeatingRate, self.primaryVol]
-    
+ 
     def primaryCurve(self):
         """"Size the primary system curve"""
-        heatHours = np.linspace(self.compRuntime, 10., 10);
+        heatHours = np.linspace(self.compRuntime, 1/max(self.loadShapeNorm)*1.001, 10);
         volN = np.zeros(len(heatHours));
         for ii in range(0,len(heatHours)): 
             volN[ii] = self.sizePrimaryTankVolume(heatHours[ii]);
         return [volN, self.primaryHeatHrs2kBTUHR(heatHours)]
-
-    def sizeSwing(self):
-        self.TMVol = (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
-            self.W_TO_BTUHR * self.offTime / (self.storageT - self.swingOnT);
-        self.TMCap = 1.5 * (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.;  #FACTOR OF 1.5!?!?
-        
-    def sizeTemperatureMaintenance(self):
-        minRunTime = 1; # Hour
-        self.TMCap =  24./self.TMRuntime * (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.; #should we have this factor
-        self.TMVol =  (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
-            self.W_TO_BTUHR * minRunTime / (self.setpointTM - self.returnT);
-        # Check against a minimum size
-        #self.TMVol = max( self.TMVol, self.fdotRecirc * 30)
-         
-       
+    
 # Helper Functions for reading and writing files 
     def __importArrLine(self, line, setLength):
         """Imports an array in line with a set length, setLength"""
-        val = np.zeros(setLength);
+        val = np.zeros(setLength-1);
         if len(line) > setLength: 
-                raise Exception( '\nERROR: Too many data points given for loadShapeNorm, should be 24 but received '+ str(len(line)-1)+'.\n')  
-        for ii in range(1,setLength):
+                raise Exception( '\nERROR: Too many data points given for array '+ str(len(line)-1)+'.\n')  
+        for ii in range(1,setLength-1):
             try:
                 val[ii-1]  = float(line[ii]);
             except IndexError:
-                raise Exception('\nERROR: Not enough data points given for loadShapeNorm, should be 24 but received '+str(ii)+'.\n') 
+                raise Exception('\nERROR: Not enough data points given for array '+str(ii)+'.\n') 
         return val         
 
     def initializeFromFile(self, fileName):
@@ -245,12 +280,9 @@ class HPWHSizer:
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
                     temp[1] = temp[1]/100.
                 self.defrostFactor = temp[1];
-                
+
             elif temp[0] == "schematic":
-                if temp[1] in self.schematicNames:
-                    self.schematic  = temp[1];
-                else:
-                    raise Exception('\nERROR: Invalid input given for the schematic: "'+ str(temp[1])+'".\n')    
+                self.schematic  = temp[1];
             elif temp[0] == "swingont":
                 self.swingOnT   = float(temp[1]);
             elif temp[0] == "napt":
@@ -271,6 +303,7 @@ class HPWHSizer:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.    
         
+        self.__checkInputs();
         self.__calcedVariables()
         if self.schematic == 'tempmaint':
             self.setRecircVars(Wapt, returnT, fdotRecirc)

@@ -21,7 +21,7 @@ def units_sizer():
     hpwh.initByUnits( [50,50,50,50,0,0], [1.374,1.74,2.567,3.109,4.225,3.769], 20, 
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
-                      0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038, 0.],
+                      0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
                     120, 50, 150, 16, 0, 0.8, .33, .9,'tempmaint')
     hpwh.setTMVars(16, 135, 100., 115., 0);
     return hpwh;
@@ -30,17 +30,18 @@ def units_sizer():
 def people_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHSizer.HPWHSizer()
-
     hpwh.initByPeople(100, 22., 
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
-                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038, 0.],
+                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
                     120, 50, 150., 18., 0, .8, .3,.9, "swingtank", 36);
     hpwh.setSwingVars(122., 100.);
     return hpwh;
 # End of fixtures
 
 # Start of tests
+
+#Init Tests
 def test_default_initial_amount(empty_sizer):
     assert (empty_sizer.nBR             == np.zeros(6)).all()
     assert (empty_sizer.rBR             == np.zeros(6)).all()
@@ -73,7 +74,7 @@ def test_default_initial_amount(empty_sizer):
         assert empty_sizer.sizePrimaryTankVolume(-10)
         assert empty_sizer.sizePrimaryTankVolume(100)
 
-def test_people_sizer(people_sizer):
+def test_initByPeople(people_sizer):
     with pytest.raises(Exception):
         assert people_sizer.sizePrimaryTankVolume(-10)
         assert people_sizer.sizePrimaryTankVolume(100)
@@ -81,7 +82,8 @@ def test_people_sizer(people_sizer):
     people_sizer.writeOutput("tests/output/people_sizer.txt");
     assert file_regression("tests/ref/people_sizer.txt", 
                            "tests/output/people_sizer.txt");
-def test_units_sizer(units_sizer):
+    
+def test_initByUnits(units_sizer):
     with pytest.raises(Exception):
         assert units_sizer.sizePrimaryTankVolume(-10)
         assert units_sizer.sizePrimaryTankVolume(100)
@@ -90,12 +92,21 @@ def test_units_sizer(units_sizer):
     assert file_regression("tests/ref/units_sizer.txt", 
                            "tests/output/units_sizer.txt");
 
+# Function tests
 @pytest.mark.parametrize("hrs", [
     20, 16, 12
 ])
 def test_primaryHeatHrs2kBTUHR(empty_sizer, hrs):
     assert empty_sizer.primaryHeatHrs2kBTUHR(hrs) == 0.;
+    with pytest.raises(Exception):
+        assert units_sizer.sizePrimaryTankVolume(-hrs)
 
+@pytest.mark.parametrize("arr, expected", [
+    ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]), 
+    ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11])
+])
+def test_getPeakIndices(empty_sizer, arr, expected):
+    assert all(empty_sizer.getPeakIndices(arr) == expected);
 
 @pytest.mark.parametrize("Wapt, returnT, fdotRecirc", [
     (99.15126, 117, 45), 
