@@ -4,7 +4,7 @@ offTime, 3
 primaryHeatingRate, 122.222 
 primaryHeatCap, 113.443 
 primaryVol, 241.389 
-TMCap, 18.978 
+TMCap, 12.652 
 TMVol, 162.278 
 primaryCurve_vol, [2.41e+02,2.16e+02,1.88e+02,1.58e+02,1.25e+02,9.50e+01,6.48e+01,4.00e+01,1.49e+01,2.39e-01]
 primaryCurve_heatCap, [113.44,118.18,123.33,128.95,135.11,141.88,149.37,157.69,167.  ,177.47]

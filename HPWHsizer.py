@@ -226,7 +226,7 @@ class HPWHSizer:
         val = np.zeros(setLength-1);
         if len(line) > setLength: 
                 raise Exception( '\nERROR: Too many data points given for array '+ str(len(line)-1)+'.\n')  
-        for ii in range(1,setLength-1):
+        for ii in range(1,setLength):
             try:
                 val[ii-1]  = float(line[ii]);
             except IndexError:
