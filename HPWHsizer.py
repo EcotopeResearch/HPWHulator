@@ -1,13 +1,70 @@
  # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 13 09:07:05 2020
+This page describes inputs and outputs used in the Heat Pump Water Heater Sizer tool.
 
-@author: paul
 """
 
 import numpy as np;
 
 class HPWHSizer:
+    """
+    Generates HPWH capacity and storage from inputs
+    
+    ...extended discription 
+    
+    Attributes
+    ----------
+    nBR :  numpy array
+        number of bedrooms [0br, 1 br, ...] to 6 bedrooms in project
+    rBR : numpy array 
+        ratio of people in bedrooms [ppl/0br, ppl/1br, ...] in project
+    nPeople : float
+        total number of people
+    gpdpp : float
+        gallons per day per person
+    loadShapeNorm : numpy array
+        normalized load shape, length 24 hrs
+    supplyT : float
+        hot water supply temperature [°F]
+    incomingT : float
+        city water incoming temperature (design temperature in winter) [°F]
+    storageT : float
+        primary hot water storage temperature [°F]
+    metered : integer
+        0 or 1 flag for if the building has individually metered hot water use or not (could use True or False)
+    percentUsable : integer
+        percent usable storage
+    aquaFract : float
+        fractional hieght of aquastat within hot water storage tank
+    
+    defrostFactor : float
+        Derates heating at low temperatures based on need for defrost cycles.
+    
+    schematic : string
+        identifies sizing method? 
+    swingOnT : float
+        temperature at which swing tank heating element will engauge
+    nApt : float
+        number of apartments in project
+    Wapt : float
+        recirculating loop losses in watts / apartment served
+    fdotRecirc : float
+        recirculatioin loop flowrate [gpm]
+    returnT : float
+        hot water return temperature [°F]
+    TMRuntime : float
+        minimum time with no flow allowed by temperature maintenance tank [hrs]
+    setpointTM : float
+        temperature setpoint of the temperature maintenance tank [°F]
+        
+    UAFudge : float
+        UA of storage and swing tank
+    totalHWload : float
+        normalize hot water load times the total estimated gallons per peak day
+    offTime : float
+        night period in which no hot water use occurs, but there is recirculation [hrs]
+    """
+    
     rhoCp = 8.353535;
     W_TO_BTUHR = 3.412142;
     W_TO_BTUMIN = W_TO_BTUHR/60;
@@ -16,7 +73,9 @@ class HPWHSizer:
     schematicNames = ["primary", "swingtank","tempmaint"];
     
     def __init__(self):
-        """Initialize the sizer object with 0's for the inputs"""
+        '''Initiate HPWHsizer object with 0's for all attributes
+        '''
+        
         self.nBR            = np.zeros(6); # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.zeros(6); # Ratio of people bedrooms 0Br, 1Br...
         self.nPeople        = 0.; # Nnumber of people
@@ -48,6 +107,9 @@ class HPWHSizer:
     def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
                     storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
                     schematic):
+        '''Initiate HPWHsizer object from parameters which define class attributes
+        '''
+        
         self.nBR            = np.array(nBR); # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR); # Ratio of people bedrooms 0Br, 1Br...
         self.gpdpp          = gpdpp; # Gallons per day per person
@@ -70,6 +132,9 @@ class HPWHSizer:
     def initByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
                     storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
                     schematic, nApt):
+        '''Initiate HPWHsizer object from parameters which define class attributes
+        '''
+        
         self.nPeople        = nPeople;
         self.gpdpp          = gpdpp; # Gallons per day per person
         self.loadShapeNorm  = np.array(loadShapeNorm); # The normalized load shape
@@ -90,7 +155,10 @@ class HPWHSizer:
         self.__calcedVariables();
 
     def __calcedVariables(self):
-        """ Calculate other variables needed."""
+        """ Calculate other variables needed.
+        
+        What about if both nApt and nPeople are given?
+        """
         if sum(self.nBR + self.nApt) == 0:
             raise Exception("Need input given for number of bedrooms by size or number of apartments")
         if self.nApt == 0:
@@ -117,7 +185,11 @@ class HPWHSizer:
             raise Exception('\nERROR: Invalid input given for defrostFactor.\n')  
                 
     def setRecircVars(self, Wapt, returnT, fdotRecirc):
-        """Takes the recirc variables and solves for one that's set to zero"""
+        """Takes the recirc variables and solves for one that's set to zero
+        
+        Aren't Wapt, returnT, and fdotRecirc all part of the object already? Why do we need them as inputs?
+        Can't you just say self.Wapt, self.returnT?
+        """
         if any(x < 0 for x in [Wapt, returnT, fdotRecirc]):
             raise Exception("All recirculation variables must be postitive.")
         if self.supplyT <= returnT:
@@ -138,6 +210,10 @@ class HPWHSizer:
             raise Exception("In setting the recirculation variables one needs to be zero to solve for it.")
         
     def setTMVars(self, TMRuntime, setpointTM, Wapt, returnT, fdotRecirc):
+        '''Sets temperature maintenance variables that are initialized as zero
+        
+        Same comment as for setRecircVars; why to you need to initialize with anything other than self?
+        '''
         if self.schematic != "tempmaint":
             raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the temperature maintenance sizing init")
 
@@ -146,6 +222,10 @@ class HPWHSizer:
         self.setRecircVars(Wapt, returnT, fdotRecirc);
         
     def setSwingVars(self, swingOnT, Wapt):
+        '''Sets swing tank variables that are initialized as zero
+        
+        Same comment as for setRecircVars; why to you need to initialize with anything other than self?        
+        '''
         if self.schematic != "swingtank":
             raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the swing tank sizing init")
         self.swingOnT = swingOnT;
@@ -154,12 +234,24 @@ class HPWHSizer:
        
 # The meat of the script   
     def getPeakIndices(self,diff1):
-          """Returns an array that gives the indices when the array diff goes from positive to negative"""
+          """Returns an array that gives the indices when the array diff goes from positive to negative
+          
+          Parameters
+          ----------
+          diff1 : array?
+              not sure what this does
+          """
           diff1 = np.array(diff1);
           return np.where(np.diff(np.sign(diff1))<0)[0]+1;
           
     def primaryHeatHrs2kBTUHR(self, heathours):
-        """Returns the heating capacity in kBTU/hr for the heating hours given by, heathours"""
+        """Returns the heating capacity in kBTU/hr for the heating hours given by, heathours
+        
+        Parameters
+        ----------
+        heathours :
+            the number of heating hours the equipment can run?
+        """
         if isinstance(heathours, np.ndarray):
             if any(heathours > 24) or any(heathours <= 0):
                 raise Exception("Heat hours is not within 1 - 24 hours")
@@ -172,7 +264,13 @@ class HPWHSizer:
         return heatCap;
     
     def sizePrimaryTankVolume(self, heatHrs):
-        """Sizes the primary HPWH plant with the new methodology"""
+        """Sizes the primary HPWH plant with the new methodology
+        
+        Parameters
+        ----------
+        heatHrs : float
+            hours equipment can operate to heat tank volumn (heathours v. heatHrs?)
+        """
         diffN = 1/heatHrs - np.append(self.loadShapeNorm,self.loadShapeNorm);         
         diffInd = self.getPeakIndices(diffN[0:23]); #Days repeat so just get first day!
         
@@ -190,11 +288,15 @@ class HPWHSizer:
             (self.storageT - self.incomingT);
 
     def sizeSwing(self):
+        '''Sizes swing tank based on no flow time period
+        '''
         self.TMVol = (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
             self.W_TO_BTUHR * self.offTime / (self.storageT - self.swingOnT);
         self.TMCap = (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.;  
         
     def sizeTemperatureMaintenance(self):
+        '''Sizes temperature maintenance heating element
+        '''
         minRunTime = 1; # Hour
         self.TMCap =  24./self.TMRuntime * (self.Wapt + self.UAFudge) * self.nApt * self.W_TO_BTUHR / 1000.; #should we have this factor
         self.TMVol =  (self.Wapt + self.UAFudge) * self.nApt / self.rhoCp * \
@@ -203,7 +305,8 @@ class HPWHSizer:
         #self.TMVol = max( self.TMVol, self.fdotRecirc * 30 *0.5) #Flush rate --> min volume then check against HP capacity to see the rate we recover
          
     def sizeSystem(self):
-        """ Size system based on schemtic """    
+        """Size system based on schemtic
+        """    
         self.primaryHeatingRate = self.totalHWLoad / self.compRuntime;
         self.primaryHeatCap = self.primaryHeatHrs2kBTUHR(self.compRuntime);
         self.primaryVol = self.sizePrimaryTankVolume(self.compRuntime);    
@@ -213,7 +316,8 @@ class HPWHSizer:
             self.sizeTemperatureMaintenance();
  
     def primaryCurve(self):
-        """"Size the primary system curve"""
+        """"Size the primary system curve
+        """
         heatHours = np.linspace(self.compRuntime, 1/max(self.loadShapeNorm)*1.001, 10);
         volN = np.zeros(len(heatHours));
         for ii in range(0,len(heatHours)): 
@@ -222,7 +326,8 @@ class HPWHSizer:
     
 # Helper Functions for reading and writing files 
     def __importArrLine(self, line, setLength):
-        """Imports an array in line with a set length, setLength"""
+        """Imports an array in line with a set length, setLength
+        """
         val = np.zeros(setLength-1);
         if len(line) > setLength: 
                 raise Exception( '\nERROR: Too many data points given for array '+ str(len(line)-1)+'.\n')  
@@ -234,7 +339,8 @@ class HPWHSizer:
         return val         
 
     def initializeFromFile(self, fileName):
-        """"Read in a formated file with filename"""
+        """"Read in a formated file with filename
+        """
         
         Wapt = 0.; returnT = 0.; fdotRecirc = 0.;
         # Using readlines() 
@@ -311,6 +417,15 @@ class HPWHSizer:
             self.Wapt = Wapt;
             
     def __writeAttrLine(self, file, attrList):
+        '''Writes specified attributes to a file
+        
+        Parameters
+        ----------
+        file : string
+            file name and location for output
+        attrList : list
+            list of strings, corrisponding to HPWHsizer object, that are desired for output
+        '''
         for field in attrList:
             var = getattr(self, field);
             if isinstance(var, np.ndarray):
@@ -321,7 +436,14 @@ class HPWHSizer:
                 file.write( field + ', ' + str(var) + '\n');
                       
     def writeOutput(self, fileName):  
-        """Writes the output to a file with file name filename."""
+        """Writes the output to a file with file name filename.
+        
+        
+        Paramters
+        ---------
+        fileName : string
+            filepath for outputs to be written
+        """
         varListOut = ['totalHWLoad','offTime', 'primaryHeatingRate',
                       'primaryHeatCap','primaryVol', 'TMCap', 'TMVol'];
         
