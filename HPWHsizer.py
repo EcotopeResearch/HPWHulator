@@ -1,13 +1,7 @@
- # -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 13 09:07:05 2020
-
-@author: paul
-"""
 
 import numpy as np;
 
-class HPWHSizer:
+class HPWHsizer:
     rhoCp = 8.353535;
     W_TO_BTUHR = 3.412142;
     W_TO_BTUMIN = W_TO_BTUHR/60;

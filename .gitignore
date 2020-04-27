@@ -9,6 +9,9 @@ __pycache__/
 # Distribution / packaging
 tests/output/*
 
+# don't ignore keep files
+!.gitkeep
+
 .Python
 build/
 develop-eggs/

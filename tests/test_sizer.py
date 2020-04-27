@@ -3,7 +3,7 @@ import pytest
 import filecmp
 import numpy as np
 import os
-import HPWHSizer
+import HPWHsizer
 
 
 def file_regression(fileRef, fileResults):
@@ -12,12 +12,12 @@ def file_regression(fileRef, fileResults):
 @pytest.fixture
 def empty_sizer():
     '''Returns a HPWHsizer instance initialized to zeros'''
-    return HPWHSizer.HPWHSizer()
+    return HPWHsizer.HPWHsizer()
 
 @pytest.fixture
 def units_sizer():
     '''Returns a HPWHsizer instance initialized to with by units'''
-    hpwh = HPWHSizer.HPWHSizer()
+    hpwh = HPWHsizer.HPWHsizer()
     hpwh.initByUnits( [50,50,50,50,0,0], [1.374,1.74,2.567,3.109,4.225,3.769], 20, 
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
@@ -29,7 +29,7 @@ def units_sizer():
 @pytest.fixture
 def people_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
-    hpwh = HPWHSizer.HPWHSizer()
+    hpwh = HPWHsizer.HPWHsizer()
     hpwh.initByPeople(100, 22., 
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
