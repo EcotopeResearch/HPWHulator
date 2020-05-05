@@ -22,8 +22,9 @@ def units_sizer():
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150, 16, 0, 0.8, .33, .9,'tempmaint')
-    hpwh.setTMVars(16, 135, 100., 115., 0);
+                    120, 50, 150, 16, 0, 0.8, .33, .9,
+                    'tempmaint',True, 
+                    100., 115., 0. )
     return hpwh;
 
 @pytest.fixture
@@ -34,79 +35,82 @@ def people_sizer():
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                        0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150., 18., 0, .8, .3,.9, "swingtank", 36);
-    hpwh.setSwingVars(122., 100.);
+                    120, 50, 150., 18., 0, .8, .3,.9, 
+                    "swingtank", True, 36,
+                    100., 115., 0.);
     return hpwh;
 # End of fixtures
 
 # Start of tests
 
 #Init Tests
-def test_default_initial_amount(empty_sizer):
-    assert (empty_sizer.nBR             == np.zeros(6)).all()
-    assert (empty_sizer.rBR             == np.zeros(6)).all()
-    assert empty_sizer.nPeople          == 0.; # Nnumber of people
-    assert empty_sizer.gpdpp            == 0.; # Gallons per day per person
-    assert (empty_sizer.loadShapeNorm   == np.zeros(24)).all(); # The normalized load shape
-    assert empty_sizer.supplyT          == 0.; # The supply temperature to the occupants
-    assert empty_sizer.incomingT        == 0.; # The incoming cold water temperature for the city
-    assert empty_sizer.storageT         == 0.; # The primary hot water storage temperature 
-    assert empty_sizer.compRuntime      == 0.; # The runtime?
-    assert empty_sizer.metered          == 0; # If the building as individual metering on the apartment or not
-    assert empty_sizer.percentUseable   == 0; #The  percent of useable storage
-    assert empty_sizer.aquaFract        == 0.; # The aquastat fraction
-    assert empty_sizer.defrostFactor    == 1.; # The defrost factor. Derates the output power for defrost cycles.
+def test_default_init(empty_sizer):
+    assert (empty_sizer.translate.nBR             == np.zeros(6)).all()
+    assert (empty_sizer.translate.rBR             == np.zeros(6)).all()
+    assert empty_sizer.translate.nPeople          == 0.; # Nnumber of people
+    assert empty_sizer.translate.gpdpp            == 0.; # Gallons per day per person
+    assert (empty_sizer.translate.loadShapeNorm   == np.zeros(24)).all(); # The normalized load shape
+    assert empty_sizer.translate.supplyT          == 0.; # The supply temperature to the occupants
+    assert empty_sizer.translate.incomingT        == 0.; # The incoming cold water temperature for the city
+    assert empty_sizer.translate.storageT         == 0.; # The primary hot water storage temperature 
+    assert empty_sizer.translate.compRuntime      == 0.; # The runtime?
+    assert empty_sizer.translate.metered          == 0; # If the building as individual metering on the apartment or not
+    assert empty_sizer.translate.percentUseable   == 0; #The  percent of useable storage
+    assert empty_sizer.translate.aquaFract        == 0.; # The aquastat fraction
+    assert empty_sizer.translate.defrostFactor    == 1.; # The defrost factor. Derates the output power for defrost cycles.
+    assert empty_sizer.translate.totalHWLoad      == 0;
 
-    assert empty_sizer.schematic        == ""; # The schematic for sizing maybe just primary maybe with temperature maintenance.
-    assert empty_sizer.swingOnT         == 0.; # The temperature the swing tank turns on at
-    assert empty_sizer.nApt             == 0.; # The number of apartments
-    assert empty_sizer.Wapt             == 0.; # The recirculation loop losses in terms of W/apt
-    assert empty_sizer.TMRuntime        == 0.; # The temperature maintenance minimum runtime.
-    assert empty_sizer.UAFudge          == 0.;
-    assert empty_sizer.totalHWLoad      == 0.;
-    assert empty_sizer.offTime          == 0.;
-    assert empty_sizer.Wapt             == 0.;
-    assert empty_sizer.returnT          == 0.;
-    assert empty_sizer.fdotRecirc       == 0.;
+    assert empty_sizer.translate.schematic        == ""; # The schematic for sizing maybe just primary maybe with temperature maintenance.
+    assert empty_sizer.translate.TMonTemp         == 0.; # The temperature the swing tank turns on at
+    assert empty_sizer.translate.nApt             == 0.; # The number of apartments
+    assert empty_sizer.translate.Wapt             == 0.; # The recirculation loop losses in terms of W/apt
+    assert empty_sizer.translate.TMRuntime        == 0.; # The temperature maintenance minimum runtime.
+    assert empty_sizer.translate.UAFudge          == 0.;
+    assert empty_sizer.translate.offTime          == 0.;
+    assert empty_sizer.translate.Wapt             == 0.;
+    assert empty_sizer.translate.returnT          == 0.;
+    assert empty_sizer.translate.fdotRecirc       == 0.;
     
     with pytest.raises(Exception):
         assert empty_sizer.sizeSystem();
-        assert empty_sizer.sizePrimaryTankVolume(-10)
-        assert empty_sizer.sizePrimaryTankVolume(100)
+        assert empty_sizer.primarySystem.sizeVol_Cap();
+        assert empty_sizer.primarySystem.sizePrimaryTankVolume(-10)
+        assert empty_sizer.primarySystem.sizePrimaryTankVolume(100)
 
 def test_initByPeople(people_sizer):
     with pytest.raises(Exception):
-        assert people_sizer.sizePrimaryTankVolume(-10)
-        assert people_sizer.sizePrimaryTankVolume(100)
+        assert people_sizer.sizeSystem();
+    people_sizer.buildSystem();
     people_sizer.sizeSystem();
-    people_sizer.writeOutput("tests/output/people_sizer.txt");
+    with pytest.raises(Exception):
+        assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
+        assert people_sizer.primarySystem.sizePrimaryTankVolume(100)
+        
+    people_sizer.writeToFile("tests/output/people_sizer.txt");
     assert file_regression("tests/ref/people_sizer.txt", 
                            "tests/output/people_sizer.txt");
     
 def test_initByUnits(units_sizer):
     with pytest.raises(Exception):
+        assert units_sizer.sizeSystem();
+    units_sizer.buildSystem();
+    units_sizer.sizeSystem();
+    with pytest.raises(Exception):
         assert units_sizer.sizePrimaryTankVolume(-10)
         assert units_sizer.sizePrimaryTankVolume(100)
-    units_sizer.sizeSystem();
-    units_sizer.writeOutput("tests/output/units_sizer.txt");
+    units_sizer.writeToFile("tests/output/units_sizer.txt");
     assert file_regression("tests/ref/units_sizer.txt", 
                            "tests/output/units_sizer.txt");
 
-# Function tests
-@pytest.mark.parametrize("hrs", [
-    20, 16, 12
-])
-def test_primaryHeatHrs2kBTUHR(empty_sizer, hrs):
-    assert empty_sizer.primaryHeatHrs2kBTUHR(hrs) == 0.;
-    with pytest.raises(Exception):
-        assert units_sizer.sizePrimaryTankVolume(-hrs)
+
 
 @pytest.mark.parametrize("arr, expected", [
     ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]), 
     ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11])
 ])
-def test_getPeakIndices(empty_sizer, arr, expected):
-    assert all(empty_sizer.getPeakIndices(arr) == expected);
+def test_getPeakIndices(units_sizer, arr, expected):
+    units_sizer.buildSystem();
+    assert all(units_sizer.primarySystem.getPeakIndices(arr) == expected);
 
 @pytest.mark.parametrize("Wapt, returnT, fdotRecirc", [
     (99.15126, 117, 45), 
@@ -115,21 +119,20 @@ def test_getPeakIndices(empty_sizer, arr, expected):
 ])
 def test_setRecircVars(units_sizer, Wapt, returnT, fdotRecirc):
     tol = 1e-4;
-    units_sizer.setRecircVars(0, returnT, fdotRecirc)
-    assert abs(units_sizer.Wapt - Wapt) < tol;
-    units_sizer.setRecircVars(Wapt, 0, fdotRecirc)   
-    assert abs(units_sizer.returnT - returnT) < tol;
-    units_sizer.setRecircVars(Wapt, returnT, 0)      
-    assert abs(units_sizer.fdotRecirc - fdotRecirc) < tol;
+    units_sizer.translate.setRecircVars(0, returnT, fdotRecirc)
+    assert abs(units_sizer.translate.Wapt - Wapt) < tol;
+    units_sizer.translate.setRecircVars(Wapt, 0, fdotRecirc)   
+    assert abs(units_sizer.translate.returnT - returnT) < tol;
+    units_sizer.translate.setRecircVars(Wapt, returnT, 0)      
+    assert abs(units_sizer.translate.fdotRecirc - fdotRecirc) < tol;
     
     with pytest.raises(Exception):
-        assert units_sizer.setRecircVars(0, returnT, 0)
-        assert units_sizer.setRecircVars(-Wapt, -returnT, 0)
-        assert units_sizer.setRecircVars(Wapt, units_sizer.supplyTemp, 0)
-        assert units_sizer.setRecircVars(Wapt, units_sizer.supplyTemp+10, 0)
+        assert units_sizer.translate.setRecircVars(0, returnT, 0)
+        assert units_sizer.translate.setRecircVars(-Wapt, -returnT, 0)
+        assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp, 0)
+        assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp+10, 0)
 
 
-    
 # File tests!
 @pytest.mark.parametrize("file1", [
     "tests/test_60UnitSwing.txt",
@@ -137,8 +140,9 @@ def test_setRecircVars(units_sizer, Wapt, returnT, fdotRecirc):
 ])
 def test_hpwh_from_file(empty_sizer, file1):
     empty_sizer.initializeFromFile(file1);
+    empty_sizer.buildSystem();
     empty_sizer.sizeSystem();
-    empty_sizer.writeOutput("tests/output/"+os.path.basename(file1));
+    empty_sizer.writeToFile("tests/output/"+os.path.basename(file1));
     
     assert file_regression("tests/ref/"+os.path.basename(file1), 
                            "tests/output/"+os.path.basename(file1));

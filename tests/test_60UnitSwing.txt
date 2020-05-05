@@ -8,7 +8,7 @@ compRuntime 16
 metered 0
 percentUseable 80
 schematic swingtank
-swingOnT 122
+TMonTemp 122
 nApt 60
 Wapt 90
 aquaFract 0.3

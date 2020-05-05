@@ -1,32 +1,29 @@
-OUTPUTS
+primarySystem:
+
 totalHWLoad, 7040.000 
-offTime, 3
-primaryHeatingRate, 440.000 
-primaryHeatCap, 449.235 
-primaryVol, 548.571 
-TMCap, 95.199 
-TMVol, 506.499 
+loadShapeNorm, [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,0.082,0.067,0.04 ,0.034,0.034,0.029,0.027,0.029,0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038]
+incomingT, 40.000 
+storageT, 150.000 
+supplyT, 120.000 
+defrostFactor, 0.900 
+percentUseable, 0.800 
+aquaFract, 0.300 
+compRuntime, 16.000 
+PCap, 449.235 
+PVol, 548.571 
+runningVol, 0.060 
+heatingRate, 0
 primaryCurve_vol, [548.57,474.94,396.4 ,330.34,262.89,190.97,138.96, 82.81, 33.85,  0.79]
 primaryCurve_heatCap, [449.23,463.71,479.14,495.64,513.32,532.3 ,552.74,574.81,598.72,624.71]
 
-INPUTS
-nPeople, 320.000 
-gpdpp, 22.000 
-loadShapeNorm, [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,0.082,0.067,0.04 ,0.034,0.034,0.029,0.027,0.029,0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038]
-storageT, 150.000 
-supplyT, 120.000 
-incomingT, 40.000 
-compRuntime, 16.000 
-metered, 0
-percentUseable, 0.800 
-aquaFract, 0.300 
-defrostFactor, 0.900 
+temperatureMaintenanceSystem:
 schematic, tempmaint
 nApt, 200.000 
 Wapt, 90.000 
-returnT, 115.000 
-fdotRecirc, 24.508 
 UAFudge, 3
-swingOnT, 122.000 
+flushTime, 0.500 
+TMRuntime, 1.000 
 setpointTM, 130.000 
-TMRuntime, 16.000 
+TMonTemp, 122.000 
+TMCap, 95198.762 
+TMVol, 474.843 
