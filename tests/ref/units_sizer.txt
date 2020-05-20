@@ -3,16 +3,16 @@ primarySystem:
 totalHWLoad, 8790.000 
 loadShapeNorm, [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,0.082,0.067,0.04 ,0.034,0.034,0.029,0.027,0.029,0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038]
 nPeople, 439.500 
-incomingT, 50
-storageT, 150
-supplyT, 120
+incomingT_F, 50
+storageT_F, 150
+supplyT_F, 120
 defrostFactor, 0.900 
 percentUseable, 0.800 
-compRuntime, 16
+compRuntime_hr, 16
 PCap, 509.914 
-PVol, 669.780 
-runningVol, 527.400 
-cyclingVol, 238.062 
+PVol_G_atStorageT, 669.780 
+runningVol_G, 527.400 
+cyclingVol_G, 238.062 
 aquaFract, 0.449 
 primaryCurve_vol, [669.78,623.32,573.77,535.85,498.03,457.84,435.96,412.34,396.74,396.74]
 primaryCurve_heatCap, [509.91,526.34,543.86,562.59,582.65,604.2 ,627.4 ,652.46,679.6 ,709.09]
@@ -20,11 +20,11 @@ primaryCurve_heatCap, [509.91,526.34,543.86,562.59,582.65,604.2 ,627.4 ,652.46,6
 temperatureMaintenanceSystem:
 schematic, tempmaint
 nApt, 200
-Wapt, 100.000 
+Wapt, 0.000 
 UAFudge, 3
-offTime, 0.500 
-TMRuntime, 1.000 
-setpointTM, 135
-TMonTemp, 115.000 
-TMCap, 105435.188 
-TMVol, 210.360 
+offTime_hr, 0.500 
+TMRuntime_hr, 1.000 
+setpointTM_F, 135
+TMonTemp_F, 0.000 
+TMCap, 3070.928 
+TMVol_G_atStorageT, 0.908 

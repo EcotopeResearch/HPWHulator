@@ -50,25 +50,25 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.nPeople          == 0.; # Nnumber of people
     assert empty_sizer.translate.gpdpp            == 0.; # Gallons per day per person
     assert (empty_sizer.translate.loadShapeNorm   == np.zeros(24)).all(); # The normalized load shape
-    assert empty_sizer.translate.supplyT          == 0.; # The supply temperature to the occupants
-    assert empty_sizer.translate.incomingT        == 0.; # The incoming cold water temperature for the city
-    assert empty_sizer.translate.storageT         == 0.; # The primary hot water storage temperature 
-    assert empty_sizer.translate.compRuntime      == 0.; # The runtime?
+    assert empty_sizer.translate.supplyT_F        == 0.; # The supply temperature to the occupants
+    assert empty_sizer.translate.incomingT_F      == 0.; # The incoming cold water temperature for the city
+    assert empty_sizer.translate.storageT_F       == 0.; # The primary hot water storage temperature 
+    assert empty_sizer.translate.compRuntime_hr   == 0.; # The runtime?
     assert empty_sizer.translate.metered          == 0; # If the building as individual metering on the apartment or not
     assert empty_sizer.translate.percentUseable   == 0; #The  percent of useable storage
     assert empty_sizer.translate.defrostFactor    == 1.; # The defrost factor. Derates the output power for defrost cycles.
-    assert empty_sizer.translate.totalHWLoad      == 0;
+    assert empty_sizer.translate.totalHWLoad_G    == 0;
 
     assert empty_sizer.translate.schematic        == ""; # The schematic for sizing maybe just primary maybe with temperature maintenance.
-    assert empty_sizer.translate.TMonTemp         == 0.; # The temperature the swing tank turns on at
+    assert empty_sizer.translate.TMonTemp_F       == 0.; # The temperature the swing tank turns on at
     assert empty_sizer.translate.nApt             == 0.; # The number of apartments
     assert empty_sizer.translate.Wapt             == 0.; # The recirculation loop losses in terms of W/apt
-    assert empty_sizer.translate.TMRuntime        == 0.; # The temperature maintenance minimum runtime.
+    assert empty_sizer.translate.TMRuntime_hr     == 0.; # The temperature maintenance minimum runtime.
     assert empty_sizer.translate.UAFudge          == 0.;
-    assert empty_sizer.translate.offTime          == 0.;
+    assert empty_sizer.translate.offTime_hr       == 0.;
     assert empty_sizer.translate.Wapt             == 0.;
-    assert empty_sizer.translate.returnT          == 0.;
-    assert empty_sizer.translate.fdotRecirc       == 0.;
+    assert empty_sizer.translate.returnT_F        == 0.;
+    assert empty_sizer.translate.fdotRecirc_gpm   == 0.;
     
     with pytest.raises(Exception):
         assert empty_sizer.sizeSystem();
@@ -94,9 +94,9 @@ def test_setRecircVars(units_sizer, Wapt, returnT, fdotRecirc):
     units_sizer.translate.setRecircVars(0, returnT, fdotRecirc)
     assert abs(units_sizer.translate.Wapt - Wapt) < tol;
     units_sizer.translate.setRecircVars(Wapt, 0, fdotRecirc)   
-    assert abs(units_sizer.translate.returnT - returnT) < tol;
+    assert abs(units_sizer.translate.returnT_F - returnT) < tol;
     units_sizer.translate.setRecircVars(Wapt, returnT, 0)      
-    assert abs(units_sizer.translate.fdotRecirc - fdotRecirc) < tol;
+    assert abs(units_sizer.translate.fdotRecirc_gpm - fdotRecirc) < tol;
     
     with pytest.raises(Exception):
         assert units_sizer.translate.setRecircVars(0, returnT, 0)
@@ -104,6 +104,7 @@ def test_setRecircVars(units_sizer, Wapt, returnT, fdotRecirc):
         assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp, 0)
         assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp+10, 0)
 
+# Full model and file tests!
 def test_initByPeople(people_sizer):
     with pytest.raises(Exception):
         assert people_sizer.sizeSystem();
@@ -128,9 +129,7 @@ def test_initByUnits(units_sizer):
     units_sizer.writeToFile("tests/output/units_sizer.txt");
     assert file_regression("tests/ref/units_sizer.txt", 
                            "tests/output/units_sizer.txt");
-    
 
-# File tests!
 @pytest.mark.parametrize("file1", [
     "tests/test_60UnitSwing.txt",
     "tests/test_200UnitTM.txt"
