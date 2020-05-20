@@ -1,8 +1,7 @@
 
 import numpy as np;
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank; # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R;
-from cfg import rhoCp, W_TO_BTUHR, W_TO_BTUMIN
-
+from cfg import rhoCp, W_TO_BTUMIN
 
 ##############################################################################
 class HPWHsizerRead:
@@ -17,83 +16,78 @@ class HPWHsizerRead:
         self.nPeople        = 0.; # Nnumber of people
         self.gpdpp          = 0.; # Gallons per day per person
         self.loadShapeNorm  = np.zeros(24); # The normalized load shape
-        self.supplyT        = 0.; # The supply temperature to the occupants
-        self.incomingT      = 0.; # The incoming cold water temperature for the city
-        self.storageT       = 0.; # The primary hot water storage temperature 
-        self.compRuntime    = 0.; # The runtime?
+        self.supplyT_F      = 0.; # The supply temperature to the occupants
+        self.incomingT_F    = 0.; # The incoming cold water temperature for the city
+        self.storageT_F     = 0.; # The primary hot water storage temperature 
+        self.compRuntime_hr = 0.; # The runtime?
         self.metered        = 0; # If the building as individual metering on the apartment or not
         self.percentUseable = 0; # The  percent of useable storage
-        self.aquaFract      = 0.; # The aquastat fraction
         
         self.defrostFactor  = 1.; # The defrost factor. Derates the output power for defrost cycles.
-        self.totalHWLoad    = 0;
+        self.totalHWLoad_G  = 0;
 
         self.schematic      = ""; # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.nApt           = 0.; # The number of apartments
         self.Wapt           = 0.; # The recirculation loop losses in terms of W/apt
-        self.fdotRecirc     = 0.; # The reciculation loop flow rate (gpm)
-        self.returnT        = 0.; # The reciculation loop return temperature (F)
-        self.TMRuntime      = 0.; # The temperature maintenance minimum runtime.
-        self.setpointTM     = 0.; # The setpoint of the temperature maintenance tank.
-        self.TMonTemp       = 0.;
-        self.UAFudge        = 0.;
-        self.flushTime      = 0.;
-        self.offTime        = 0.;
+        self.fdotRecirc_gpm = 0.; # The reciculation loop flow rate (gpm)
+        self.returnT_F      = 0.; # The reciculation loop return temperature (F)
+        self.TMRuntime_hr   = 0.; # The temperature maintenance minimum runtime.
+        self.setpointTM_F   = 0.; # The setpoint of the temperature maintenance tank.
+        self.TMonTemp_F     = 0.; # The temperature the temperature maintenance heat pump or resistance element turns on
+        self.UAFudge        = 0.; # A fudge factor used to adjust loop losses.
+        self.offTime_hr     = 0.; # The numbers of hours the tempeature maintenence system is designed to be off for.
         
         self.singlePass     = True; # Single pass or multipass
         
-    def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
+    def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F, 
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor, 
                     schematic, singlePass,
-                    Wapt, returnT, fdotRecirc ):
+                    Wapt, returnT_F, fdotRecirc_gpm):
         self.nBR            = np.array(nBR); # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR); # Ratio of people bedrooms 0Br, 1Br...
         self.gpdpp          = gpdpp; # Gallons per day per person
         self.loadShapeNorm  = np.array(loadShapeNorm); # The normalized load shape
-        self.supplyT        = supplyT; # The supply temperature to the occupants
-        self.incomingT      = incomingT; # The incoming cold water temperature for the city
-        self.storageT       = storageT; # The primary hot water storage temperature 
-        self.compRuntime    = compRuntime; # The runtime?
+        self.supplyT_F      = supplyT_F; # The supply temperature to the occupants
+        self.incomingT_F    = incomingT_F; # The incoming cold water temperature for the city
+        self.storageT_F     = storageT_F; # The primary hot water storage temperature 
+        self.compRuntime_hr = compRuntime_hr; # The runtime?
         self.metered        = metered; # If the building as individual metering on the apartment or not
         self.percentUseable = percentUseable; #The  percent of useable storage
         
-        self.aquaFract      = aquaFract; # The aquastat fraction
         self.defrostFactor  = defrostFactor; # The defrost factor. Derates the output power for defrost cycles.
 
         self.schematic      = schematic; # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass; # Single pass or multipass
+        
         self.__checkInputs();
         self.__calcedVariables()
-        self.setRecircVars( Wapt, returnT, fdotRecirc );
         self.__defaultTM();
 
-    def initByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
+    def initByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F, 
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
                     schematic, singlePass, 
-                    nApt, Wapt, returnT, fdotRecirc ):
+                    nApt, Wapt, returnT_F, fdotRecirc_gpm):
         self.nPeople        = nPeople;
         self.gpdpp          = gpdpp; # Gallons per day per person
         self.loadShapeNorm  = np.array(loadShapeNorm); # The normalized load shape
-        self.supplyT        = supplyT; # The supply temperature to the occupants
-        self.incomingT      = incomingT; # The incoming cold water temperature for the city
-        self.storageT       = storageT; # The primary hot water storage temperature 
-        self.compRuntime    = compRuntime; # The runtime?
+        self.supplyT_F        = supplyT_F; # The supply temperature to the occupants
+        self.incomingT_F      = incomingT_F; # The incoming cold water temperature for the city
+        self.storageT_F       = storageT_F; # The primary hot water storage temperature 
+        self.compRuntime_hr    = compRuntime_hr; # The runtime?
         self.metered        = metered; # If the building as individual metering on the apartment or not
         self.percentUseable = percentUseable; #The  percent of useable storage
         
-        self.aquaFract      = aquaFract; # The aquastat fraction
         self.defrostFactor  = defrostFactor; # The defrost factor. Derates the output power for defrost cycles.
         self.schematic      = schematic; # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass; # Single pass or multipass
 
         self.nApt           = nApt;
-        
-        self.__checkInputs();
-        self.__calcedVariables();
-        self.setRecircVars( Wapt, returnT, fdotRecirc );
-        self.__defaultTM();
 
-    
+        self.__checkInputs();
+        self.setRecircVars( Wapt, returnT_F, fdotRecirc_gpm );
+        self.__calcedVariables();
+        self.__defaultTM();
+        
     def __checkInputs(self):
         """Checks inputs are all valid"""
         if len(self.loadShapeNorm) != 24 :
@@ -102,8 +96,6 @@ class HPWHsizerRead:
             raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')    
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for percentUseable.\n')    
-        if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for aquaFract.\n') 
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for defrostFactor.\n')  
     
@@ -116,30 +108,27 @@ class HPWHsizerRead:
         if self.nPeople == 0:
             self.nPeople = sum(self.nBR * self.rBR);
         
-        self.totalHWLoad = self.gpdpp * self.nPeople;
-        #self.totalLoadShape = self.loadShapeNorm * self.totalHWLoad;
+        self.totalHWLoad_G = self.gpdpp * self.nPeople;
         self.UAFudge = 3
-        #The overnight design for off time. 
-        self.offTime = sum(np.append(self.loadShapeNorm,self.loadShapeNorm)[22:36] < 1./48.) 
         
-    def setRecircVars(self, Wapt, returnT, fdotRecirc):
+    def setRecircVars(self, Wapt, returnT_F, fdotRecirc_gpm):
         """Takes the recirc variables and solves for one that's set to zero"""
-        if any(x < 0 for x in [Wapt, returnT, fdotRecirc]):
+        if any(x < 0 for x in [Wapt, returnT_F, fdotRecirc_gpm]):
             raise Exception("All recirculation variables must be postitive.")
-        if self.supplyT <= returnT:
+        if self.supplyT_F <= returnT_F:
             raise Exception("The return temperature is greater than the supply temperature! This sizer doesn't support heat trace on the recirculation loop")
         if Wapt == 0.:
-            self.Wapt       = rhoCp / self.nApt * fdotRecirc * (self.supplyT - returnT) / W_TO_BTUMIN;
-            self.returnT    = returnT;
-            self.fdotRecirc = fdotRecirc;
-        elif returnT == 0. and self.schematic == 'paralleltank':
+            self.Wapt       = rhoCp / self.nApt * fdotRecirc_gpm * (self.supplyT_F - returnT_F) / W_TO_BTUMIN;
+            self.returnT_F    = returnT_F;
+            self.fdotRecirc_gpm = fdotRecirc_gpm;
+        elif returnT_F == 0. and self.schematic == 'paralleltank':
             self.Wapt       = Wapt
-            self.returnT    = self.supplyT - Wapt * self.nApt *W_TO_BTUMIN / rhoCp / fdotRecirc;
-            self.fdotRecirc = fdotRecirc;
-        elif fdotRecirc == 0. and self.schematic == 'paralleltank':
+            self.returnT_F    = self.supplyT_F - Wapt * self.nApt *W_TO_BTUMIN / rhoCp / fdotRecirc_gpm;
+            self.fdotRecirc_gpm = fdotRecirc_gpm;
+        elif fdotRecirc_gpm == 0. and self.schematic == 'paralleltank':
             self.Wapt       = Wapt;
-            self.returnT    = returnT;
-            self.fdotRecirc = Wapt * self.nApt * W_TO_BTUMIN / rhoCp / (self.supplyT - returnT);
+            self.returnT_F    = returnT_F;
+            self.fdotRecirc_gpm = Wapt * self.nApt * W_TO_BTUMIN / rhoCp / (self.supplyT_F - returnT_F);
         elif self.schematic == 'paralleltank':
             raise Exception("In setting the recirculation variables for a temperature maintenance system one needs to be zero to solve for it.")
         elif self.schematic == 'swingtank':
@@ -151,24 +140,30 @@ class HPWHsizerRead:
     
     def __defaultTM(self):
         """Function to set the defualt variables of the temperature maintenance systems"""
+        
         if self.schematic == "paralleltank":
-            self.TMRuntime      = 1. if self.TMRuntime == 0 else self.TMRuntime; # The temperature maintenance minimum runtime.
-            self.setpointTM     = 135 if self.setpointTM == 0 else self.setpointTM; # The setpoint of the temperature maintenance tank.
-            self.TMonTemp       = self.returnT if self.TMonTemp == 0 else self.TMonTemp;
-            self.flushTime      = 0.5 if self.flushTime == 0 else self.flushTime;
+            self.TMRuntime_hr     = 1. if self.TMRuntime_hr == 0 else self.TMRuntime_hr; # The temperature maintenance minimum runtime.
+            self.setpointTM_F     = 135 if self.setpointTM_F == 0 else self.setpointTM_F; # The setpoint of the temperature maintenance tank.
+            self.TMonTemp_F       = self.returnT_F if self.TMonTemp_F == 0 else self.TMonTemp_F;
+            self.offTime_hr       = 0.5 if self.offTime_hr == 0 else self.offTime_hr;
         if self.schematic == "swingtank":
-            self.TMonTemp       = self.supplyT + 2. if self.TMonTemp == 0 else self.TMonTemp;
-    
-    def setTMVars(self, TMRuntime, setpointTM,):
+            self.TMonTemp_F       = self.supplyT_F + 2. if self.TMonTemp_F == 0 else self.TMonTemp_F;
+            #The overnight design for off time. 
+            if self.offTime_hr == 0:
+                self.offTime_hr = sum(np.append(self.loadShapeNorm,self.loadShapeNorm)[22:36] < 1./48.) 
+                    
+    def setTMVars(self, TMonTemp_F, setpointTM_F, offTime_hr, TMRuntime_hr):
         if self.schematic != "paralleltank":
             raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the temperature maintenance sizing init")
-        self.TMRuntime = TMRuntime;
-        self.setpointTM = setpointTM;
+        self.TMRuntime_hr = TMRuntime_hr;
+        self.offTime_hr = offTime_hr;
+        self.setpointTM_F = setpointTM_F;
+        self.TMonTemp_F = TMonTemp_F;
     
-    def setSwingVars(self, swingOnT):
+    def setSwingVars(self, TMonTemp_F):
         if self.schematic != "swingtank":
             raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the swing tank sizing init")
-        self.TMonTemp = swingOnT;
+        self.TMonTemp_F = TMonTemp_F;
         
 # Helper Functions for reading and writing files 
     def __importArrLine(self, line, setLength):
@@ -186,7 +181,7 @@ class HPWHsizerRead:
     def initializeFromFile(self, fileName):
         """"Read in a formated file with filename"""
         
-        Wapt = 0.; returnT = 0.; fdotRecirc = 0.;
+        Wapt = 0.; returnT_F = 0.; fdotRecirc_gpm = 0.;
         # Using readlines() 
         file1 = open(fileName, 'r');
         fileLines = file1.read().splitlines();     
@@ -204,14 +199,14 @@ class HPWHsizerRead:
                 self.gpdpp      = float(temp[1]);
             elif temp[0] == "loadshapenorm":
                 self.loadShapeNorm  = self.__importArrLine(temp, 25);
-            elif temp[0] == "supplyt":
-                self.supplyT    = float(temp[1]);
-            elif temp[0] == "incomingt":
-                self.incomingT  = float(temp[1]);
-            elif temp[0] == "storaget":
-                self.storageT   = float(temp[1]);
-            elif temp[0] == "compruntime":
-                self.compRuntime  = float(temp[1]);
+            elif temp[0] == "supplyt_f":
+                self.supplyT_F    = float(temp[1]);
+            elif temp[0] == "incomingt_f":
+                self.incomingT_F  = float(temp[1]);
+            elif temp[0] == "storaget_f":
+                self.storageT_F   = float(temp[1]);
+            elif temp[0] == "compruntime_hr":
+                self.compRuntime_hr  = float(temp[1]);
             elif temp[0] == "metered":
                 self.metered    =  int(temp[1]); # If the building as individual metering on the apartment or not
                 
@@ -220,11 +215,7 @@ class HPWHsizerRead:
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
                     temp[1] = temp[1]/100.
                 self.percentUseable = temp[1];#The  percent of useable storage
-            elif temp[0] == "aquafract":
-                temp[1] = float(temp[1])
-                if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
-                    temp[1] = temp[1]/100.
-                self.aquaFract = temp[1];
+            
             elif temp[0] == "defrostfactor":
                 temp[1] = float(temp[1])
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
@@ -236,25 +227,24 @@ class HPWHsizerRead:
             elif temp[0] == "singlepass":
                 self.singlePass  = temp[1] in ['true','1','t','y'];
                 
-            elif temp[0] == "swingont":
-                self.swingOnT  = temp[1];
-                
             elif temp[0] == "napt":
                 self.nApt       = float(temp[1]);
                 
-            elif temp[0] == "tmruntime":
-                self.TMRuntime  = float(temp[1]);
-            elif temp[0] == "setpointtm":
-                self.setpointTM  = float(temp[1]);
-            elif temp[0] == "tmontemp":
-                self.TMonTemp   = float(temp[1]);
-                
+            elif temp[0] == "tmruntime_hr":
+                self.TMRuntime_hr  = float(temp[1]);
+            elif temp[0] == "setpointtm_f":
+                self.setpointTM_F  = float(temp[1]);
+            elif temp[0] == "tmontemp_f":
+                self.TMonTemp_F   = float(temp[1]);
+            elif temp[0] == "offtime_hr":
+                self.offTime_hr   = float(temp[1]);
+
             elif temp[0] == "wapt":
                 Wapt      = float(temp[1]);
-            elif temp[0] == "returnt":    
-                returnT      = float(temp[1]);
-            elif temp[0] == "fdotrecirc":    
-                fdotRecirc      = float(temp[1]);
+            elif temp[0] == "returnt_f":    
+                returnT_F      = float(temp[1]);
+            elif temp[0] == "fdotRecirc_gpm":    
+                fdotRecirc_gpm      = float(temp[1]);
             else:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.    
@@ -262,7 +252,7 @@ class HPWHsizerRead:
         self.__checkInputs();
         self.__calcedVariables()
         if self.schematic == 'paralleltank':
-            self.setRecircVars(Wapt, returnT, fdotRecirc)
+            self.setRecircVars(Wapt, returnT_F, fdotRecirc_gpm)
         elif self.schematic == 'swingtank':
             self.Wapt = Wapt;
         self.__defaultTM();
@@ -310,37 +300,38 @@ class HPWHsizer:
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName);
     
-    def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
+    def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F, 
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor, 
                     schematic, singlePass,
-                    Wapt, returnT, fdotRecirc ):
-        self.translate.initByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
+                    Wapt, returnT_F, fdotRecirc_gpm):
+        self.translate.initByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F, 
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor, 
                     schematic, singlePass,
-                    Wapt, returnT, fdotRecirc )
-    
-    def initByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
-                    schematic, singlePass,
-                    nApt, Wapt, returnT, fdotRecirc):
-        self.translate.initByPeople(nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
-                    schematic, singlePass,
-                    nApt, Wapt, returnT, fdotRecirc );
+                    Wapt, returnT_F, fdotRecirc_gpm)
 
+    def initByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F, 
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    schematic, singlePass,
+                    nApt, Wapt, returnT_F, fdotRecirc_gpm):
+        
+        self.translate.initByPeople(nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F, 
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    schematic, singlePass,
+                    nApt, Wapt, returnT_F, fdotRecirc_gpm );
+            
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
         if self.translate.singlePass:
-            self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad, 
+            self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G, 
                                                  self.translate.loadShapeNorm, 
-                                                 self.translate.incomingT, 
-                                                 self.translate.supplyT, 
-                                                 self.translate.storageT,
+                                                 self.translate.nPeople,
+                                                 self.translate.incomingT_F, 
+                                                 self.translate.supplyT_F, 
+                                                 self.translate.storageT_F,
                                                  self.translate.defrostFactor, 
                                                  self.translate.percentUseable,
-                                                 self.translate.aquaFract,
-                                                 self.translate.compRuntime);
-                            
+                                                 self.translate.compRuntime_hr);
+                 
         # Multipass world: will have multipass no recirc, multipass with recirc, and multipass with trim tank.
         elif not self.translate.singlePass:     
             # Multipass systems not yet supported
@@ -352,21 +343,22 @@ class HPWHsizer:
             self.paralleltankSystem = ParallelLoopTank(self.translate.nApt,  
                                      self.translate.Wapt,  
                                      self.translate.UAFudge, 
-                                     self.translate.flushTime, 
-                                     self.translate.TMRuntime, 
-                                     self.translate.setpointTM, 
-                                     self.translate.TMonTemp);
+                                     self.translate.offTime_hr, 
+                                     self.translate.TMRuntime_hr, 
+                                     self.translate.setpointTM_F, 
+                                     self.translate.TMonTemp_F);
         elif self.translate.schematic == "swingtank":
             self.paralleltankSystem = SwingTank(self.translate.nApt, 
-                                     self.translate.storageT, 
+                                     self.translate.storageT_F, 
                                      self.translate.Wapt, 
                                      self.translate.UAFudge,
-                                     self.translate.offTime, 
-                                     self.translate.TMonTemp);
+                                     self.translate.offTime_hr, 
+                                     self.translate.TMonTemp_F);
         elif self.translate.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else: 
             raise Exception ("Invalid schematic set up: " + self.translate.schematic)
+            
         if self.primarySystem != 0:    
             self.validbuild = True;
         

@@ -13,28 +13,29 @@ from cfg import rhoCp, W_TO_BTUHR
 class PrimarySystem_SP:
     """ Sizes the primary single pass system"""
    
-    def __init__(self, totalHWLoad, loadShapeNorm, 
-                 incomingT, supplyT, storageT,
-                 defrostFactor, percentUseable, aquaFract,
-                 compRuntime):
+    def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
+                 incomingT_F, supplyT_F, storageT_F,
+                 defrostFactor, percentUseable,
+                 compRuntime_hr):
         """Initialize the sizer object with the inputs"""
         self.totalHWLoad    = totalHWLoad;
         self.loadShapeNorm  = loadShapeNorm;
-
-        self.incomingT      = incomingT;
-        self.storageT       = storageT;
-        self.supplyT        = supplyT;
+        self.nPeople        = nPeople;
+        
+        self.incomingT_F      = incomingT_F;
+        self.storageT_F       = storageT_F;
+        self.supplyT_F        = supplyT_F;
     
         self.defrostFactor  = defrostFactor;
         self.percentUseable = percentUseable;
-        self.aquaFract      = aquaFract;
-        self.compRuntime    = compRuntime;
+        self.compRuntime_hr    = compRuntime_hr;
 
         # Outputs
-        self.PCap           = 0; #kBTU/Hr
-        self.PVol           = 0; # Gallons
-        self.runningVol     = 0;
-        self.heatingRate    = 0;
+        self.PCap              = 0.; #kBTU/Hr
+        self.PVol_G_atStorageT = 0.; # Gallons
+        self.runningVol_G      = 0.; # Gallons
+        self.cyclingVol_G      = 0.; # Gallons
+        self.aquaFract         = 0.; #Fraction
         
     def getPeakIndices(self,diff1):
           """Returns an array that gives the indices when the array diff goes from positive to negative"""
@@ -51,7 +52,7 @@ class PrimarySystem_SP:
                 raise Exception("Heat hours is not within 1 - 24 hours")
                 
         heatCap = self.totalHWLoad / heathours * rhoCp * \
-            (self.storageT - self.incomingT) / self.defrostFactor /1000.;
+            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000.;
         return heatCap;
     
     def sizePrimaryTankVolume(self, heatHrs):
@@ -59,6 +60,7 @@ class PrimarySystem_SP:
         diffN = 1/heatHrs - np.append(self.loadShapeNorm,self.loadShapeNorm);         
         diffInd = self.getPeakIndices(diffN[0:23]); #Days repeat so just get first day!
         
+        # Get the running volume #############################################
         runVolTemp = 0;
         if len(diffInd) == 0:
             raise Exception("The heating rate is greater than the peak volume the system is oversized!")
@@ -66,16 +68,27 @@ class PrimarySystem_SP:
             for peakInd in diffInd:
                 diffCum = np.cumsum(diffN[peakInd:]); #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])); #Minimum value less than 0 or 0.
-        self.runningVol = runVolTemp;
+        self.runningVol_G = runVolTemp * self.totalHWLoad;
         
-        # Find total volume
-        totalVol = self.runningVol / (1-self.aquaFract) / self.percentUseable;
-        return totalVol * self.totalHWLoad * (self.supplyT - self.incomingT) / \
-            (self.storageT - self.incomingT);
-     
+        # Get the Cycling Volume #############################################
+        averageGPDPP    = 17.; # Hard coded average draw rate
+        avg_runtime     = 1.; # Hard coded average runtime for HPWH
+        self.cyclingVol_G = avg_runtime * (self.totalHWLoad / heatHrs - averageGPDPP/24. * self.nPeople); # (generation rate - average background draw)
+        
+        # Get the total volume ###############################################
+        totalVol = ( self.runningVol_G + self.cyclingVol_G ) / self.percentUseable;
+        
+        # Get the aquastat fraction from independently solved for cycling vol
+        # and running vol.
+        self.aquaFract =  1 - self.runningVol_G / totalVol;
+
+        # Return the temperature adjusted total volume #######################
+        return totalVol * (self.supplyT_F - self.incomingT_F) / \
+            (self.storageT_F - self.incomingT_F);
+            
     def primaryCurve(self):
         """"Size the primary system curve"""
-        heatHours = np.linspace(self.compRuntime, 1/max(self.loadShapeNorm)*1.001, 10);
+        heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10);
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)): 
             volN[ii] = self.sizePrimaryTankVolume(heatHours[ii]);
@@ -83,18 +96,23 @@ class PrimarySystem_SP:
          
     def sizeVol_Cap(self):
         """ Sizes the volume in gallons and heat capactiy in BTU/hr"""
-        self.PVol = self.sizePrimaryTankVolume(self.compRuntime);
+        self.PVol_G_atStorageT = self.sizePrimaryTankVolume(self.compRuntime_hr);
+        self.PCap = self.primaryHeatHrs2kBTUHR(self.compRuntime_hr);
+     
+    def getSizingResults(self):
+        """Returns the results of the primary sizer"""
+        if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
+            raise Exception("The system hasn't been sized yet!")
         
-        self.PCap = self.primaryHeatHrs2kBTUHR(self.compRuntime);
-        return [ self.PVol,  self.PCap ];
+        return [ self.PVol_G_atStorageT,  self.PCap, self.aquaFract ];
     
 ##############################################################################
 class PrimarySystem_MP_NR:    
     """ Sizes primary multipass HPWH system with NO recirculation loop """
     def __init__(self, totalHWLoad, loadShapeNorm, 
-                 incomingT, supplyT, storageT,
+                 incomingT_F, supplyT_F, storageT_F,
                  defrostFactor, percentUseable, aquaFract,
-                 compRuntime):
+                 compRuntime_hr):
         pass
 
 ##############################################################################
@@ -109,58 +127,58 @@ class PrimarySystem_MP_R:
 class ParallelLoopTank:
     """ Sizes a temperature maintenance tank  """ 
     
-    def __init__(self, nApt, Wapt, UAFudge, flushTime, TMRuntime, setpointTM, TMonTemp):
+    def __init__(self, nApt, Wapt, UAFudge, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt; 
         
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt; # W/ apartment
         self.UAFudge    = UAFudge;
-        self.flushTime  = flushTime; # Hour
-        self.TMRuntime  = TMRuntime;
-        self.setpointTM = setpointTM;
-        self.TMonTemp    = TMonTemp;
+        self.offTime_hr  = offTime_hr; # Hour
+        self.TMRuntime_hr  = TMRuntime_hr;
+        self.setpointTM_F = setpointTM_F;
+        self.TMonTemp_F    = TMonTemp_F;
         # Outputs:
         self.TMCap = 0; #kBTU/Hr
-        self.TMVol = 0; # Gallons
+        self.TMVol_G_atStorageT = 0; # Gallons
         
     def sizeVol_Cap(self):
         """ Sizes the volume in gallons and heat capactiy in BTU/hr"""
-        self.TMVol =  (self.Wapt + self.UAFudge) * self.nApt / rhoCp * \
-            W_TO_BTUHR * self.flushTime / (self.setpointTM - self.TMonTemp);
+        self.TMVol_G_atStorageT =  (self.Wapt + self.UAFudge) * self.nApt / rhoCp * \
+            W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F);
             
-        self.TMCap =  rhoCp * self.TMVol * (self.setpointTM - self.TMonTemp) * \
-            (1./self.TMRuntime + 1./self.flushTime);
-        return [ self.TMVol, self.TMCap ];
+        self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
+            (1./self.TMRuntime_hr + 1./self.offTime_hr);
+        return [ self.TMVol_G_atStorageT, self.TMCap ];
 ##############################################################################
 class SwingTank:
     """ Sizes a swing tank  """    
 
-    def __init__(self, nApt, storageT, Wapt, UAFudge, offTime, TMonTemp):
+    def __init__(self, nApt, storageT_F, Wapt, UAFudge, offTime_hr, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt; 
-        self.storageT   = storageT; # deg F
+        self.storageT_F   = storageT_F; # deg F
         
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt; # W/ apartment
         self.UAFudge    = UAFudge;
-        self.offTime    = offTime; # Hour
-        self.TMonTemp   = TMonTemp; # deg F
+        self.offTime_hr    = offTime_hr; # Hour
+        self.TMonTemp_F   = TMonTemp_F; # deg F
 
         # Outputs:
         self.TMCap      = 0; #kBTU/Hr
-        self.TMVol      = 0; # Gallons
-    
+        self.TMVol_G_atStorageT      = 0; # Gallons
+
         if self.Wapt == 0:
             raise Exception("Swing tank initialized with 0 W per apt heat loss")
             
     def sizeVol_Cap(self):
         """ Sizes the volume in gallons and heat capactiy in BTU/hr"""
-        self.TMVol = (self.Wapt + self.UAFudge) * self.nApt / rhoCp * \
-            W_TO_BTUHR * self.offTime / (self.storageT - self.TMonTemp);
+        self.TMVol_G_atStorageT = (self.Wapt + self.UAFudge) * self.nApt / rhoCp * \
+            W_TO_BTUHR * self.offTime_hr / (self.storageT_F - self.TMonTemp_F);
             
         self.TMCap = (self.Wapt + self.UAFudge) * self.nApt * W_TO_BTUHR / 1000.;  
-        return [ self.TMVol, self.TMCap ];
+        return [ self.TMVol_G_atStorageT, self.TMCap ];
          
 ##############################################################################
 class TrimTank:       
