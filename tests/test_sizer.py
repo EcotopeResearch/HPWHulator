@@ -22,7 +22,7 @@ def units_sizer():
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150, 16, 0, 0.8, .33, .9,
+                    120, 50, 150, 16, 0, 0.8, .9,
                     'tempmaint',True, 
                     100., 115., 0. )
     return hpwh;
@@ -35,7 +35,7 @@ def people_sizer():
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                        0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150., 18., 0, .8, .3,.9, 
+                    120, 50, 150., 18., 0, .9, .9, 
                     "swingtank", True, 36,
                     100., 115., 0.);
     return hpwh;
@@ -56,7 +56,6 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.compRuntime      == 0.; # The runtime?
     assert empty_sizer.translate.metered          == 0; # If the building as individual metering on the apartment or not
     assert empty_sizer.translate.percentUseable   == 0; #The  percent of useable storage
-    assert empty_sizer.translate.aquaFract        == 0.; # The aquastat fraction
     assert empty_sizer.translate.defrostFactor    == 1.; # The defrost factor. Derates the output power for defrost cycles.
     assert empty_sizer.translate.totalHWLoad      == 0;
 
@@ -76,33 +75,6 @@ def test_default_init(empty_sizer):
         assert empty_sizer.primarySystem.sizeVol_Cap();
         assert empty_sizer.primarySystem.sizePrimaryTankVolume(-10)
         assert empty_sizer.primarySystem.sizePrimaryTankVolume(100)
-
-def test_initByPeople(people_sizer):
-    with pytest.raises(Exception):
-        assert people_sizer.sizeSystem();
-    people_sizer.buildSystem();
-    people_sizer.sizeSystem();
-    with pytest.raises(Exception):
-        assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
-        assert people_sizer.primarySystem.sizePrimaryTankVolume(100)
-        
-    people_sizer.writeToFile("tests/output/people_sizer.txt");
-    assert file_regression("tests/ref/people_sizer.txt", 
-                           "tests/output/people_sizer.txt");
-    
-def test_initByUnits(units_sizer):
-    with pytest.raises(Exception):
-        assert units_sizer.sizeSystem();
-    units_sizer.buildSystem();
-    units_sizer.sizeSystem();
-    with pytest.raises(Exception):
-        assert units_sizer.sizePrimaryTankVolume(-10)
-        assert units_sizer.sizePrimaryTankVolume(100)
-    units_sizer.writeToFile("tests/output/units_sizer.txt");
-    assert file_regression("tests/ref/units_sizer.txt", 
-                           "tests/output/units_sizer.txt");
-
-
 
 @pytest.mark.parametrize("arr, expected", [
     ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]), 
@@ -132,6 +104,31 @@ def test_setRecircVars(units_sizer, Wapt, returnT, fdotRecirc):
         assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp, 0)
         assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp+10, 0)
 
+def test_initByPeople(people_sizer):
+    with pytest.raises(Exception):
+        assert people_sizer.sizeSystem();
+    people_sizer.buildSystem();
+    people_sizer.sizeSystem();
+    with pytest.raises(Exception):
+        assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
+        assert people_sizer.primarySystem.sizePrimaryTankVolume(100)
+        
+    people_sizer.writeToFile("tests/output/people_sizer.txt");
+    assert file_regression("tests/ref/people_sizer.txt", 
+                           "tests/output/people_sizer.txt");
+    
+def test_initByUnits(units_sizer):
+    with pytest.raises(Exception):
+        assert units_sizer.sizeSystem();
+    units_sizer.buildSystem();
+    units_sizer.sizeSystem();
+    with pytest.raises(Exception):
+        assert units_sizer.sizePrimaryTankVolume(-10)
+        assert units_sizer.sizePrimaryTankVolume(100)
+    units_sizer.writeToFile("tests/output/units_sizer.txt");
+    assert file_regression("tests/ref/units_sizer.txt", 
+                           "tests/output/units_sizer.txt");
+    
 
 # File tests!
 @pytest.mark.parametrize("file1", [

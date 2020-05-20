@@ -14,5 +14,4 @@ Wapt 90
 returnT 115
 TMRuntime 1
 setpointTM 130
-aquafract 30
 defrostFactor 0.9

@@ -1,7 +1,7 @@
 
 import numpy as np;
 from HPWHComponents import PrimarySystem_SP, TempMaint, SwingTank; # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R;
-from cfg import rhoCp, W_TO_BTUHR, W_TO_BTUMIN
+from cfg import rhoCp, W_TO_BTUMIN
 
 
 ##############################################################################
@@ -23,7 +23,6 @@ class HPWHsizerRead:
         self.compRuntime    = 0.; # The runtime?
         self.metered        = 0; # If the building as individual metering on the apartment or not
         self.percentUseable = 0; # The  percent of useable storage
-        self.aquaFract      = 0.; # The aquastat fraction
         
         self.defrostFactor  = 1.; # The defrost factor. Derates the output power for defrost cycles.
         self.totalHWLoad    = 0;
@@ -43,7 +42,7 @@ class HPWHsizerRead:
         self.singlePass     = True; # Single pass or multipass
         
     def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
+                    storageT, compRuntime, metered, percentUseable, defrostFactor, 
                     schematic, singlePass,
                     Wapt, returnT, fdotRecirc ):
         self.nBR            = np.array(nBR); # Number of bedrooms 0Br, 1Br...
@@ -57,7 +56,6 @@ class HPWHsizerRead:
         self.metered        = metered; # If the building as individual metering on the apartment or not
         self.percentUseable = percentUseable; #The  percent of useable storage
         
-        self.aquaFract      = aquaFract; # The aquastat fraction
         self.defrostFactor  = defrostFactor; # The defrost factor. Derates the output power for defrost cycles.
 
         self.schematic      = schematic; # The schematic for sizing maybe just primary maybe with temperature maintenance.
@@ -68,7 +66,7 @@ class HPWHsizerRead:
         self.__defaultTM();
 
     def initByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
+                    storageT, compRuntime, metered, percentUseable, defrostFactor,
                     schematic, singlePass, 
                     nApt, Wapt, returnT, fdotRecirc ):
         self.nPeople        = nPeople;
@@ -81,7 +79,6 @@ class HPWHsizerRead:
         self.metered        = metered; # If the building as individual metering on the apartment or not
         self.percentUseable = percentUseable; #The  percent of useable storage
         
-        self.aquaFract      = aquaFract; # The aquastat fraction
         self.defrostFactor  = defrostFactor; # The defrost factor. Derates the output power for defrost cycles.
         self.schematic      = schematic; # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass; # Single pass or multipass
@@ -102,8 +99,6 @@ class HPWHsizerRead:
             raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')    
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for percentUseable.\n')    
-        if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for aquaFract.\n') 
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for defrostFactor.\n')  
     
@@ -311,20 +306,20 @@ class HPWHsizer:
         self.translate.initializeFromFile(fileName);
     
     def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
+                    storageT, compRuntime, metered, percentUseable, defrostFactor, 
                     schematic, singlePass,
                     Wapt, returnT, fdotRecirc ):
         self.translate.initByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor, 
+                    storageT, compRuntime, metered, percentUseable, defrostFactor, 
                     schematic, singlePass,
                     Wapt, returnT, fdotRecirc )
     
     def initByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
+                    storageT, compRuntime, metered, percentUseable, defrostFactor,
                     schematic, singlePass,
                     nApt, Wapt, returnT, fdotRecirc):
         self.translate.initByPeople(nPeople, gpdpp, loadShapeNorm, supplyT, incomingT, 
-                    storageT, compRuntime, metered, percentUseable, aquaFract, defrostFactor,
+                    storageT, compRuntime, metered, percentUseable, defrostFactor,
                     schematic, singlePass,
                     nApt, Wapt, returnT, fdotRecirc );
 
@@ -333,14 +328,14 @@ class HPWHsizer:
         if self.translate.singlePass:
             self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad, 
                                                  self.translate.loadShapeNorm, 
+                                                 self.translate.nPeople,
                                                  self.translate.incomingT, 
                                                  self.translate.supplyT, 
                                                  self.translate.storageT,
                                                  self.translate.defrostFactor, 
                                                  self.translate.percentUseable,
-                                                 self.translate.aquaFract,
                                                  self.translate.compRuntime);
-                            
+                 
         # Multipass world: will have multipass no recirc, multipass with recirc, and multipass with trim tank.
         elif not self.translate.singlePass:     
             # Multipass systems not yet supported
@@ -367,6 +362,7 @@ class HPWHsizer:
             raise Exception("Trim tanks are not supported yet")
         else: 
             raise Exception ("Invalid schematic set up: " + self.translate.schematic)
+            
         if self.primarySystem != 0:    
             self.validbuild = True;
         
