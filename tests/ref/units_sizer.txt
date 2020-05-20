@@ -17,7 +17,7 @@ primaryCurve_vol, [688.77,596.31,497.7 ,414.76,330.07,239.77,174.48,103.97, 42.5
 primaryCurve_heatCap, [509.91,526.34,543.86,562.59,582.65,604.2 ,627.4 ,652.46,679.6 ,709.09]
 
 temperatureMaintenanceSystem:
-schematic, tempmaint
+schematic, paralleltank
 nApt, 200
 Wapt, 100.000 
 UAFudge, 3

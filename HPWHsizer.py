@@ -1,6 +1,6 @@
 
 import numpy as np;
-from HPWHComponents import PrimarySystem_SP, TempMaint, SwingTank; # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R;
+from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank; # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R;
 from cfg import rhoCp, W_TO_BTUHR, W_TO_BTUMIN
 
 
@@ -8,7 +8,7 @@ from cfg import rhoCp, W_TO_BTUHR, W_TO_BTUMIN
 class HPWHsizerRead:
     """ Class for gathering hpwh sizing inputs """
     
-    schematicNames = ["primary", "swingtank", "tempmaint", "trimtank"];
+    schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"];
 
     def __init__(self):
         """Initialize the sizer object with 0's for the inputs"""
@@ -132,15 +132,15 @@ class HPWHsizerRead:
             self.Wapt       = rhoCp / self.nApt * fdotRecirc * (self.supplyT - returnT) / W_TO_BTUMIN;
             self.returnT    = returnT;
             self.fdotRecirc = fdotRecirc;
-        elif returnT == 0. and self.schematic == 'tempmaint':
+        elif returnT == 0. and self.schematic == 'paralleltank':
             self.Wapt       = Wapt
             self.returnT    = self.supplyT - Wapt * self.nApt *W_TO_BTUMIN / rhoCp / fdotRecirc;
             self.fdotRecirc = fdotRecirc;
-        elif fdotRecirc == 0. and self.schematic == 'tempmaint':
+        elif fdotRecirc == 0. and self.schematic == 'paralleltank':
             self.Wapt       = Wapt;
             self.returnT    = returnT;
             self.fdotRecirc = Wapt * self.nApt * W_TO_BTUMIN / rhoCp / (self.supplyT - returnT);
-        elif self.schematic == 'tempmaint':
+        elif self.schematic == 'paralleltank':
             raise Exception("In setting the recirculation variables for a temperature maintenance system one needs to be zero to solve for it.")
         elif self.schematic == 'swingtank':
             if self.Wapt == 0.:
@@ -151,7 +151,7 @@ class HPWHsizerRead:
     
     def __defaultTM(self):
         """Function to set the defualt variables of the temperature maintenance systems"""
-        if self.schematic == "tempmaint":
+        if self.schematic == "paralleltank":
             self.TMRuntime      = 1. if self.TMRuntime == 0 else self.TMRuntime; # The temperature maintenance minimum runtime.
             self.setpointTM     = 135 if self.setpointTM == 0 else self.setpointTM; # The setpoint of the temperature maintenance tank.
             self.TMonTemp       = self.returnT if self.TMonTemp == 0 else self.TMonTemp;
@@ -160,7 +160,7 @@ class HPWHsizerRead:
             self.TMonTemp       = self.supplyT + 2. if self.TMonTemp == 0 else self.TMonTemp;
     
     def setTMVars(self, TMRuntime, setpointTM,):
-        if self.schematic != "tempmaint":
+        if self.schematic != "paralleltank":
             raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the temperature maintenance sizing init")
         self.TMRuntime = TMRuntime;
         self.setpointTM = setpointTM;
@@ -261,7 +261,7 @@ class HPWHsizerRead:
         
         self.__checkInputs();
         self.__calcedVariables()
-        if self.schematic == 'tempmaint':
+        if self.schematic == 'paralleltank':
             self.setRecircVars(Wapt, returnT, fdotRecirc)
         elif self.schematic == 'swingtank':
             self.Wapt = Wapt;
@@ -304,7 +304,7 @@ class HPWHsizer:
         self.validbuild = False;
 
         self.primarySystem = 0;
-        self.tempmaintSystem = 0;
+        self.paralleltankSystem = 0;
         self.translate = HPWHsizerRead();
         
     def initializeFromFile(self, fileName):
@@ -348,8 +348,8 @@ class HPWHsizer:
             
         if self.translate.schematic == "primary":
             pass;
-        elif self.translate.schematic == "tempmaint":
-            self.tempmaintSystem = TempMaint(self.translate.nApt,  
+        elif self.translate.schematic == "paralleltank":
+            self.paralleltankSystem = ParallelLoopTank(self.translate.nApt,  
                                      self.translate.Wapt,  
                                      self.translate.UAFudge, 
                                      self.translate.flushTime, 
@@ -357,7 +357,7 @@ class HPWHsizer:
                                      self.translate.setpointTM, 
                                      self.translate.TMonTemp);
         elif self.translate.schematic == "swingtank":
-            self.tempmaintSystem = SwingTank(self.translate.nApt, 
+            self.paralleltankSystem = SwingTank(self.translate.nApt, 
                                      self.translate.storageT, 
                                      self.translate.Wapt, 
                                      self.translate.UAFudge,
@@ -375,8 +375,8 @@ class HPWHsizer:
         if self.validbuild:
             self.primarySystem.sizeVol_Cap();
             # It is fine if the temperature maintenance system is 0    
-            if self.tempmaintSystem != 0: 
-                self.tempmaintSystem.sizeVol_Cap();             
+            if self.paralleltankSystem != 0: 
+                self.paralleltankSystem.sizeVol_Cap();             
         else:
             raise Exception("The system can not be sized without a valid build")
     
@@ -388,7 +388,7 @@ class HPWHsizer:
         primaryWriter.writeLine('primaryCurve_vol, ' +np.array2string(pCurve[0], precision = 2, separator=",", max_line_width = 300.))
         primaryWriter.writeLine('primaryCurve_heatCap, ' +np.array2string(pCurve[1], precision = 2, separator=",", max_line_width = 300.))
     
-        TMWriter = writeClassAtts(self.tempmaintSystem, fileName, 'a');
+        TMWriter = writeClassAtts(self.paralleltankSystem, fileName, 'a');
         TMWriter.writeLine('\ntemperatureMaintenanceSystem:');
         TMWriter.writeLine('schematic, '+ self.translate.schematic)
         TMWriter.writeToFile();

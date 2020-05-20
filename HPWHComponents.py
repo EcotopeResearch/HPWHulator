@@ -106,7 +106,7 @@ class PrimarySystem_MP_R:
         pass
     
 ##############################################################################
-class TempMaint:
+class ParallelLoopTank:
     """ Sizes a temperature maintenance tank  """ 
     
     def __init__(self, nApt, Wapt, UAFudge, flushTime, TMRuntime, setpointTM, TMonTemp):
