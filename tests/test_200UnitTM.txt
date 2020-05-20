@@ -7,7 +7,7 @@ storageT_F 150
 compRuntime_hr 16
 metered 0
 percentUseable 80
-schematic tempmaint
+schematic paralleltank
 TMonTemp_F 122
 nApt 200
 Wapt 90   
