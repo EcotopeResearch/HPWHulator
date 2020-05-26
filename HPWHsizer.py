@@ -20,7 +20,7 @@ class HPWHsizerRead:
         self.incomingT_F    = 0. # The incoming cold water temperature for the city
         self.storageT_F     = 0. # The primary hot water storage temperature 
         self.compRuntime_hr = 0. # The runtime?
-        self.metered        = 0 # If the building as individual metering on the apartment or not
+        #self.metered        = 0 # If the building as individual metering on the apartment or not
         self.percentUseable = 0 # The  percent of useable storage
         
         self.defrostFactor  = 1. # The defrost factor. Derates the output power for defrost cycles.
@@ -297,7 +297,7 @@ class HPWHsizer:
         self.validbuild = False
 
         self.primarySystem = 0
-        self.paralleltankSystem = 0
+        self.tempmaintSystem = 0
         self.translate = HPWHsizerRead()
         
     def initializeFromFile(self, fileName):
@@ -343,7 +343,7 @@ class HPWHsizer:
         if self.translate.schematic == "primary":
             pass
         elif self.translate.schematic == "paralleltank":
-            self.paralleltankSystem = ParallelLoopTank(self.translate.nApt,  
+            self.tempmaintSystem = ParallelLoopTank(self.translate.nApt,  
                                      self.translate.Wapt,  
                                      self.translate.UAFudge, 
                                      self.translate.offTime_hr, 
@@ -351,7 +351,7 @@ class HPWHsizer:
                                      self.translate.setpointTM_F, 
                                      self.translate.TMonTemp_F)
         elif self.translate.schematic == "swingtank":
-            self.paralleltankSystem = SwingTank(self.translate.nApt, 
+            self.tempmaintSystem = SwingTank(self.translate.nApt, 
                                      self.translate.storageT_F, 
                                      self.translate.Wapt, 
                                      self.translate.UAFudge,
@@ -370,8 +370,8 @@ class HPWHsizer:
         if self.validbuild:
             self.primarySystem.sizeVol_Cap()
             # It is fine if the temperature maintenance system is 0    
-            if self.paralleltankSystem != 0: 
-                self.paralleltankSystem.sizeVol_Cap()             
+            if self.tempmaintSystem != 0: 
+                self.tempmaintSystem.sizeVol_Cap()             
         else:
             raise Exception("The system can not be sized without a valid build")
     
@@ -383,7 +383,7 @@ class HPWHsizer:
         primaryWriter.writeLine('primaryCurve_vol, ' +np.array2string(pCurve[0], precision = 2, separator=",", max_line_width = 300.))
         primaryWriter.writeLine('primaryCurve_heatCap, ' +np.array2string(pCurve[1], precision = 2, separator=",", max_line_width = 300.))
     
-        TMWriter = writeClassAtts(self.paralleltankSystem, fileName, 'a')
+        TMWriter = writeClassAtts(self.tempmaintSystem, fileName, 'a')
         TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
         TMWriter.writeLine('schematic, '+ self.translate.schematic)
         TMWriter.writeToFile()
