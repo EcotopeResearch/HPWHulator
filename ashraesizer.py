@@ -138,40 +138,23 @@ class ASHRAEsizer:
                 
         return [primaryVol, accurateRecoveryTons]
      
-    def tonsRecoveryForMaxDaily(self, peakFlowTable, accurateRecoveryTons):
-        """"Calculates the simple tons required for recovery"""
+    def tonsRecoveryForMaxDaily(self, peakFlowTable):
+        """"Calculates the system heat capacity for a given compressor run time"""
         
         # Define the range of recovery hours
         recoveryHours = np.array([1,2,4,8,12,16,24])
         
         simpleTons = np.amax(peakFlowTable[6,1])*self.nPeople*rhoCp*(self.supplyT_F-self.incomingT_F)/12000/recoveryHours
-        
-        # Find the recoveryHours below and above the defined compressor run time
-        lowerRecoveryHours = recoveryHours[recoveryHours < self.compRuntime_hr].max()
-        upperRecoveryHours = recoveryHours[recoveryHours > self.compRuntime_hr].min()
-        
-        # Find the indices surrounding the defined compressor run time
-        hoursIndices = np.where((recoveryHours == upperRecoveryHours) | (recoveryHours == lowerRecoveryHours))
-        
-        recoveryTimes = recoveryHours[hoursIndices]
-        recoveryTons = simpleTons[hoursIndices] 
-        
+      
+      
         # Heat capacity determined by defined run time
-        heatCap = np.interp(self.compRuntime_hr, recoveryTimes, recoveryTons)
+        heatCap = np.interp(self.compRuntime_hr, recoveryHours, simpleTons)
         
         return[heatCap]
     
     def minimumStorageVol(self, primaryVol, accurateRecoveryTons, heatCap):
         """"Calculates the minimum storage volume"""
-        
-        lowerRecoveryTons = accurateRecoveryTons[accurateRecoveryTons <= heatCap].max()
-        upperRecoveryTons = accurateRecoveryTons[accurateRecoveryTons >= heatCap].min()
 
-        recoveryIndices = np.where((accurateRecoveryTons == upperRecoveryTons) | (accurateRecoveryTons == lowerRecoveryTons))
-
-        Volumes = primaryVol[recoveryIndices]
-        accurateRecoveries = accurateRecoveryTons[recoveryIndices]
-
-        minStorage_gal = np.interp(heatCap, Volumes, accurateRecoveries)
+        minStorage_gal = np.interp(heatCap, primaryVol, accurateRecoveryTons)
         
         return[minStorage_gal]
