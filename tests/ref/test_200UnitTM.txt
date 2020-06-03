@@ -25,6 +25,6 @@ Qdot_tank, 3
 offTime_hr, 0.500
 TMRuntime_hr, 1.000
 setpointTM_F, 130.000
-TMonTemp_F, 122.000 
+TMonTemp_F, 122.000
 TMCap, 95198.762
 TMVol_G_atStorageT, 474.843
