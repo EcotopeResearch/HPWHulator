@@ -64,7 +64,7 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.nApt             == 0. # The number of apartments
     assert empty_sizer.translate.Wapt             == 0. # The recirculation loop losses in terms of W/apt
     assert empty_sizer.translate.TMRuntime_hr     == 0. # The temperature maintenance minimum runtime.
-    assert empty_sizer.translate.Qdot_tank          == 0.
+    assert empty_sizer.translate.Qdot_tank        == 0.
     assert empty_sizer.translate.offTime_hr       == 0.
     assert empty_sizer.translate.Wapt             == 0.
     assert empty_sizer.translate.returnT_F        == 0.
