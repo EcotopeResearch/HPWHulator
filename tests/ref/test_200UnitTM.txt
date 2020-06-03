@@ -1,30 +1,30 @@
 primarySystem:
 
-totalHWLoad, 7040.000 
+totalHWLoad, 7040.000
 loadShapeNorm, [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,0.082,0.067,0.04 ,0.034,0.034,0.029,0.027,0.029,0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038]
-nPeople, 320.000 
-incomingT_F, 40.000 
-storageT_F, 150.000 
-supplyT_F, 120.000 
-defrostFactor, 0.900 
-percentUseable, 0.800 
-compRuntime_hr, 16.000 
-PCap, 449.235 
-PVol_G_atStorageT, 577.939 
-runningVol_G, 422.400 
-cyclingVol_G, 213.333 
-aquaFract, 0.468 
+nPeople, 320.000
+incomingT_F, 40.000
+storageT_F, 150.000
+supplyT_F, 120.000
+defrostFactor, 0.900
+percentUseable, 0.800
+compRuntime_hr, 16.000
+PCap, 449.235
+PVol_G_atStorageT, 577.939
+runningVol_G, 422.400
+cyclingVol_G, 213.333
+aquaFract, 0.468
 primaryCurve_vol, [577.94,539.28,498.05,466.5 ,435.02,401.58,383.38,363.72,350.74,350.74]
 primaryCurve_heatCap, [449.23,463.71,479.14,495.64,513.32,532.3 ,552.74,574.81,598.72,624.71]
 
 temperatureMaintenanceSystem:
 schematic, paralleltank
-nApt, 200.000 
-Wapt, 90.000 
-UAFudge, 3
-offTime_hr, 0.500 
-TMRuntime_hr, 1.000 
-setpointTM_F, 130.000 
+nApt, 200.000
+Wapt, 90.000
+Qdot_tank, 3
+offTime_hr, 0.500
+TMRuntime_hr, 1.000
+setpointTM_F, 130.000
 TMonTemp_F, 122.000 
-TMCap, 95198.762 
-TMVol_G_atStorageT, 474.843 
+TMCap, 95198.762
+TMVol_G_atStorageT, 474.843
