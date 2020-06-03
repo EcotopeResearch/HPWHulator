@@ -20,25 +20,24 @@ class PrimarySystem_SP:
         Total hot water load [btu/hr]
     loadShapeNorm : numpy array
         A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load.
-    nPeople
-
+    nPeople: integer
+        Number of residents.
     incomingT_F : float
         Incoming city water temperature (design temperature in winter). [°F]
     T_supply: float
         Supply hot water temperature, typically 120°F. [°F]
     storageT_F: float
         Storage temperature of the primary hot water storage tanks. [°F]
-    supplyT_F
-
+    supplyT_F : float
+        Hot water supply temperature. [°F]
     defrostFactor: float
-        A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. [units?]
+        A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
     percentUsable: integer
-        Percent of primary hot water storage that is usable due to sufficient thermal stratification. [more detail is probably needed here]
+        Percent of primary hot water storage that is usable due to sufficient thermal stratification.
     aquaFract: float
-        The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located. [more detail, what is typical or default]
+        The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
     compRuntime_hr: float
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
-
     PCap
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT
@@ -109,6 +108,7 @@ class PrimarySystem_SP:
         heatCap
             The heating capacity in [btu/hr].
         """
+
         if isinstance(heathours, np.ndarray):
             if any(heathours > 24) or any(heathours <= 0):
                 raise Exception("Heat hours is not within 1 - 24 hours")
@@ -124,11 +124,11 @@ class PrimarySystem_SP:
     # what is the "new sizing methodology", isn't this just our sizing methodology?
     def sizePrimaryTankVolume(self, heatHrs):
         """
-        Sizes primary storage
+        Sizes primary storage.
 
         Parameters
         ----------
-        heathours
+        heatHrs
             The number of hours primary heating equipment can run.
 
         Returns
@@ -168,16 +168,16 @@ class PrimarySystem_SP:
 
     # I am not following this function and need some clarification.
     def primaryCurve(self):
-        """"
-        Size the primary system curve
+        """
+        Size the primary system curve.
 
         Returns
         -------
         volN
-        Array of volume in the tank at each hour.
+            Array of volume in the tank at each hour.
 
         array
-        Array of heat input...
+            Array of heat input...
         """
         heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10)
         volN = np.zeros(len(heatHours))
@@ -199,7 +199,7 @@ class PrimarySystem_SP:
         Returns
         -------
         array
-        self.PVol_G_atStorageT, self.PCap, self.aquaFract
+            self.PVol_G_atStorageT, self.PCap, self.aquaFract
         """
         if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
             raise Exception("The system hasn't been sized yet!")
@@ -225,15 +225,39 @@ class PrimarySystem_MP_R:
 
 ##############################################################################
 class ParallelLoopTank:
-    """ Sizes a temperature maintenance tank  """
+    """
+    Class containing attributes and methods to describe and size the parrallel loop tank arrangement. Unlike a swing tank, a parrallel loop tank \
+    will have equipment to provide heat for periods of low or no hot water use.
 
-    def __init__(self, nApt, Wapt, UAFudge, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
+    Attributes
+    ----------
+    nApt: integer
+        The number of apartments. Use with Qdot_apt to determine total recirculation losses.
+    Wapt:  float
+        Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
+    Qdot_tank: float
+        Thermal loss coefficient for the temperature maintenance tank.
+    offTime_hr: integer
+        Maximum hours per day the temperature maintenance equipment can run.
+    TMRuntime_hr: float
+        Run time required for temperature maintenance equipment to meet setpoint.
+    setpointTM_F: float
+        Temperature maintenance tank setpoint.
+    TMonTemp_F: float
+        Temperature at which temperature maintenance equipment will engauge.
+    TMCap
+        Temperature maintenance equipment capacity.
+    TMVol_G_atStorageT
+        Volume of parrallel loop tank.
+    """
+
+    def __init__(self, nApt, Wapt, Qdot_tank, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
 
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-        self.UAFudge    = UAFudge
+        self.Qdot_tank    = Qdot_tank
         self.offTime_hr  = offTime_hr # Hour
         self.TMRuntime_hr  = TMRuntime_hr
         self.setpointTM_F = setpointTM_F
@@ -243,25 +267,59 @@ class ParallelLoopTank:
         self.TMVol_G_atStorageT = 0 # Gallons
 
     def sizeVol_Cap(self):
-        """ Sizes the volume in gallons and heat capactiy in BTU/hr"""
-        self.TMVol_G_atStorageT =  (self.Wapt + self.UAFudge) * self.nApt / rhoCp * \
+        """
+        Sizes the volume in gallons and heat capactiy in BTU/h
+
+        Returns
+        -------
+        TMVol_G_atStorageT
+            Dedicated loop tank volume.
+        TMCap
+            Calculated temperature maintenance equipment capacity.
+        """
+
+        self.TMVol_G_atStorageT =  (self.Wapt + self.Qdot_tank) * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
         self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
             (1./self.TMRuntime_hr + 1./self.offTime_hr)
         return [ self.TMVol_G_atStorageT, self.TMCap ]
+        
 ##############################################################################
-class SwingTank:
-    """ Sizes a swing tank  """
 
-    def __init__(self, nApt, storageT_F, Wapt, UAFudge, offTime_hr, TMonTemp_F):
+class SwingTank:
+    """
+    Class containing attributes and methods to describe and size the swing tank. Unlike a temperature maintenance tank, the swing tank is sized so
+    no temperature maintenance equipment is required.
+
+    Attributes
+    ----------
+    nApt: integer
+        The number of apartments. Use with Qdot_apt to determine total recirculation losses.
+    storageT_F: float
+        Temperature of primary storage system.
+    Wapt:  float
+        Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
+    Qdot_tank: float
+        Thermal loss coefficient for the temperature maintenance tank.
+    offTime_hr: integer
+        The longest low usage time period in hours. Typically corrisponding to a periold of time overnight from about 1AM to 4AM ( t_low = 3 ) when little of no hot water is used.
+    TMonTemp_F: float
+        The temperature at which the temperature maintenance equipment must engauge to maintain loop temperature.
+    TMCap
+        The required capacity of temperature maintenance equipment.
+    TMVol_G_atStorageT
+        The volume of the swing tank required to ride out the low use period.
+    """
+
+    def __init__(self, nApt, storageT_F, Wapt, Qdot_tank, offTime_hr, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
         self.storageT_F   = storageT_F # deg F
 
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-        self.UAFudge    = UAFudge
+        self.Qdot_tank    = Qdot_tank
         self.offTime_hr    = offTime_hr # Hour
         self.TMonTemp_F   = TMonTemp_F # deg F
 
@@ -273,11 +331,20 @@ class SwingTank:
             raise Exception("Swing tank initialized with 0 W per apt heat loss")
 
     def sizeVol_Cap(self):
-        """ Sizes the volume in gallons and heat capactiy in BTU/hr"""
-        self.TMVol_G_atStorageT = (self.Wapt + self.UAFudge) * self.nApt / rhoCp * \
+        """
+        Sizes the volume in gallons and heat capactiy in BTU/hr
+
+        Returns
+        -------
+        TMVol_G_atStorageT
+            Calculated swing tank volume.
+        TMCap
+            Calculated temperature maintenance equipment capacity.
+        """
+        self.TMVol_G_atStorageT = (self.Wapt + self.Qdot_tank) * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.storageT_F - self.TMonTemp_F)
 
-        self.TMCap = (self.Wapt + self.UAFudge) * self.nApt * W_TO_BTUHR / 1000.
+        self.TMCap = (self.Wapt + self.Qdot_tank) * self.nApt * W_TO_BTUHR / 1000.
         return [ self.TMVol_G_atStorageT, self.TMCap ]
 
 ##############################################################################
