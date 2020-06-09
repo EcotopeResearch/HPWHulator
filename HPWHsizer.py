@@ -1,7 +1,11 @@
 
 import numpy as np
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
+from ashraesizer import ASHRAEsizer
 from cfg import rhoCp, W_TO_BTUMIN
+
+from plotly.graph_objs import Figure, Scatter
+from plotly.offline import plot
 
 ##############################################################################
 class HPWHsizerRead:
@@ -299,7 +303,8 @@ class HPWHsizer:
         self.primarySystem = 0
         self.tempmaintSystem = 0
         self.translate = HPWHsizerRead()
-
+        self.ashraeSize = 0.
+        
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName)
 
@@ -324,6 +329,15 @@ class HPWHsizer:
 
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
+        self.ashraeSize = ASHRAEsizer(self.translate.nPeople,
+                                        self.translate.gpdpp,
+                                        self.translate.incomingT_F,
+                                        self.translate.supplyT_F,
+                                        self.translate.storageT_F,
+                                        self.translate.defrostFactor,
+                                        self.translate.percentUseable,
+                                        self.translate.compRuntime_hr)
+
         if self.translate.singlePass:
             self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
                                                  self.translate.loadShapeNorm,
@@ -375,6 +389,46 @@ class HPWHsizer:
         else:
             raise Exception("The system can not be sized without a valid build")
 
+    def plotSizingCurve(self, return_as_div = True):
+        """
+        Returns a plot of the sizing curve as a div
+        
+        Parameters
+        ----------
+        return_as_div
+            A logical on the output, as a div (true) or as a figure (false)
+        Returns
+        -------
+        div/fig
+            plot_div
+        """
+        fig = Figure()
+
+        [x_data, y_data] = self.primarySystem.primaryCurve()
+        fig.add_trace(Scatter(x=x_data, y=y_data,
+                              mode='lines', name='Primary Sizing Curve',
+                              opacity=0.8, marker_color='green'))
+        
+        [x_data, y_data] = self.ashraeSize.primaryCurve()
+        fig.add_trace(Scatter(x=x_data[:-1], y=y_data[:-1], #Drops the last point
+                              mode='lines', name='ASHRAE Sizing Curve',
+                              opacity=0.8, marker_color='red'))
+        
+        fig.add_trace(Scatter(x=(0,x_data[-2]), 
+                              y=(self.primarySystem.PCap,self.primarySystem.PCap),
+                              mode='lines', name='Minimum Size',
+                              opacity=0.8, marker_color='grey'))     
+        
+        fig.update_layout(xaxis_title="Primary Tank Volume (Gallons)",
+                          yaxis_title="Primary Heating Capacity (kBTU/hr)")
+        
+        if return_as_div:
+            plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
+                        include_plotlyjs = False)
+            return plot_div
+        else:
+            return fig
+    
     def writeToFile(self,fileName):
         primaryWriter = writeClassAtts(self.primarySystem, fileName, 'w+')
         primaryWriter.writeLine('primarySystem:\n')
