@@ -54,7 +54,6 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.incomingT_F      == 0. # The incoming cold water temperature for the city
     assert empty_sizer.translate.storageT_F       == 0. # The primary hot water storage temperature
     assert empty_sizer.translate.compRuntime_hr   == 0. # The runtime?
-    assert empty_sizer.translate.metered          == 0 # If the building as individual metering on the apartment or not
     assert empty_sizer.translate.percentUseable   == 0 #The  percent of useable storage
     assert empty_sizer.translate.defrostFactor    == 1. # The defrost factor. Derates the output power for defrost cycles.
     assert empty_sizer.translate.totalHWLoad_G    == 0
@@ -64,7 +63,6 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.nApt             == 0. # The number of apartments
     assert empty_sizer.translate.Wapt             == 0. # The recirculation loop losses in terms of W/apt
     assert empty_sizer.translate.TMRuntime_hr     == 0. # The temperature maintenance minimum runtime.
-    assert empty_sizer.translate.Qdot_tank        == 0.
     assert empty_sizer.translate.offTime_hr       == 0.
     assert empty_sizer.translate.Wapt             == 0.
     assert empty_sizer.translate.returnT_F        == 0.
