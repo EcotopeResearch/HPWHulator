@@ -67,7 +67,7 @@ class PrimarySystem_SP:
         self.defrostFactor  = defrostFactor
         self.percentUseable = percentUseable
         self.compRuntime_hr    = compRuntime_hr
-
+        
         # Outputs
         self.PCap              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
@@ -78,7 +78,7 @@ class PrimarySystem_SP:
     # this should be a separate function and not be part of the main object.
     def getPeakIndices(self,diff1):
         """
-        Finds peak indices of array
+        Finds the points of an array where the values go from positive to negative 
 
         Parameters
         ----------
@@ -90,13 +90,32 @@ class PrimarySystem_SP:
         array
         Array of indices in which input array changes from positive to negative
         """
+        if not isinstance(diff1, np.ndarray):
+            diff1 = np.array(diff1)
+        diff1 = np.insert(diff1, 0, 0)
+        return np.where(np.diff(np.sign(diff1))<0)[0]
 
-        diff1 = np.array(diff1)
-        return np.where(np.diff(np.sign(diff1))<0)[0]+1
+    def _checkHeatHours(self, heathours):
+        """
+        Quick check to see if heating hours is a valid number between 1 and 24
+        
+        Parameters
+        ----------
+        heathours
+            The number of hours primary heating equipment can run.
+        """
+        if isinstance(heathours, np.ndarray):
+            if any(heathours > 24) or any(heathours <= 0):
+                raise Exception("Heat hours is not within 1 - 24 hours")
+        else:
+            if heathours > 24 or heathours <= 0:
+                raise Exception("Heat hours is not within 1 - 24 hours")
 
+        
+        
     def primaryHeatHrs2kBTUHR(self, heathours):
         """
-        Sizes primary heating equipment.
+        Converts from hours of heating in a day to heating capacity.
 
         Parameters
         ----------
@@ -108,23 +127,14 @@ class PrimarySystem_SP:
         heatCap
             The heating capacity in [btu/hr].
         """
-
-        if isinstance(heathours, np.ndarray):
-            if any(heathours > 24) or any(heathours <= 0):
-                raise Exception("Heat hours is not within 1 - 24 hours")
-        else:
-            if heathours > 24 or heathours <= 0:
-                raise Exception("Heat hours is not within 1 - 24 hours")
-
+        self._checkHeatHours(heathours)        
         heatCap = self.totalHWLoad / heathours * rhoCp * \
-            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000.
+            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000. 
         return heatCap
 
-    # the temperature adjusted primary storage should be an attribute
-    # what is the "new sizing methodology", isn't this just our sizing methodology?
     def sizePrimaryTankVolume(self, heatHrs):
         """
-        Sizes primary storage.
+        Sizes primary storage using the Ecotope sizing methodology
 
         Parameters
         ----------
@@ -136,15 +146,16 @@ class PrimarySystem_SP:
         volume
             A temperature adjusted total volume
         """
+        self._checkHeatHours(heatHrs)        
 
         diffN = 1/heatHrs - np.append(self.loadShapeNorm,self.loadShapeNorm)
         diffInd = self.getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
         # Get the running volume #############################################
-        runVolTemp = 0
         if len(diffInd) == 0:
             raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
         else:
+            runVolTemp = 0
             for peakInd in diffInd:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
@@ -166,7 +177,6 @@ class PrimarySystem_SP:
         return totalVol * (self.supplyT_F - self.incomingT_F) / \
             (self.storageT_F - self.incomingT_F)
 
-    # I am not following this function and need some clarification.
     def primaryCurve(self):
         """
         Size the primary system curve.
@@ -205,7 +215,7 @@ class PrimarySystem_SP:
             raise Exception("The system hasn't been sized yet!")
 
         return [ self.PVol_G_atStorageT,  self.PCap, self.aquaFract ]
-
+    
 ##############################################################################
 class PrimarySystem_MP_NR:
     """ Sizes primary multipass HPWH system with NO recirculation loop """
@@ -283,6 +293,16 @@ class ParallelLoopTank:
 
         self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
             (1./self.TMRuntime_hr + 1./self.offTime_hr)
+            
+    def getSizingResults(self):
+        """
+        Returns sizing results as array
+
+        Returns
+        -------
+        array
+            self.TMVol_G_atStorageT, self.TMCap
+        """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
 
 ##############################################################################
@@ -290,38 +310,28 @@ class ParallelLoopTank:
 class SwingTank:
     """
     Class containing attributes and methods to describe and size the swing tank. Unlike a temperature maintenance tank, the swing tank is sized so
-    no temperature maintenance equipment is required.
+    the primary system heat adds heat to cover about up to 70% of the reciculation losses.
 
     Attributes
     ----------
     nApt: integer
         The number of apartments. Use with Qdot_apt to determine total recirculation losses.
-    storageT_F: float
-        Temperature of primary storage system.
     Wapt:  float
         Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
     Qdot_tank: float
         Thermal loss coefficient for the temperature maintenance tank.
-    offTime_hr: integer
-        The longest low usage time period in hours. Typically corrisponding to a periold of time overnight from about 1AM to 4AM ( t_low = 3 ) when little of no hot water is used.
-    TMonTemp_F: float
-        The temperature at which the temperature maintenance equipment must engauge to maintain loop temperature.
     TMCap
         The required capacity of temperature maintenance equipment.
     TMVol_G_atStorageT
         The volume of the swing tank required to ride out the low use period.
     """
 
-    def __init__(self, nApt, storageT_F, Wapt, Qdot_tank, offTime_hr, TMonTemp_F):
+    def __init__(self, nApt, Wapt, Qdot_tank):
         # Inputs from primary system
         self.nApt       = nApt
-        self.storageT_F   = storageT_F # deg F
-
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
         self.Qdot_tank    = Qdot_tank
-        self.offTime_hr    = offTime_hr # Hour
-        self.TMonTemp_F   = TMonTemp_F # deg F
 
         # Outputs:
         self.TMCap      = 0 #kBTU/Hr
@@ -341,12 +351,19 @@ class SwingTank:
         TMCap
             Calculated temperature maintenance equipment capacity.
         """
-        
         self.TMVol_G_atStorageT = self.nApt * 5
+        self.TMCap = (self.Wapt + self.Qdot_tank) * self.nApt * W_TO_BTUHR / 1000.
+        
+    def getSizingResults(self):
+        """
+        Returns sizing results as array
 
-        self.TMCap = (self.Wapt  * self.nApt + self.Qdot_tank) * W_TO_BTUHR / 1000.
+        Returns
+        -------
+        array
+            self.TMVol_G_atStorageT, self.TMCap
+        """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
-
 ##############################################################################
 class TrimTank:
     """ Sizes a trim tank for use in a multipass HPWH system """

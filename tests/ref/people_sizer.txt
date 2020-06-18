@@ -20,10 +20,7 @@ primaryCurve_heatCap, [113.44,118.18,123.33,128.95,135.11,141.88,149.37,157.69,1
 temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 36
-storageT_F, 150.000
-Wapt, 100.000
-Qdot_tank, 3
-offTime_hr, 3
-TMonTemp_F, 122.000
-TMCap, 12.652
-TMVol_G_atStorageT, 157.683
+Wapt, 100
+Qdot_tank, 100.000
+TMCap, 24.567
+TMVol_G_atStorageT, 180
