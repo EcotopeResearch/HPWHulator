@@ -95,13 +95,13 @@ class HPWHsizerRead:
     def __checkInputs(self):
         """Checks inputs are all valid"""
         if len(self.loadShapeNorm) != 24 :
-            raise Exception("loadShapeNorm is not of length 24 but instead "+str(len(self.loadShapeNorm))+".")
+            raise Exception("loadShapeNorm is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
         if self.schematic not in self.schematicNames:
             raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for percentUseable.\n')
+            raise Exception('\nERROR: Invalid input given for percentUseable, must be between 0 and 1.\n')
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for defrostFactor.\n')
+            raise Exception('\nERROR: Invalid input given for defrostFactor, must be between 0 and 1.\n')
 
     def __calcedVariables(self):
         """ Calculate other variables needed."""
@@ -118,7 +118,7 @@ class HPWHsizerRead:
     def setRecircVars(self, Wapt, returnT_F, fdotRecirc_gpm):
         """Takes the recirc variables and solves for one that's set to zero"""
         if any(x < 0 for x in [Wapt, returnT_F, fdotRecirc_gpm]):
-            raise Exception("All recirculation variables must be postitive.")
+            raise Exception("All recirculation loop variables must be postitive.")
         if self.supplyT_F <= returnT_F:
             raise Exception("The return temperature is greater than the supply temperature! This sizer doesn't support heat trace on the recirculation loop")
         if Wapt == 0.:
@@ -419,7 +419,8 @@ class HPWHsizer:
                               mode='lines', name='Minimum Size',
                               opacity=0.8, marker_color='grey'))     
         
-        fig.update_layout(xaxis_title="Primary Tank Volume (Gallons)",
+        fig.update_layout(title="Primary Sizing Curve",
+                          xaxis_title="Primary Tank Volume (Gallons)",
                           yaxis_title="Primary Heating Capacity (kBTU/hr)")
         
         if return_as_div:
