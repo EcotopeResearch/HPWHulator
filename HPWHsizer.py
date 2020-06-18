@@ -38,15 +38,14 @@ class HPWHsizerRead:
         self.TMRuntime_hr   = 0. # The temperature maintenance minimum runtime.
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
-        self.UAFudge        = 0. # A fudge factor used to adjust loop losses.
+        self.UAFudge        = 100. # A fudge factor used to adjust loop losses.
         self.offTime_hr     = 0. # The numbers of hours the tempeature maintenence system is designed to be off for.
 
         self.singlePass     = True # Single pass or multipass
 
-    def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
-                    schematic, singlePass,
-                    Wapt, returnT_F, fdotRecirc_gpm):
+                    schematic, singlePass):
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
         self.gpdpp          = gpdpp # Gallons per day per person
@@ -65,12 +64,10 @@ class HPWHsizerRead:
 
         self.__checkInputs()
         self.__calcedVariables()
-        self.__defaultTM()
 
-    def initByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
-                    schematic, singlePass,
-                    nApt, Wapt, returnT_F, fdotRecirc_gpm):
+                    schematic, singlePass, nApt):
         self.nPeople        = nPeople
         self.gpdpp          = gpdpp # Gallons per day per person
         self.loadShapeNorm  = np.array(loadShapeNorm) # The normalized load shape
@@ -88,10 +85,21 @@ class HPWHsizerRead:
         self.nApt           = nApt
 
         self.__checkInputs()
-        self.setRecircVars( Wapt, returnT_F, fdotRecirc_gpm )
         self.__calcedVariables()
-        self.__defaultTM()
 
+    def initTempMaint(self, Wapt, offTime_hr=0, TMRuntime_hr=0, setpointTM_F=0, TMonTemp_F=0):
+        self.Wapt = Wapt
+        if self.schematic == "swingtank":
+            pass
+        elif self.schematic == "paralleltank":
+            if any(x==0 for x in [offTime_hr,TMRuntime_hr,setpointTM_F,TMonTemp_F]):
+                raise Exception("ERROR in initTempMaint, paralleltank needs inputs != 0")
+            else:
+                self.offTime_hr       = offTime_hr
+                self.TMRuntime_hr     = TMRuntime_hr
+                self.setpointTM_F     = setpointTM_F
+                self.TMonTemp_F       = TMonTemp_F
+                
     def __checkInputs(self):
         """Checks inputs are all valid"""
         if len(self.loadShapeNorm) != 24 :
@@ -113,61 +121,6 @@ class HPWHsizerRead:
             self.nPeople = sum(self.nBR * self.rBR)
 
         self.totalHWLoad_G = self.gpdpp * self.nPeople
-        self.UAFudge = 3
-
-    def setRecircVars(self, Wapt, returnT_F, fdotRecirc_gpm):
-        """Takes the recirc variables and solves for one that's set to zero"""
-        if any(x < 0 for x in [Wapt, returnT_F, fdotRecirc_gpm]):
-            raise Exception("All recirculation variables must be postitive.")
-        if self.supplyT_F <= returnT_F:
-            raise Exception("The return temperature is greater than the supply temperature! This sizer doesn't support heat trace on the recirculation loop")
-        if Wapt == 0.:
-            self.Wapt       = rhoCp / self.nApt * fdotRecirc_gpm * (self.supplyT_F - returnT_F) / W_TO_BTUMIN
-            self.returnT_F    = returnT_F
-            self.fdotRecirc_gpm = fdotRecirc_gpm
-        elif returnT_F == 0. and self.schematic == 'paralleltank':
-            self.Wapt       = Wapt
-            self.returnT_F    = self.supplyT_F - Wapt * self.nApt *W_TO_BTUMIN / rhoCp / fdotRecirc_gpm
-            self.fdotRecirc_gpm = fdotRecirc_gpm
-        elif fdotRecirc_gpm == 0. and self.schematic == 'paralleltank':
-            self.Wapt       = Wapt
-            self.returnT_F    = returnT_F
-            self.fdotRecirc_gpm = Wapt * self.nApt * W_TO_BTUMIN / rhoCp / (self.supplyT_F - returnT_F)
-        elif self.schematic == 'paralleltank':
-            raise Exception("In setting the recirculation variables for a temperature maintenance system one needs to be zero to solve for it.")
-        elif self.schematic == 'swingtank':
-            if self.Wapt == 0.:
-                if Wapt == 0.:
-                    raise Exception("In setting the recirculation variables for a swing tank system Wapt needs to be defined")
-                else:
-                    self.Wapt = Wapt
-
-    def __defaultTM(self):
-        """Function to set the defualt variables of the temperature maintenance systems"""
-
-        if self.schematic == "paralleltank":
-            self.TMRuntime_hr     = 1. if self.TMRuntime_hr == 0 else self.TMRuntime_hr # The temperature maintenance minimum runtime.
-            self.setpointTM_F     = 135 if self.setpointTM_F == 0 else self.setpointTM_F # The setpoint of the temperature maintenance tank.
-            self.TMonTemp_F       = self.returnT_F if self.TMonTemp_F == 0 else self.TMonTemp_F
-            self.offTime_hr       = 0.5 if self.offTime_hr == 0 else self.offTime_hr
-        if self.schematic == "swingtank":
-            self.TMonTemp_F       = self.supplyT_F + 2. if self.TMonTemp_F == 0 else self.TMonTemp_F
-            #The overnight design for off time.
-            if self.offTime_hr == 0:
-                self.offTime_hr = sum(np.append(self.loadShapeNorm,self.loadShapeNorm)[22:36] < 1./48.)
-
-    def setTMVars(self, TMonTemp_F, setpointTM_F, offTime_hr, TMRuntime_hr):
-        if self.schematic != "paralleltank":
-            raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the temperature maintenance sizing init")
-        self.TMRuntime_hr = TMRuntime_hr
-        self.offTime_hr = offTime_hr
-        self.setpointTM_F = setpointTM_F
-        self.TMonTemp_F = TMonTemp_F
-
-    def setSwingVars(self, TMonTemp_F):
-        if self.schematic != "swingtank":
-            raise Exception("The schematic for this sizer is " +self.schematic +", but you are trying to access the swing tank sizing init")
-        self.TMonTemp_F = TMonTemp_F
 
 # Helper Functions for reading and writing files
     def __importArrLine(self, line, setLength):
@@ -184,11 +137,6 @@ class HPWHsizerRead:
 
     def initializeFromFile(self, fileName):
         """"Read in a formated file with filename"""
-
-        Wapt = 0.
-        returnT_F = 0.
-        fdotRecirc_gpm = 0.
-
         # Get file inputs and assign them to the variables
         file1 = open(fileName, 'r')
         fileLines = file1.read().splitlines()
@@ -245,24 +193,14 @@ class HPWHsizerRead:
                 self.TMonTemp_F   = float(temp[1])
             elif temp[0] == "offtime_hr":
                 self.offTime_hr   = float(temp[1])
-
             elif temp[0] == "wapt":
-                Wapt      = float(temp[1])
-            elif temp[0] == "returnt_f":
-                returnT_F      = float(temp[1])
-            elif temp[0] == "fdotRecirc_gpm":
-                fdotRecirc_gpm      = float(temp[1])
+                self.Wapt      = float(temp[1])
             else:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.
 
         self.__checkInputs()
         self.__calcedVariables()
-        if self.schematic == 'paralleltank':
-            self.setRecircVars(Wapt, returnT_F, fdotRecirc_gpm)
-        elif self.schematic == 'swingtank':
-            self.Wapt = Wapt
-        self.__defaultTM()
 
 ##############################################################################
 class writeClassAtts:
@@ -308,24 +246,32 @@ class HPWHsizer:
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName)
 
-    def initByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
-                    schematic, singlePass,
-                    Wapt, returnT_F, fdotRecirc_gpm):
-        self.translate.initByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    schematic, singlePass):
+        self.translate.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
-                    schematic, singlePass,
-                    Wapt, returnT_F, fdotRecirc_gpm)
+                    schematic, singlePass)
 
-    def initByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
-                    schematic, singlePass,
-                    nApt, Wapt, returnT_F, fdotRecirc_gpm):
+                    schematic, singlePass, nApt):
+        self.translate.initPrimaryByPeople(nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    schematic, singlePass, nApt )
 
-        self.translate.initByPeople(nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
-                    schematic, singlePass,
-                    nApt, Wapt, returnT_F, fdotRecirc_gpm )
+    def initTempMaint(self, Wapt, offTime_hr = 1, TMRuntime_hr = 2, setpointTM_F = 135, TMonTemp_F = 0):
+        """Initializes the temperature maintanence system after the primary system"""
+        if self.translate.totalHWLoad_G == 0:
+            raise Exception("must initialize the primary system first")
+            
+        if self.translate.schematic == "swingtank":
+            self.translate.initTempMaint(Wapt, 0, 0, 0, 0) 
+            
+        elif  self.translate.schematic == "paralleltank":
+            if TMonTemp_F == 0: 
+                TMonTemp_F = self.translate.supplyT_F + 2;
+            self.translate.initTempMaint(Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F)
 
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
@@ -366,11 +312,8 @@ class HPWHsizer:
                                      self.translate.TMonTemp_F)
         elif self.translate.schematic == "swingtank":
             self.tempmaintSystem = SwingTank(self.translate.nApt,
-                                     self.translate.storageT_F,
                                      self.translate.Wapt,
-                                     self.translate.UAFudge,
-                                     self.translate.offTime_hr,
-                                     self.translate.TMonTemp_F)
+                                     self.translate.UAFudge)
         elif self.translate.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else:
@@ -378,6 +321,8 @@ class HPWHsizer:
 
         if self.primarySystem != 0:
             self.validbuild = True
+        else:
+            raise Exception ("The HPWH system did not build properly") 
 
     def sizeSystem(self):
         """Sizes the built system"""
@@ -389,6 +334,18 @@ class HPWHsizer:
         else:
             raise Exception("The system can not be sized without a valid build")
 
+    def build_size(self):
+        """
+        One function to build and size the HPWH system after initalization, that returns minimum results 
+        Returns
+        -------
+        array 
+            [PVol_G_atStorageT, PCap, aquaFract, TMVol_G_atStorageT, TMCap]
+        """
+        self.buildSystem()
+        self.sizeSystem()
+        return([self.primarySystem.getSizingResults(), self.tempmaintSystem.getSizingResults()])
+        
     def plotSizingCurve(self, return_as_div = True):
         """
         Returns a plot of the sizing curve as a div
