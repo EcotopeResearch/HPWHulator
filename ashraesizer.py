@@ -30,6 +30,8 @@ class ASHRAEsizer:
         self.PCap              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
         
+        self.extrapolated = False
+        
         self.__checkInputs()
         self.__getASHRAEtable()
         self.__sizePrimaryCurveAshrae()
@@ -38,8 +40,8 @@ class ASHRAEsizer:
         """Checks inputs are all valid"""
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for percentUseable.\n')    
-        if self.gpdpp > 49 or self.gpdpp < 20:
-            raise Exception('\nERROR: Please ensure your gallons per day per person is between 20 and 49.\n')
+        if self.gpdpp > 49: # or self.gpdpp < 20:
+            raise Exception('\nERROR: Please ensure your gallons per day per person is less than 49.\n')
                             
     def __getASHRAEtable(self):
         """Sizes the primary HPWH plant with the ASHRAE methodology"""
@@ -69,6 +71,9 @@ class ASHRAEsizer:
                 userValues[ii,1] = (ashraeMediumLU[ii,1] - ashraeLowLU[ii,1]) * yIncrement + ashraeLowLU[ii,1]
                 userValues[ii,0] = peakTimes[ii]
             peakFlowTable = userValues
+
+            if self.gpdpp < 20:
+                self.extrapolated = True
 
         self.peakFlowTable = peakFlowTable;
         
