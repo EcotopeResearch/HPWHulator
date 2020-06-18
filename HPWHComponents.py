@@ -278,13 +278,13 @@ class ParallelLoopTank:
             Calculated temperature maintenance equipment capacity.
         """
 
-        self.TMVol_G_atStorageT =  (self.Wapt + self.Qdot_tank) * self.nApt / rhoCp * \
+        self.TMVol_G_atStorageT =  (self.Wapt * self.nApt + self.Qdot_tank) / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
         self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
             (1./self.TMRuntime_hr + 1./self.offTime_hr)
         return [ self.TMVol_G_atStorageT, self.TMCap ]
-        
+
 ##############################################################################
 
 class SwingTank:
@@ -341,7 +341,7 @@ class SwingTank:
         TMCap
             Calculated temperature maintenance equipment capacity.
         """
-        self.TMVol_G_atStorageT = (self.Wapt + self.Qdot_tank) * self.nApt / rhoCp * \
+        self.TMVol_G_atStorageT = (self.Wapt * self.nApt  + self.Qdot_tank)/ rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.storageT_F - self.TMonTemp_F)
 
         self.TMCap = (self.Wapt + self.Qdot_tank) * self.nApt * W_TO_BTUHR / 1000.
