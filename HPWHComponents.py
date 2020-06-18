@@ -153,7 +153,7 @@ class PrimarySystem_SP:
 
         # Get the running volume #############################################
         if len(diffInd) == 0:
-            raise Exception("The heating rate is greater than the peak volume the system is oversized!")
+            raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
         else:
             runVolTemp = 0
             for peakInd in diffInd:
@@ -352,7 +352,6 @@ class SwingTank:
             Calculated temperature maintenance equipment capacity.
         """
         self.TMVol_G_atStorageT = self.nApt * 5
-
         self.TMCap = (self.Wapt + self.Qdot_tank) * self.nApt * W_TO_BTUHR / 1000.
         
     def getSizingResults(self):
