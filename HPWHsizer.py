@@ -237,11 +237,12 @@ class HPWHsizer:
     """ Organizes a primary and temperature maintenance system and sizes it"""
     def __init__(self):
         self.validbuild = False
-
-        self.primarySystem = 0
-        self.tempmaintSystem = 0
+        self.primaryInit = False
         self.translate = HPWHsizerRead()
-        self.ashraeSize = 0.
+
+        self.primarySystem = None
+        self.tempmaintSystem = None
+        self.ashraeSize = None
         
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName)
@@ -252,6 +253,7 @@ class HPWHsizer:
         self.translate.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
                     schematic, singlePass)
+        self.primaryInit = True
 
     def initPrimaryByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
@@ -262,7 +264,7 @@ class HPWHsizer:
 
     def initTempMaint(self, Wapt, offTime_hr = 1, TMRuntime_hr = 2, setpointTM_F = 135, TMonTemp_F = 0):
         """Initializes the temperature maintanence system after the primary system"""
-        if self.translate.totalHWLoad_G == 0:
+        if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
             
         if self.translate.schematic == "swingtank":
@@ -298,7 +300,7 @@ class HPWHsizer:
         # Multipass world: will have multipass no recirc, multipass with recirc, and multipass with trim tank.
         elif not self.translate.singlePass:
             # Multipass systems not yet supported
-            raise Exception("Multipass not yet supported")
+            raise Exception("Multipass is yet supported")
 
         if self.translate.schematic == "primary":
             pass
@@ -319,7 +321,7 @@ class HPWHsizer:
         else:
             raise Exception ("Invalid schematic set up: " + self.translate.schematic)
 
-        if self.primarySystem != 0:
+        if self.primarySystem is not None:
             self.validbuild = True
         else:
             raise Exception ("The HPWH system did not build properly") 
@@ -329,7 +331,7 @@ class HPWHsizer:
         if self.validbuild:
             self.primarySystem.sizeVol_Cap()
             # It is fine if the temperature maintenance system is 0
-            if self.tempmaintSystem != 0:
+            if self.tempmaintSystem :
                 self.tempmaintSystem.sizeVol_Cap()
         else:
             raise Exception("The system can not be sized without a valid build")
@@ -339,13 +341,16 @@ class HPWHsizer:
         One function to build and size the HPWH system after initalization, that returns minimum results 
         Returns
         -------
-        array 
+        list 
             [PVol_G_atStorageT, PCap, aquaFract, TMVol_G_atStorageT, TMCap]
         """
         self.buildSystem()
         self.sizeSystem()
-        return([self.primarySystem.getSizingResults(), self.tempmaintSystem.getSizingResults()])
-        
+        if self.tempmaintSystem is not None:
+            return self.primarySystem.getSizingResults() + self.tempmaintSystem.getSizingResults()
+        else:
+             return self.primarySystem.getSizingResults()
+    
     def plotSizingCurve(self, return_as_div = True):
         """
         Returns a plot of the sizing curve as a div
