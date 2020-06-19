@@ -399,8 +399,8 @@ class HPWHsizer:
         pCurve = self.primarySystem.primaryCurve()
         primaryWriter.writeLine('primaryCurve_vol, ' +np.array2string(pCurve[0], precision = 2, separator=",", max_line_width = 300.))
         primaryWriter.writeLine('primaryCurve_heatCap, ' +np.array2string(pCurve[1], precision = 2, separator=",", max_line_width = 300.))
-
-        TMWriter = writeClassAtts(self.tempmaintSystem, fileName, 'a')
-        TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
-        TMWriter.writeLine('schematic, '+ self.translate.schematic)
-        TMWriter.writeToFile()
+        if self.tempmaintSystem is not None:
+            TMWriter = writeClassAtts(self.tempmaintSystem, fileName, 'a')
+            TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
+            TMWriter.writeLine('schematic, '+ self.translate.schematic)
+            TMWriter.writeToFile()
