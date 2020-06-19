@@ -40,12 +40,30 @@ def people_sizer():
     hpwh.initTempMaint(100)
 
     return hpwh
+
+@pytest.fixture
+def primary_sizer():
+    '''Returns a HPWHsizer instance initialized by nPeople inputs'''
+    hpwh = HPWHsizer.HPWHsizer()
+    hpwh.initPrimaryByPeople(100, 22.,
+                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
+                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
+                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
+                    120, 50, 150., 18., 0, .9, .9,
+                    "primary", True, 36)
+    return hpwh
+
 # End of fixtures
 
 # Start of tests
 
 #Init Tests
 def test_default_init(empty_sizer):
+    assert empty_sizer.validbuild  == False
+    assert empty_sizer.primarySystem            == None
+    assert empty_sizer.tempmaintSystem          == None
+    assert empty_sizer.ashraeSize               == None
+    
     assert (empty_sizer.translate.nBR             == np.zeros(6)).all()
     assert (empty_sizer.translate.rBR             == np.zeros(6)).all()
     assert empty_sizer.translate.nPeople          == 0. # Nnumber of people
@@ -71,10 +89,20 @@ def test_default_init(empty_sizer):
 
     with pytest.raises(Exception):
         assert empty_sizer.sizeSystem()
+    with pytest.raises(Exception):
         assert empty_sizer.primarySystem.sizeVol_Cap()
-        assert empty_sizer.primarySystem.sizePrimaryTankVolume(-10)
-        assert empty_sizer.primarySystem.sizePrimaryTankVolume(100)
+        
+def test_multipass(people_sizer):
+    people_sizer.translate.singlePass = False
+    with pytest.raises(Exception, match="Multipass is yet supported"):
+        assert people_sizer.build_size()
+    
+def test_trimtank(people_sizer):
+    people_sizer.translate.schematic = 'trimtank'
+    with pytest.raises(Exception, match="Trim tanks are not supported yet"):
+        assert people_sizer.build_size()   
 
+    
 @pytest.mark.parametrize("arr, expected", [
     ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
     ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
@@ -84,45 +112,49 @@ def test_getPeakIndices(units_sizer, arr, expected):
     units_sizer.buildSystem()
     assert all(units_sizer.primarySystem.getPeakIndices(arr) == np.array(expected))
 
-# @pytest.mark.parametrize("Wapt, returnT, fdotRecirc", [
-#     (99.15126, 117, 45),
-#     (58.75630029, 110, 8),
-#     (881.3445044, 40, 15)
-# ])
-# def test_setRecircVars(units_sizer, Wapt, returnT, fdotRecirc):
-#     tol = 1e-4
-#     units_sizer.translate.setRecircVars(0, returnT, fdotRecirc)
-#     assert abs(units_sizer.translate.Wapt - Wapt) < tol
-#     units_sizer.translate.setRecircVars(Wapt, 0, fdotRecirc)
-#     assert abs(units_sizer.translate.returnT_F - returnT) < tol
-#     units_sizer.translate.setRecircVars(Wapt, returnT, 0)
-#     assert abs(units_sizer.translate.fdotRecirc_gpm - fdotRecirc) < tol
-
-#     with pytest.raises(Exception):
-#         assert units_sizer.translate.setRecircVars(0, returnT, 0)
-#         assert units_sizer.translate.setRecircVars(-Wapt, -returnT, 0)
-#         assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp, 0)
-#         assert units_sizer.translate.setRecircVars(Wapt, units_sizer.supplyTemp+10, 0)
-
 # Full model and file tests!
-def test_initPrimaryByPeople(people_sizer):
+def test_primarySizer(primary_sizer):
+    with pytest.raises(Exception, match="The system can not be sized without a valid build"):
+        assert primary_sizer.sizeSystem()
+    
+    results = primary_sizer.build_size()
+    assert len(results) == 3
+    
     with pytest.raises(Exception):
+        assert primary_sizer.sizePrimaryTankVolume(-10)
+    with pytest.raises(Exception):
+        assert primary_sizer.sizePrimaryTankVolume(100)
+    primary_sizer.writeToFile("tests/output/primary_sizer.txt")
+    assert file_regression("tests/ref/primary_sizer.txt",
+                           "tests/output/primary_sizer.txt")
+
+
+def test_initPrimaryByPeople(people_sizer):
+    with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert people_sizer.sizeSystem()
-    people_sizer.build_size()
+    
+    results = people_sizer.build_size()
+    assert len(results) == 5    
+    
     with pytest.raises(Exception):
         assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
+    with pytest.raises(Exception):
         assert people_sizer.primarySystem.sizePrimaryTankVolume(100)
 
     people_sizer.writeToFile("tests/output/people_sizer.txt")
     assert file_regression("tests/ref/people_sizer.txt",
                            "tests/output/people_sizer.txt")
-
+    
 def test_initPrimaryByUnits(units_sizer):
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert units_sizer.sizeSystem()
-    units_sizer.build_size()
+    
+    results = units_sizer.build_size()
+    assert len(results) == 5
+    
     with pytest.raises(Exception):
         assert units_sizer.sizePrimaryTankVolume(-10)
+    with pytest.raises(Exception):
         assert units_sizer.sizePrimaryTankVolume(100)
     units_sizer.writeToFile("tests/output/units_sizer.txt")
     assert file_regression("tests/ref/units_sizer.txt",
@@ -134,7 +166,8 @@ def test_initPrimaryByUnits(units_sizer):
 ])
 def test_hpwh_from_file(empty_sizer, file1):
     empty_sizer.initializeFromFile(file1)
-    empty_sizer.build_size()
+    results = empty_sizer.build_size()
+    assert len(results) == 5
     empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
 
     assert file_regression("tests/ref/"+os.path.basename(file1),

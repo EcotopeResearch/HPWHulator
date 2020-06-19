@@ -208,7 +208,7 @@ class PrimarySystem_SP:
 
         Returns
         -------
-        array
+        list
             self.PVol_G_atStorageT, self.PCap, self.aquaFract
         """
         if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
@@ -280,8 +280,7 @@ class ParallelLoopTank:
         """
         Sizes the volume in gallons and heat capactiy in BTU/h
 
-        Returns
-        -------
+        Calculates:
         TMVol_G_atStorageT
             Dedicated loop tank volume.
         TMCap
@@ -300,7 +299,7 @@ class ParallelLoopTank:
 
         Returns
         -------
-        array
+        list
             self.TMVol_G_atStorageT, self.TMCap
         """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
@@ -344,8 +343,7 @@ class SwingTank:
         """
         Sizes the volume in gallons and heat capactiy in BTU/hr
 
-        Returns
-        -------
+        Calculates:
         TMVol_G_atStorageT
             Calculated swing tank volume.
         TMCap
@@ -360,7 +358,7 @@ class SwingTank:
 
         Returns
         -------
-        array
+        list
             self.TMVol_G_atStorageT, self.TMCap
         """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
