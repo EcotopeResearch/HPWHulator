@@ -376,6 +376,16 @@ class HPWHsizer:
                               mode='lines', name='ASHRAE Sizing Curve',
                               opacity=0.8, marker_color='red'))
         
+        [xlow, ylow] = self.ashraeSize.getLowCurve()
+        [xmed, ymed] = self.ashraeSize.getMediumCurve()
+        fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
+                      mode='lines',  dash = 'dash',opacity=0.8,
+                      name='ASHRAE Low Curve' ))
+        
+        fig.add_trace(Scatter(x=xmed[:-1], y=ymed[:-1], #Drops the last point
+                      mode='lines',  dash = 'dash',opacity=0.8,
+                      name='ASHRAE Medium Curve' ))
+        
         fig.add_trace(Scatter(x=(0,x_data[-2]), 
                               y=(self.primarySystem.PCap,self.primarySystem.PCap),
                               mode='lines', name='Minimum Size',
