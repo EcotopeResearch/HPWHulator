@@ -41,7 +41,7 @@ class ASHRAEsizer:
         
         self.__checkInputs()
         self.__getASHRAEtable()
-        [self.primaryVolArr, self.accurateRecoveryTonsArr] =self.sizePrimaryCurveAshrae()
+        [self.primaryVolArr, self.accurateRecoveryTonsArr] =self.sizePrimaryCurveAshrae(self.peakFlowTable)
         
     def __checkInputs(self):
         """Checks inputs are all valid"""
@@ -66,7 +66,7 @@ class ASHRAEsizer:
             userValues = np.zeros_like(self.ashraeLowLU)
             #add the time intervals
             peakTimes = (5, 15, 30, 60, 120, 180, 1440)
-            for ii in range(len(ashraeLowLU)):
+            for ii in range(len(self.ashraeLowLU)):
                 userValues[ii,1] = (self.ashraeMediumLU[ii,1] - self.ashraeLowLU[ii,1]) * yIncrement + self.ashraeLowLU[ii,1]
                 userValues[ii,0] = peakTimes[ii]
             peakFlowTable = userValues
@@ -76,7 +76,7 @@ class ASHRAEsizer:
 
         self.peakFlowTable = peakFlowTable;
         
-    def sizePrimaryCurveAshrae(self, flowTable = self.peakFlowTable):
+    def sizePrimaryCurveAshrae(self, flowTable):
         """"Sizes the primary system curve using ASHRAE sizing"""
 
         # Create a diff peakFlowTable for recovery calculations
@@ -101,11 +101,14 @@ class ASHRAEsizer:
                 
     def getLowCurve(self):
         """Function to return ASHRAE Low"""
-        return self.sizePrimaryCurveAshrae(flowTable = self.ashraeLowLU)
+        [vol_g, cap_tons] = self.sizePrimaryCurveAshrae(flowTable = self.ashraeLowLU)
+        return [vol_g, cap_tons * TONS_TOKBTUHR]
         
     def getMediumCurve(self):
         """Function to return ASHRAE Low"""
-        return self.sizePrimaryCurveAshrae(flowTable = self.ashraeMediumLU)
+        [vol_g, cap_tons] =  self.sizePrimaryCurveAshrae(flowTable = self.ashraeMediumLU)
+        return [vol_g, cap_tons * TONS_TOKBTUHR]
+
         
     def tonsRecoveryForMaxDaily(self):
         """"Calculates the system heat capacity for a given compressor run time"""

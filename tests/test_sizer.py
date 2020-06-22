@@ -129,12 +129,6 @@ def test_primarySizer(primary_sizer):
     assert file_regression("tests/ref/primary_sizer.txt",
                            "tests/output/primary_sizer.txt")
 
-def test_primaryPlot(primary_sizer):    
-    primary_sizer.build_size()
-    fig = primary_sizer.plotSizingCurve(return_as_div=False)
-    fig.write_html("tests/test_cdf.html")
-
-
 def test_initPrimaryByPeople(people_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert people_sizer.sizeSystem()
@@ -178,3 +172,9 @@ def test_hpwh_from_file(empty_sizer, file1):
 
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
+
+
+def test_primaryPlot(primary_sizer):    
+    primary_sizer.build_size()
+    fig = primary_sizer.plotSizingCurve(return_as_div=False)
+    fig.write_html("tests/primarytest.html")
