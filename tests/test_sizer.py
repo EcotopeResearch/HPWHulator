@@ -2,6 +2,7 @@ import pytest
 
 import filecmp
 import numpy as np
+
 import os
 import HPWHsizer
 
@@ -127,6 +128,11 @@ def test_primarySizer(primary_sizer):
     primary_sizer.writeToFile("tests/output/primary_sizer.txt")
     assert file_regression("tests/ref/primary_sizer.txt",
                            "tests/output/primary_sizer.txt")
+
+def test_primaryPlot(primary_sizer):    
+    primary_sizer.build_size()
+    fig = primary_sizer.plotSizingCurve(return_as_div=False)
+    fig.write_html("tests/test_cdf.html")
 
 
 def test_initPrimaryByPeople(people_sizer):

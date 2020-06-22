@@ -366,14 +366,18 @@ class HPWHsizer:
         """
         fig = Figure()
 
+        hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
+        
         [x_data, y_data] = self.primarySystem.primaryCurve()
         fig.add_trace(Scatter(x=x_data, y=y_data,
                               mode='lines', name='Primary Sizing Curve',
+                              hovertemplate = hovertext,
                               opacity=0.8, marker_color='green'))
         
         [x_data, y_data] = self.ashraeSize.primaryCurve()
         fig.add_trace(Scatter(x=x_data[:-1], y=y_data[:-1], #Drops the last point
                               mode='lines', name='ASHRAE Sizing Curve',
+                              hovertemplate = hovertext,
                               opacity=0.8, marker_color='red'))
         
         [xlow, ylow] = self.ashraeSize.getLowCurve()
@@ -389,6 +393,7 @@ class HPWHsizer:
         fig.add_trace(Scatter(x=(0,x_data[-2]), 
                               y=(self.primarySystem.PCap,self.primarySystem.PCap),
                               mode='lines', name='Minimum Size',
+                              hovertemplate = hovertext,
                               opacity=0.8, marker_color='grey'))     
         
         fig.update_layout(title="Primary Sizing Curve",
