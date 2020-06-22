@@ -26,5 +26,5 @@ offTime_hr, 1
 TMRuntime_hr, 2
 setpointTM_F, 135
 TMonTemp_F, 122
-TMCap, 102876.081
+TMCap, 102.876
 TMVol_G_atStorageT, 631.553
