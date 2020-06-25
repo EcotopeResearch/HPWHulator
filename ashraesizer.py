@@ -90,8 +90,10 @@ class ASHRAEsizer:
         primaryVol = peakVolume / self.percentUseable * (self.supplyT_F - self.incomingT_F) / \
                 (self.storageT_F - self.incomingT_F)
         
-        accurateRecoveryTons = self.nPeople * (diffPeakFlowTable[:len(diffPeakFlowTable),1]) / \
-                (diffPeakFlowTable[:len(diffPeakFlowTable),0]) * 60 * rhoCp * (self.storageT_F - self.incomingT_F)/12000
+        accurateRecoveryTons = 60 * rhoCp * self.nPeople * \
+                        (diffPeakFlowTable[:len(diffPeakFlowTable),1]) /  \
+                        (diffPeakFlowTable[:len(diffPeakFlowTable),0]) *  \
+                        (self.storageT_F - self.incomingT_F) / self.defrostFactor / 12000
              
         return [primaryVol, accurateRecoveryTons]
         

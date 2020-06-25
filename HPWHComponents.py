@@ -57,23 +57,52 @@ class PrimarySystem_SP:
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad
-        self.loadShapeNorm  = loadShapeNorm
+        if not isinstance(loadShapeNorm, np.ndarray): 
+            self.loadShapeNorm  = np.array(loadShapeNorm)
+        else:
+            self.loadShapeNorm  = loadShapeNorm
         self.nPeople        = nPeople
 
         self.incomingT_F      = incomingT_F
         self.storageT_F       = storageT_F
         self.supplyT_F        = supplyT_F
 
-        self.defrostFactor  = defrostFactor
-        self.percentUseable = percentUseable
-        self.compRuntime_hr    = compRuntime_hr
+        self.defrostFactor      = defrostFactor
+        self.percentUseable     = percentUseable
+        self.compRuntime_hr     = compRuntime_hr
+        
+        # Internal variables
+        self.maxDayRun_hr = compRuntime_hr
+        self.LS_on_off = np.ones(24)
+        self.loadShift = False;
         
         # Outputs
         self.PCap              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
-        self.runningVol_G      = 0. # Gallons
-        self.cyclingVol_G      = 0. # Gallons
         self.aquaFract         = 0. #Fraction
+
+
+    def setLoadShift(self, schedule):
+        """
+        Sets the load shifting schedule from input schedule
+
+        Args:
+            schedule (list): List or array of 0's and 1's for don't run and run..
+
+        Returns:
+            None.
+
+        """
+        if len(schedule) != 24:
+            raise Exception("Length of the load shifting schedule must be equal to 24 it has length "+ str(len(schedule)))
+        # Check if list is 0 and 1s.
+        if isinstance(schedule, list):
+            schedule = np.array(schedule)
+        # Coerce to 0s and 1s
+        self.LS_on_off = np.where(schedule > 0, 1, 0)
+        self.loadShift = True
+        # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
+        self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
 
     # this should be a separate function and not be part of the main object.
     def getPeakIndices(self,diff1):
@@ -110,8 +139,6 @@ class PrimarySystem_SP:
         else:
             if heathours > 24 or heathours <= 0:
                 raise Exception("Heat hours is not within 1 - 24 hours")
-
-        
         
     def primaryHeatHrs2kBTUHR(self, heathours):
         """
@@ -139,19 +166,65 @@ class PrimarySystem_SP:
         Parameters
         ----------
         heatHrs
-            The number of hours primary heating equipment can run.
+            The number of hours primary heating equipment can run in a day.
 
         Returns
         -------
         volume
-            A temperature adjusted total volume
+            A total volume adjusted to the storage tempreature
         """
         self._checkHeatHours(heatHrs)        
 
-        diffN = 1/heatHrs - np.append(self.loadShapeNorm,self.loadShapeNorm)
+        runningVol_G = self.__calcRunningVol(heatHrs,np.ones(24))
+
+        # Get the Cycling Volume ##############################################
+        averageGal      = self.totalHWLoad * .7 # Hard coded average draw rate as proportion of peak
+        avg_runtime     = 1. # Hard coded average runtime for HPWH
+        cyclingVol_G = avg_runtime * (self.totalHWLoad / heatHrs - averageGal/24.) # (generation rate - average background draw)
+
+        # Get the total volume ################################################
+        totalVol = ( runningVol_G + cyclingVol_G )
+
+        # If doing load shift, solve for the runningVol_G and take the larger volume 
+        LSrunningVol_G = 0
+        if self.loadShift:
+            LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off)
+        
+        # Get total volume from max of primary method or load shift method
+        totalVolMax = max(totalVol, LSrunningVol_G + cyclingVol_G)
+        totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / self.percentUseable
+        
+        if self.loadShift:
+            aquastatFraction = 1 - self.__SUPPLYV_TO_STORAGEV(LSrunningVol_G) / totalVolMax
+        else:
+            # Get the aquastat fraction from independently solved for cycling vol
+            # and running vol.
+            aquastatFraction = 1 - self.__SUPPLYV_TO_STORAGEV(runningVol_G) / totalVolMax
+        
+        # Return the temperature adjusted total volume ########################
+        return [totalVolMax, aquastatFraction]
+
+    def __calcRunningVol(self, heatHrs, onOffArr):
+        """
+        Function to find the running volume for the hot water storage tank, which
+        is needed for calculating the total volume for primary sizing and in the event of load shift sizing
+        represents the entire volume. 
+
+        Args:
+            heatHrs (float): The number of hours primary heating equipment can run in a day.
+            onOffArr (np.array): array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
+
+        Raises:
+            Exception: Error if oversizeing system.
+
+        Returns:
+            runV_G (float): the running volume in gallons
+
+        """
+        diffN   =  np.tile(onOffArr,2) / heatHrs - np.tile(self.loadShapeNorm,2)
         diffInd = self.getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
-        # Get the running volume #############################################
+        # Get the running volume ##############################################
         if len(diffInd) == 0:
             raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
         else:
@@ -159,24 +232,35 @@ class PrimarySystem_SP:
             for peakInd in diffInd:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
-        self.runningVol_G = runVolTemp * self.totalHWLoad
+        runV_G = runVolTemp * self.totalHWLoad
+        return runV_G
+        
+    def __SUPPLYV_TO_STORAGEV(self, vol):
+        """
+        Converts the volume of water at the supply temperature to an equivalent volume at the storage temperature
 
-        # Get the Cycling Volume #############################################
-        averageGPDPP    = 17. # Hard coded average draw rate
-        avg_runtime     = 1. # Hard coded average runtime for HPWH
-        self.cyclingVol_G = avg_runtime * (self.totalHWLoad / heatHrs - averageGPDPP/24. * self.nPeople) # (generation rate - average background draw)
+        Args:
+            vol (float): vol at the supply temperature.
 
-        # Get the total volume ###############################################
-        totalVol = ( self.runningVol_G + self.cyclingVol_G ) / self.percentUseable
+        Returns:
+            float: Volume at storage temperature.
 
-        # Get the aquastat fraction from independently solved for cycling vol
-        # and running vol.
-        self.aquaFract =  1 - self.runningVol_G / totalVol
+        """
+        return vol * (self.supplyT_F - self.incomingT_F) / (self.storageT_F - self.incomingT_F)
+    
+    def __STORAGEV_TO_SUPPLYV(self, vol):
+        """
+        Converts the volume of water at the storage temperature to an equivalent volume at the supply temperature
 
-        # Return the temperature adjusted total volume #######################
-        return totalVol * (self.supplyT_F - self.incomingT_F) / \
-            (self.storageT_F - self.incomingT_F)
+        Args:
+            vol (float): vol at the storage temperature.
 
+        Returns:
+            float: Volume at supply temperature.
+
+        """
+        return vol * (self.storageT_F - self.incomingT_F) /  (self.supplyT_F - self.incomingT_F) 
+    
     def primaryCurve(self):
         """
         Size the primary system curve.
@@ -192,15 +276,15 @@ class PrimarySystem_SP:
         heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
-            volN[ii] = self.sizePrimaryTankVolume(heatHours[ii])
+            volN[ii], _  = self.sizePrimaryTankVolume(heatHours[ii])
         return [volN, self.primaryHeatHrs2kBTUHR(heatHours)]
 
     def sizeVol_Cap(self):
         """
         Calculates PVol_G_atStorageT and PCap
         """
-        self.PVol_G_atStorageT = self.sizePrimaryTankVolume(self.compRuntime_hr)
-        self.PCap = self.primaryHeatHrs2kBTUHR(self.compRuntime_hr)
+        [self.PVol_G_atStorageT, self.aquaFract] = self.sizePrimaryTankVolume(self.maxDayRun_hr)
+        self.PCap = self.primaryHeatHrs2kBTUHR(self.maxDayRun_hr)
 
     def getSizingResults(self):
         """
@@ -216,6 +300,56 @@ class PrimarySystem_SP:
 
         return [ self.PVol_G_atStorageT,  self.PCap, self.aquaFract ]
     
+    def runStorage_Load_Sim(self):
+        """
+        Returns sizing storage depletion and load results for water volumes at the supply temperature
+
+        Returns
+        -------
+        list [ V, G_hw, D_hw ] 
+        V - Volume of HW in the tank with time
+        G_hw - The generation of HW with time 
+        D_hw - The hot water demand with time
+
+        """
+        if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
+            raise Exception("The system hasn't been sized yet!")
+        
+        G_hw = self.totalHWLoad/self.maxDayRun_hr * np.tile(self.LS_on_off,3) 
+        D_hw = self.totalHWLoad * np.tile(self.loadShapeNorm,3)
+        diffN   =  G_hw - D_hw
+        startInd = self.getPeakIndices(diffN[0:23])[0] #Days repeat so just get first day!
+        startInd = 1 if startInd == 0 else startInd
+        #Init the "simulation"
+        N = len(G_hw)
+        V0 = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT)*self.percentUseable
+        Vtrig = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT)*( 1 - self.aquaFract )
+        
+        run = [0] * (N)
+        V = [V0]*startInd + [0] * (N - startInd)
+        heating = False
+        for ii in range(startInd,N):
+            if heating:
+                V[ii] = V[ii-1] + G_hw[ii] - D_hw[ii] # If heating, generate HW and lose HW
+                run[ii] = G_hw[ii]
+                
+                if V[ii] > V0: # If full
+                    time_over = (V[ii] - V0)/(G_hw[ii]-D_hw[ii]) # Volume over generated / rate of generation gives time above full
+                    V[ii] = V0 - D_hw[ii]*time_over # Make full with miss volume
+                    run[ii] = G_hw[ii] * (1-time_over)
+                    heating = False # Stop heating
+            
+            else:  # Else not heating, 
+                V[ii] = V[ii-1] - D_hw[ii] # So lose HW
+                if V[ii] < Vtrig: # If should heat
+                    time_missed = (Vtrig - V[ii])/D_hw[ii] #Volume below turn on / rate of draw gives time below tigger
+                    V[ii] += G_hw[ii]*time_missed # Start heating
+                    run[ii] = G_hw[ii]*time_missed
+                    heating = True
+                    
+        return [ V, G_hw, D_hw, run ]
+                
+                    
 ##############################################################################
 class PrimarySystem_MP_NR:
     """ Sizes primary multipass HPWH system with NO recirculation loop """
@@ -264,7 +398,6 @@ class ParallelLoopTank:
     def __init__(self, nApt, Wapt, Qdot_tank, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
-
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
         self.Qdot_tank    = Qdot_tank

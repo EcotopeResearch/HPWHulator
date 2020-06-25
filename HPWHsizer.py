@@ -2,7 +2,6 @@
 import numpy as np
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
-from cfg import rhoCp, W_TO_BTUMIN
 
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
@@ -104,6 +103,8 @@ class HPWHsizerRead:
         """Checks inputs are all valid"""
         if len(self.loadShapeNorm) != 24 :
             raise Exception("loadShapeNorm is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
+        if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
+            raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
         if self.schematic not in self.schematicNames:
             raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
@@ -383,14 +384,14 @@ class HPWHsizer:
         [xlow, ylow] = self.ashraeSize.getLowCurve()
         [xmed, ymed] = self.ashraeSize.getMediumCurve()
         fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
-                      mode='lines',   opacity=0.6,
+                      mode='lines',   opacity=0.4,  marker_color='crimson',
                       hovertemplate = hovertext,
                       name='ASHRAE Low Curve' ))
         
-        fig.add_trace(Scatter(x=xmed[:-1], y=ymed[:-1], #Drops the last point
-                      mode='lines',   opacity=0.6,
-                      hovertemplate = hovertext,
-                      name='ASHRAE Medium Curve' ))
+        #fig.add_trace(Scatter(x=xmed[:-1], y=ymed[:-1], #Drops the last point
+        #              mode='lines',   opacity=0.6,
+        #              hovertemplate = hovertext,
+        #              name='ASHRAE Medium Curve' ))
         
         fig.add_trace(Scatter(x=(0,x_data[-2]), 
                               y=(self.primarySystem.PCap,self.primarySystem.PCap),
@@ -407,6 +408,48 @@ class HPWHsizer:
             return plot_div
         else:
             return fig
+        
+    def plotPrimaryStorageLoadSim(self, return_as_div = True):
+        """
+        Returns a plot of the sizing curve as a div
+        
+        Parameters
+        ----------
+        return_as_div
+            A logical on the output, as a div (true) or as a figure (false)
+        Returns
+        -------
+        div/fig
+            plot_div
+        """
+        fig = Figure()
+        
+        [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim();
+        
+        nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % (sum(run[24:])/max(G_hw)/2)
+        x_data = list(range(len(V)))
+        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume', mode = 'lines',
+                              opacity=0.8, marker_color='green'))
+        fig.add_trace(Scatter(x=x_data, y=run, name = nameG_hw, mode = 'lines',
+                              opacity=0.8, marker_color='red'))
+        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand', mode = 'lines',
+                              opacity=0.8, marker_color='blue'))
+        fig.add_trace(Scatter(x=x_data, y=G_hw, name='Generation Volume per Hour', mode = 'lines',
+                              opacity=0.8, marker_color='grey'))
+        
+        fig.update_layout(title="Hot Water Psuedo-Simulation",
+                          xaxis_title="Hour",
+                          yaxis_title="Gallons at Supply Temperature",
+                          legend_orientation="h")
+        
+        if return_as_div:
+            plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
+                        include_plotlyjs = False)
+            return plot_div
+        else:
+            return fig
+        
+        
     
     def writeToFile(self,fileName):
         primaryWriter = writeClassAtts(self.primarySystem, fileName, 'w+')
