@@ -47,10 +47,10 @@ def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 22.,
-                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
-                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
-                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150., 18., 0, .9, .9,
+                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., 0, .9, .9,
                     "primary", True, 36)
     return hpwh
 
@@ -177,4 +177,57 @@ def test_hpwh_from_file(empty_sizer, file1):
 def test_primaryPlot(primary_sizer):    
     primary_sizer.build_size()
     fig = primary_sizer.plotSizingCurve(return_as_div=False)
-    fig.write_html("tests/primarytest.html")
+    fig.write_html("tests/output/primarytest.html")
+    
+def test_simPlot(primary_sizer):    
+    primary_sizer.build_size()
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/simtest.html")
+    
+def test_simLSP_8hr(primary_sizer): 
+    primary_sizer.buildSystem()
+    primary_sizer.primarySystem.setLoadShift([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
+    primary_sizer.sizeSystem()
+    primary_sizer.writeToFile("tests/output/test_primaryLS8.txt")
+
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/simLS8test.html")
+    
+    assert file_regression("tests/ref/test_primaryLS8.txt",
+                           "tests/output/test_primaryLS8.txt")
+    
+def test_simLSP_4hr(primary_sizer): 
+    primary_sizer.buildSystem()
+    primary_sizer.primarySystem.setLoadShift([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
+    primary_sizer.sizeSystem()
+    primary_sizer.writeToFile("tests/output/test_primaryLS4.txt")
+
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/simLS4test.html")
+    
+    assert file_regression("tests/ref/test_primaryLS4.txt",
+                           "tests/output/test_primaryLS4.txt")
+
+def test_simLS_TOU(primary_sizer): 
+    primary_sizer.buildSystem()
+    primary_sizer.primarySystem.setLoadShift([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1])
+    primary_sizer.sizeSystem()
+    primary_sizer.writeToFile("tests/output/test_primaryLSTOU.txt")
+
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/simLSTOUtest.html")
+    
+    assert file_regression("tests/ref/test_primaryLSTOU.txt",
+                           "tests/output/test_primaryLSTOU.txt")
+    
+def test_simLS_SolarDream(primary_sizer): 
+    primary_sizer.buildSystem()
+    primary_sizer.primarySystem.setLoadShift([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+    primary_sizer.sizeSystem()
+    primary_sizer.writeToFile("tests/output/test_primaryLSSolarDream.txt")
+
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/simLSSolarDreamtest.html")
+    
+    assert file_regression("tests/ref/test_primaryLSSolarDream.txt",
+                           "tests/output/test_primaryLSSolarDream.txt")

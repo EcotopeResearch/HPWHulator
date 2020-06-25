@@ -9,11 +9,11 @@ supplyT_F, 120
 defrostFactor, 0.900
 percentUseable, 0.900
 compRuntime_hr, 16.000
-maxDayRun_hr, 16.000
-LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
-loadShift, False
-PCap, 127.623
-PVol_G_atStorageT, 264.424
-aquaFract, 0.294
-primaryCurve_vol, [264.42,245.3 ,228.93,212.62,193.95,174.67,166.89,166.89,166.89,166.89]
+maxDayRun_hr, 15
+LS_on_off, [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,1,1,1]
+loadShift, True
+PCap, 136.132
+PVol_G_atStorageT, 693.342
+aquaFract, 0.183
+primaryCurve_vol, [849.57,709.35,654.79,635.16,635.16,635.16,635.16,635.16,635.16,635.16]
 primaryCurve_heatCap, [127.62,135.23,143.8 ,153.53,164.67,177.56,192.63,210.5 ,232.03,258.46]
