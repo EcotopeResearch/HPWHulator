@@ -276,6 +276,7 @@ class HPWHsizer:
                 TMonTemp_F = self.translate.supplyT_F + 2;
             self.translate.initTempMaint(Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F)
 
+    
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
         self.ashraeSize = ASHRAEsizer(self.translate.nPeople,
@@ -328,12 +329,22 @@ class HPWHsizer:
             raise Exception ("The HPWH system did not build properly") 
 
     def sizeSystem(self):
-        """Sizes the built system"""
+        """
+        Sizes the built system
+        
+        Returns
+        -------
+        list 
+            [PVol_G_atStorageT, PCap, aquaFract, TMVol_G_atStorageT, TMCap]
+        """
         if self.validbuild:
             self.primarySystem.sizeVol_Cap()
             # It is fine if the temperature maintenance system is 0
             if self.tempmaintSystem :
                 self.tempmaintSystem.sizeVol_Cap()
+                return self.primarySystem.getSizingResults() + self.tempmaintSystem.getSizingResults()
+            else:
+                return self.primarySystem.getSizingResults()
         else:
             raise Exception("The system can not be sized without a valid build")
 
@@ -346,11 +357,7 @@ class HPWHsizer:
             [PVol_G_atStorageT, PCap, aquaFract, TMVol_G_atStorageT, TMCap]
         """
         self.buildSystem()
-        self.sizeSystem()
-        if self.tempmaintSystem is not None:
-            return self.primarySystem.getSizingResults() + self.tempmaintSystem.getSizingResults()
-        else:
-             return self.primarySystem.getSizingResults()
+        return self.sizeSystem()
     
     def plotSizingCurve(self, return_as_div = True):
         """

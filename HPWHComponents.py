@@ -87,7 +87,7 @@ class PrimarySystem_SP:
         Sets the load shifting schedule from input schedule
 
         Args:
-            schedule (list): List or array of 0's and 1's for don't run and run..
+            schedule (list): List or array of 0's and 1's for don't run and run.
 
         Returns:
             None.
