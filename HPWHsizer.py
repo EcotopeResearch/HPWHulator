@@ -435,13 +435,17 @@ class HPWHsizer:
         
         nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % (sum(run[24:])/max(G_hw)/2)
         x_data = list(range(len(V)))
-        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume', mode = 'lines',
+        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume', 
+                              mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='green'))
-        fig.add_trace(Scatter(x=x_data, y=run, name = nameG_hw, mode = 'lines',
+        fig.add_trace(Scatter(x=x_data, y=run, name = nameG_hw,  
+                              mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='red'))
-        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand', mode = 'lines',
+        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand', 
+                              mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='blue'))
-        fig.add_trace(Scatter(x=x_data, y=G_hw, name='Generation Volume per Hour', mode = 'lines',
+        fig.add_trace(Scatter(x=x_data, y=G_hw, name='Generation Volume per Hour',  
+                              mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='grey'))
         
         fig.update_layout(title="Hot Water Psuedo-Simulation",

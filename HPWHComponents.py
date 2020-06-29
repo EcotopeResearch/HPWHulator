@@ -332,12 +332,6 @@ class PrimarySystem_SP:
             if heating:
                 V[ii] = V[ii-1] + G_hw[ii] - D_hw[ii] # If heating, generate HW and lose HW
                 run[ii] = G_hw[ii]
-                
-                if V[ii] > V0: # If full
-                    time_over = (V[ii] - V0)/(G_hw[ii]-D_hw[ii]) # Volume over generated / rate of generation gives time above full
-                    V[ii] = V0 - D_hw[ii]*time_over # Make full with miss volume
-                    run[ii] = G_hw[ii] * (1-time_over)
-                    heating = False # Stop heating
             
             else:  # Else not heating, 
                 V[ii] = V[ii-1] - D_hw[ii] # So lose HW
@@ -346,10 +340,14 @@ class PrimarySystem_SP:
                     V[ii] += G_hw[ii]*time_missed # Start heating
                     run[ii] = G_hw[ii]*time_missed
                     heating = True
-                    
+            if V[ii] > V0: # If full
+                time_over = (V[ii] - V0)/(G_hw[ii]-D_hw[ii]) # Volume over generated / rate of generation gives time above full
+                V[ii] = V0 - D_hw[ii]*time_over # Make full with miss volume
+                run[ii] = G_hw[ii] * (1-time_over)
+                heating = False # Stop heating
+                
         return [ V, G_hw, D_hw, run ]
                 
-                    
 ##############################################################################
 class PrimarySystem_MP_NR:
     """ Sizes primary multipass HPWH system with NO recirculation loop """
