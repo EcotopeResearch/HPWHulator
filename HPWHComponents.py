@@ -53,7 +53,7 @@ class PrimarySystem_SP:
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
                  incomingT_F, supplyT_F, storageT_F,
                  defrostFactor, percentUseable,
-                 compRuntime_hr):
+                 compRuntime_hr, aquaFract):
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad
@@ -70,7 +70,8 @@ class PrimarySystem_SP:
         self.defrostFactor      = defrostFactor
         self.percentUseable     = percentUseable
         self.compRuntime_hr     = compRuntime_hr
-        
+        self.aquaFract          = aquaFract#Fraction
+
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
@@ -178,12 +179,12 @@ class PrimarySystem_SP:
         runningVol_G = self.__calcRunningVol(heatHrs,np.ones(24))
 
         # Get the Cycling Volume ##############################################
-        averageGal      = self.totalHWLoad * .7 # Hard coded average draw rate as proportion of peak
-        avg_runtime     = 1. # Hard coded average runtime for HPWH
-        cyclingVol_G = avg_runtime * (self.totalHWLoad / heatHrs - averageGal/24.) # (generation rate - average background draw)
+        #averageGal      = self.totalHWLoad * .7 # Hard coded average draw rate as proportion of peak
+        #avg_runtime     = 1. # Hard coded average runtime for HPWH
+        #cyclingVol_G = avg_runtime * (self.totalHWLoad / heatHrs - averageGal/24.) # (generation rate - average background draw)
 
         # Get the total volume ################################################
-        totalVol = ( runningVol_G + cyclingVol_G )
+        #totalVol = ( runningVol_G + cyclingVol_G )
 
         # If doing load shift, solve for the runningVol_G and take the larger volume 
         LSrunningVol_G = 0
@@ -191,18 +192,11 @@ class PrimarySystem_SP:
             LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off)
         
         # Get total volume from max of primary method or load shift method
-        totalVolMax = max(totalVol, LSrunningVol_G + cyclingVol_G)
-        totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / self.percentUseable
-        
-        if self.loadShift:
-            aquastatFraction = 1 - self.__SUPPLYV_TO_STORAGEV(LSrunningVol_G) / totalVolMax
-        else:
-            # Get the aquastat fraction from independently solved for cycling vol
-            # and running vol.
-            aquastatFraction = 1 - self.__SUPPLYV_TO_STORAGEV(runningVol_G) / totalVolMax
+        totalVolMax = max(runningVol_G, LSrunningVol_G)
+        totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
         
         # Return the temperature adjusted total volume ########################
-        return [totalVolMax, aquastatFraction]
+        return totalVolMax
 
     def __calcRunningVol(self, heatHrs, onOffArr):
         """
@@ -276,14 +270,14 @@ class PrimarySystem_SP:
         heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
-            volN[ii], _  = self.sizePrimaryTankVolume(heatHours[ii])
+            volN[ii] = self.sizePrimaryTankVolume(heatHours[ii])
         return [volN, self.primaryHeatHrs2kBTUHR(heatHours)]
 
     def sizeVol_Cap(self):
         """
         Calculates PVol_G_atStorageT and PCap
         """
-        [self.PVol_G_atStorageT, self.aquaFract] = self.sizePrimaryTankVolume(self.maxDayRun_hr)
+        self.PVol_G_atStorageT = self.sizePrimaryTankVolume(self.maxDayRun_hr)
         self.PCap = self.primaryHeatHrs2kBTUHR(self.maxDayRun_hr)
 
     def getSizingResults(self):
@@ -298,7 +292,7 @@ class PrimarySystem_SP:
         if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
             raise Exception("The system hasn't been sized yet!")
 
-        return [ self.PVol_G_atStorageT,  self.PCap, self.aquaFract ]
+        return [ self.PVol_G_atStorageT,  self.PCap ]
     
     def runStorage_Load_Sim(self):
         """
