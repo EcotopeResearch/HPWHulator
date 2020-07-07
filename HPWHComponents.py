@@ -80,7 +80,6 @@ class PrimarySystem_SP:
         # Outputs
         self.PCap              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
-        self.aquaFract         = 0. #Fraction
 
 
     def setLoadShift(self, schedule):
@@ -289,7 +288,7 @@ class PrimarySystem_SP:
         list
             self.PVol_G_atStorageT, self.PCap, self.aquaFract
         """
-        if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
+        if self.PVol_G_atStorageT == 0. or self.PCap == 0.:
             raise Exception("The system hasn't been sized yet!")
 
         return [ self.PVol_G_atStorageT,  self.PCap ]
@@ -306,23 +305,27 @@ class PrimarySystem_SP:
         D_hw - The hot water demand with time
 
         """
-        if self.PVol_G_atStorageT == 0. or self.PCap == 0. or self.aquaFract == 0.:
+        if self.PVol_G_atStorageT == 0. or self.PCap == 0.:
             raise Exception("The system hasn't been sized yet!")
         
         G_hw = self.totalHWLoad/self.maxDayRun_hr * np.tile(self.LS_on_off,3) 
         D_hw = self.totalHWLoad * np.tile(self.loadShapeNorm,3)
-        diffN   =  G_hw - D_hw
-        startInd = self.getPeakIndices(diffN[0:23])[0] #Days repeat so just get first day!
-        startInd = 1 if startInd == 0 else startInd
+        
         #Init the "simulation"
         N = len(G_hw)
-        V0 = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT)*self.percentUseable
-        Vtrig = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT)*( 1 - self.aquaFract )
+        V0 = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * self.percentUseable
+        Vtrig = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * (1 - self.aquaFract)
+        
+        print(self.percentUseable)
+        print(self.aquaFract)
+        print(V0)
+        print(Vtrig)
         
         run = [0] * (N)
-        V = [V0]*startInd + [0] * (N - startInd)
+        V = [V0] + [0] * (N - 1)
         heating = False
-        for ii in range(startInd,N):
+        for ii in range(1,N):
+            
             if heating:
                 V[ii] = V[ii-1] + G_hw[ii] - D_hw[ii] # If heating, generate HW and lose HW
                 run[ii] = G_hw[ii]
@@ -334,6 +337,7 @@ class PrimarySystem_SP:
                     V[ii] += G_hw[ii]*time_missed # Start heating
                     run[ii] = G_hw[ii]*time_missed
                     heating = True
+                    
             if V[ii] > V0: # If full
                 time_over = (V[ii] - V0)/(G_hw[ii]-D_hw[ii]) # Volume over generated / rate of generation gives time above full
                 V[ii] = V0 - D_hw[ii]*time_over # Make full with miss volume

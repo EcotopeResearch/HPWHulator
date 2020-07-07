@@ -114,6 +114,8 @@ class HPWHsizerRead:
             raise Exception('\nERROR: Invalid input given for defrostFactor, must be between 0 and 1.\n')
         if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for aquastatFract, must be between 0 and 1.\n')
+        if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('\nERROR: Invalid input given for aquastatFract, must be greater the 1 - percentUseable otherwise the AF is in the cold part of the storage tank.\n')
 
     def __calcedVariables(self):
         """ Calculate other variables needed."""
@@ -294,7 +296,6 @@ class HPWHsizer:
                                         self.translate.defrostFactor,
                                         self.translate.percentUseable,
                                         self.translate.compRuntime_hr)
-
         if self.translate.singlePass:
             self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
                                                  self.translate.loadShapeNorm,
