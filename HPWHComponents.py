@@ -4,7 +4,7 @@ HPWHComponents
 @author: paul
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR
+from cfg import rhoCp, W_TO_BTUHR, SafteyWapt, QdotTank
 
 
 ##############################################################################
@@ -377,8 +377,6 @@ class ParallelLoopTank:
         The number of apartments. Use with Qdot_apt to determine total recirculation losses.
     Wapt:  float
         Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
-    Qdot_tank: float
-        Thermal loss coefficient for the temperature maintenance tank.
     offTime_hr: integer
         Maximum hours per day the temperature maintenance equipment can run.
     TMRuntime_hr: float
@@ -393,12 +391,11 @@ class ParallelLoopTank:
         Volume of parrallel loop tank.
     """
 
-    def __init__(self, nApt, Wapt, Qdot_tank, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
+    def __init__(self, nApt, Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-        self.Qdot_tank    = Qdot_tank
         self.offTime_hr  = offTime_hr # Hour
         self.TMRuntime_hr  = TMRuntime_hr
         self.setpointTM_F = setpointTM_F
@@ -418,10 +415,10 @@ class ParallelLoopTank:
             Calculated temperature maintenance equipment capacity.
         """
 
-        self.TMVol_G_atStorageT =  (self.Wapt * self.nApt + self.Qdot_tank) / rhoCp * \
+        self.TMVol_G_atStorageT =  (self.Wapt * self.nApt + QdotTank) / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
-        self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
+        self.TMCap =  SafteyWapt*rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
             (1./self.TMRuntime_hr + 1./self.offTime_hr) / 1000
             
     def getSizingResults(self):
@@ -448,29 +445,30 @@ class SwingTank:
         The number of apartments. Use with Qdot_apt to determine total recirculation losses.
     Wapt:  float
         Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
-    Qdot_tank: float
-        Thermal loss coefficient for the temperature maintenance tank.
     TMCap
         The required capacity of temperature maintenance equipment.
     TMVol_G_atStorageT
         The volume of the swing tank required to ride out the low use period.
     """
-
-    def __init__(self, nApt, Wapt, Qdot_tank):
+    Table_Napts = [0, 12, 24, 48, 96]
+    sizingTable_MEASHRAE = ["80", "80", "80", "120 - 300", "120 - 300"] 
+    sizingTable_CA = ["80", "96", "168", "288", "480"] 
+    
+    
+    def __init__(self, nApt, Wapt):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
-        self.Wapt       = Wapt # W/ apartment
-        self.Qdot_tank    = Qdot_tank
+        self.Wapt       = Wapt #W/ apartment
 
         # Outputs:
-        self.TMCap      = 0 #kBTU/Hr
+        self.TMCap                   = 0 #kBTU/Hr
         self.TMVol_G_atStorageT      = 0 # Gallons
 
         if self.Wapt == 0:
             raise Exception("Swing tank initialized with 0 W per apt heat loss")
 
-    def sizeVol_Cap(self):
+    def sizeVol_Cap(self, CA = False):
         """
         Sizes the volume in gallons and heat capactiy in BTU/hr
 
@@ -480,8 +478,14 @@ class SwingTank:
         TMCap
             Calculated temperature maintenance equipment capacity.
         """
-        self.TMVol_G_atStorageT = self.nApt * 5
-        self.TMCap = (self.Wapt + self.Qdot_tank) * self.nApt * W_TO_BTUHR / 1000.
+        ind = [idx for idx, val in enumerate(self.Table_Napts) if val <= self.nApt][-1]
+        
+        if CA:
+            self.TMVol_G_atStorageT = self.sizingTable_CA[ind]
+        else:
+            self.TMVol_G_atStorageT = self.sizingTable_MEASHRAE[ind]
+        
+        self.TMCap = SafteyWapt*(self.Wapt* self.nApt  + QdotTank) * W_TO_BTUHR / 1000.
         
     def getSizingResults(self):
         """
@@ -493,6 +497,14 @@ class SwingTank:
             self.TMVol_G_atStorageT, self.TMCap
         """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
+    
+    def getSizingTable(self, CA = True):
+        if CA:
+            return list(zip(self.Table_Napts, self.sizingTable_CA))
+        else:
+            return list(zip(self.Table_Napts, self.sizingTable_MEASHRAE))
+        
+
 ##############################################################################
 class TrimTank:
     """ Sizes a trim tank for use in a multipass HPWH system """

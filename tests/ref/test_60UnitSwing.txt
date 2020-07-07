@@ -22,6 +22,5 @@ temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 60.000
 Wapt, 90.000
-Qdot_tank, 100.000
-TMCap, 38.898
-TMVol_G_atStorageT, 300.000
+TMCap, 38.216
+TMVol_G_atStorageT, 120 - 300

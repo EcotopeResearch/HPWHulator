@@ -309,15 +309,13 @@ class HPWHsizer:
         elif self.translate.schematic == "paralleltank":
             self.tempmaintSystem = ParallelLoopTank(self.translate.nApt,
                                      self.translate.Wapt,
-                                     self.translate.UAFudge,
                                      self.translate.offTime_hr,
                                      self.translate.TMRuntime_hr,
                                      self.translate.setpointTM_F,
                                      self.translate.TMonTemp_F)
         elif self.translate.schematic == "swingtank":
             self.tempmaintSystem = SwingTank(self.translate.nApt,
-                                     self.translate.Wapt,
-                                     self.translate.UAFudge)
+                                     self.translate.Wapt)
         elif self.translate.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else:
