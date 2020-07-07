@@ -23,11 +23,11 @@ class HPWHsizerRead:
         self.incomingT_F    = 0. # The incoming cold water temperature for the city
         self.storageT_F     = 0. # The primary hot water storage temperature
         self.compRuntime_hr = 0. # The runtime?
-        #self.metered        = 0 # If the building as individual metering on the apartment or not
         self.percentUseable = 0 # The  percent of useable storage
 
+        self.aquaFract  = 0 # The aquatstat fractrion
         self.defrostFactor  = 1. # The defrost factor. Derates the output power for defrost cycles.
-        self.totalHWLoad_G  = 0
+        self.totalHWLoad_G  = 0. #Total hot water load to calculated
 
         self.schematic      = "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.nApt           = 0. # The number of apartments
@@ -43,7 +43,7 @@ class HPWHsizerRead:
         self.singlePass     = True # Single pass or multipass
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
                     schematic, singlePass):
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
@@ -53,10 +53,10 @@ class HPWHsizerRead:
         self.incomingT_F    = incomingT_F # The incoming cold water temperature for the city
         self.storageT_F     = storageT_F # The primary hot water storage temperature
         self.compRuntime_hr = compRuntime_hr # The runtime?
-        self.metered        = metered # If the building as individual metering on the apartment or not
         self.percentUseable = percentUseable #The  percent of useable storage
 
         self.defrostFactor  = defrostFactor # The defrost factor. Derates the output power for defrost cycles.
+        self.aquaFract      = aquastatFract # The aquatstat fractrion
 
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
@@ -65,7 +65,7 @@ class HPWHsizerRead:
         self.__calcedVariables()
 
     def initPrimaryByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
                     schematic, singlePass, nApt):
         self.nPeople        = nPeople
         self.gpdpp          = gpdpp # Gallons per day per person
@@ -74,10 +74,11 @@ class HPWHsizerRead:
         self.incomingT_F      = incomingT_F # The incoming cold water temperature for the city
         self.storageT_F       = storageT_F # The primary hot water storage temperature
         self.compRuntime_hr    = compRuntime_hr # The runtime?
-        self.metered        = metered # If the building as individual metering on the apartment or not
         self.percentUseable = percentUseable #The  percent of useable storage
 
         self.defrostFactor  = defrostFactor # The defrost factor. Derates the output power for defrost cycles.
+        self.aquaFract      = aquastatFract # The aquatstat fractrion
+
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
 
@@ -111,6 +112,10 @@ class HPWHsizerRead:
             raise Exception('\nERROR: Invalid input given for percentUseable, must be between 0 and 1.\n')
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('\nERROR: Invalid input given for defrostFactor, must be between 0 and 1.\n')
+        if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('\nERROR: Invalid input given for aquastatFract, must be between 0 and 1.\n')
+        if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('\nERROR: Invalid input given for aquastatFract, must be greater the 1 - percentUseable otherwise the AF is in the cold part of the storage tank.\n')
 
     def __calcedVariables(self):
         """ Calculate other variables needed."""
@@ -163,9 +168,7 @@ class HPWHsizerRead:
                 self.storageT_F   = float(temp[1])
             elif temp[0] == "compruntime_hr":
                 self.compRuntime_hr  = float(temp[1])
-            elif temp[0] == "metered":
-                self.metered    =  int(temp[1]) # If the building as individual metering on the apartment or not
-
+                
             elif temp[0] == "percentuseable":
                 temp[1] = float(temp[1])
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
@@ -177,7 +180,13 @@ class HPWHsizerRead:
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
                     temp[1] = temp[1]/100.
                 self.defrostFactor = temp[1]
-
+            
+            elif temp[0] == "aquafract":
+                temp[1] = float(temp[1])
+                if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
+                    temp[1] = temp[1]/100.
+                self.aquaFract = temp[1]
+                
             elif temp[0] == "schematic":
                 self.schematic  = temp[1]
             elif temp[0] == "singlepass":
@@ -249,18 +258,18 @@ class HPWHsizer:
         self.translate.initializeFromFile(fileName)
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass):
         self.translate.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass)
         self.primaryInit = True
 
     def initPrimaryByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass, nApt):
         self.translate.initPrimaryByPeople(nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, metered, percentUseable, defrostFactor,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass, nApt )
 
     def initTempMaint(self, Wapt, offTime_hr = 1, TMRuntime_hr = 2, setpointTM_F = 135, TMonTemp_F = 0):
@@ -287,7 +296,6 @@ class HPWHsizer:
                                         self.translate.defrostFactor,
                                         self.translate.percentUseable,
                                         self.translate.compRuntime_hr)
-
         if self.translate.singlePass:
             self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
                                                  self.translate.loadShapeNorm,
@@ -297,7 +305,8 @@ class HPWHsizer:
                                                  self.translate.storageT_F,
                                                  self.translate.defrostFactor,
                                                  self.translate.percentUseable,
-                                                 self.translate.compRuntime_hr)
+                                                 self.translate.compRuntime_hr,
+                                                 self.translate.aquaFract)
 
         # Multipass world: will have multipass no recirc, multipass with recirc, and multipass with trim tank.
         elif not self.translate.singlePass:
