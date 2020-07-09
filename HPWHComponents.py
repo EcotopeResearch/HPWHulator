@@ -53,7 +53,7 @@ class PrimarySystem_SP:
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
                  incomingT_F, supplyT_F, storageT_F,
                  defrostFactor, percentUseable,
-                 compRuntime_hr, schematic, aquaFract, swingTankLoad_W = 0):
+                 compRuntime_hr, aquaFract):
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad
@@ -70,12 +70,8 @@ class PrimarySystem_SP:
         self.defrostFactor      = defrostFactor
         self.percentUseable     = percentUseable
         self.compRuntime_hr     = compRuntime_hr
-        
         self.aquaFract          = aquaFract#Fraction
 
-        self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
-            (self.storageT_F - self.incomingT_F)
-       
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
@@ -141,7 +137,7 @@ class PrimarySystem_SP:
             The heating capacity in [btu/hr].
         """
         self._checkHeatHours(heathours)        
-        heatCap = (self.totalHWLoad + 24*self.extraLoad_GPH) / heathours * rhoCp * \
+        heatCap = self.totalHWLoad / heathours * rhoCp * \
             (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000. 
         return heatCap
 
@@ -199,13 +195,12 @@ class PrimarySystem_SP:
             onOffArr (np.array): array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
 
         Raises:
-            Exception: Error if oversizing system.
+            Exception: Error if oversizeing system.
 
         Returns:
             runV_G (float): the running volume in gallons
 
         """
-
         diffN   = np.tile(onOffArr,2) / heatHrs - np.tile(self.loadShapeNorm,2)
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
@@ -218,9 +213,6 @@ class PrimarySystem_SP:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
         runV_G = runVolTemp * self.totalHWLoad
-        
-        if self.extraLoad_GPH == 0:
-            runV_G = self.__SUPPLYV_TO_STORAGEV(runV_G)
         return runV_G
         
     def __SUPPLYV_TO_STORAGEV(self, vol):
@@ -262,10 +254,7 @@ class PrimarySystem_SP:
         array
             Array of heat input...
         """
-        maxHeatHours = 1/(max(self.loadShapeNorm) - self.extraLoad_GPH/self.totalHWLoad)*1.001 
-        heatHours = np.linspace(self.compRuntime_hr, maxHeatHours,10)
-        
-
+        heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
             try:
@@ -316,7 +305,7 @@ class PrimarySystem_SP:
         
         G_hw = self.totalHWLoad/self.maxDayRun_hr * np.tile(self.LS_on_off,3) 
         D_hw = self.totalHWLoad * np.tile(self.loadShapeNorm,3)
-
+        
         #Init the "simulation"
         N = len(G_hw)
         V0 = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * self.percentUseable
@@ -327,6 +316,7 @@ class PrimarySystem_SP:
         
         #Run the "simulation"
         for ii in range(1,N):
+            
             if heating:
                 V[ii] = V[ii-1] + G_hw[ii] - D_hw[ii] # If heating, generate HW and lose HW
                 run[ii] = G_hw[ii]
@@ -444,9 +434,6 @@ class SwingTank:
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt #W/ apartment
 
-        self.swingLoadToPrimary_Wapt = 50.
-        self.swingLoadToPrimary_W = self.swingLoadToPrimary_Wapt * self.nApt
-        
         # Outputs:
         self.TMCap                   = 0 #kBTU/Hr
         self.TMVol_G_atStorageT      = 0 # Gallons
@@ -484,17 +471,6 @@ class SwingTank:
         """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
     
-    def getSwingLoadOnPrimary_W(self):
-        """
-        Returns the load in watts that the primary system handles from the reciruclation loop losses.
-
-        Returns
-        -------
-        float
-            self.swingLoadToPrimary_W
-        """
-        return self.swingLoadToPrimary_W
-
     def getSizingTable(self, CA = True):
         if CA:
             return list(zip(self.Table_Napts, self.sizingTable_CA))
