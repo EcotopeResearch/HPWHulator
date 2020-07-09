@@ -104,25 +104,7 @@ class PrimarySystem_SP:
         # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
         self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
 
-    # this should be a separate function and not be part of the main object.
-    def getPeakIndices(self,diff1):
-        """
-        Finds the points of an array where the values go from positive to negative 
-
-        Parameters
-        ----------
-        diff1
-        Any 1 dimensional array
-
-        Returns
-        -------
-        array
-        Array of indices in which input array changes from positive to negative
-        """
-        if not isinstance(diff1, np.ndarray):
-            diff1 = np.array(diff1)
-        diff1 = np.insert(diff1, 0, 0)
-        return np.where(np.diff(np.sign(diff1))<0)[0]
+    
 
     def _checkHeatHours(self, heathours):
         """
@@ -175,15 +157,8 @@ class PrimarySystem_SP:
         """
         self._checkHeatHours(heatHrs)        
 
+        # Running vol
         runningVol_G = self.__calcRunningVol(heatHrs,np.ones(24))
-
-        # Get the Cycling Volume ##############################################
-        #averageGal      = self.totalHWLoad * .7 # Hard coded average draw rate as proportion of peak
-        #avg_runtime     = 1. # Hard coded average runtime for HPWH
-        #cyclingVol_G = avg_runtime * (self.totalHWLoad / heatHrs - averageGal/24.) # (generation rate - average background draw)
-
-        # Get the total volume ################################################
-        #totalVol = ( runningVol_G + cyclingVol_G )
 
         # If doing load shift, solve for the runningVol_G and take the larger volume 
         LSrunningVol_G = 0
@@ -193,6 +168,18 @@ class PrimarySystem_SP:
         # Get total volume from max of primary method or load shift method
         totalVolMax = max(runningVol_G, LSrunningVol_G)
         totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
+        
+        # Check the Cycling Volume ##############################################
+        cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
+        min_runtime_hr  = 10/60. # Hard coded minimum run time for water heater in hours
+        minRunVol_G     = min_runtime_hr * (self.totalHWLoad / heatHrs) # (generation rate - no usage)
+        print(minRunVol_G)
+        print(cyclingVol_G)
+        print(self.aquaFract )
+        print((1 - self.percentUseable))
+        if minRunVol_G > cyclingVol_G:
+            min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
+            raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.2f" % min_AF)
         
         # Return the temperature adjusted total volume ########################
         return totalVolMax
@@ -214,8 +201,8 @@ class PrimarySystem_SP:
             runV_G (float): the running volume in gallons
 
         """
-        diffN   =  np.tile(onOffArr,2) / heatHrs - np.tile(self.loadShapeNorm,2)
-        diffInd = self.getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
+        diffN   = np.tile(onOffArr,2) / heatHrs - np.tile(self.loadShapeNorm,2)
+        diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
         # Get the running volume ##############################################
         if len(diffInd) == 0:
@@ -256,7 +243,8 @@ class PrimarySystem_SP:
     
     def primaryCurve(self):
         """
-        Size the primary system curve.
+        Sizes the primary system curve. Will catch the point at which the aquatstat
+        fraction is too small for system and cuts the return arrays to match cutoff point.
 
         Returns
         -------
@@ -269,7 +257,14 @@ class PrimarySystem_SP:
         heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
-            volN[ii] = self.sizePrimaryTankVolume(heatHours[ii])
+            try:
+                volN[ii] = self.sizePrimaryTankVolume(heatHours[ii])
+            except ValueError:
+                break
+        # Cut to the point the aquastat fraction was too small
+        volN        = volN[:ii]
+        heatHours   = heatHours[:ii]
+        
         return [volN, self.primaryHeatHrs2kBTUHR(heatHours)]
 
     def sizeVol_Cap(self):
@@ -286,10 +281,10 @@ class PrimarySystem_SP:
         Returns
         -------
         list
-            self.PVol_G_atStorageT, self.PCap, self.aquaFract
+            self.PVol_G_atStorageT, self.PCap
         """
         if self.PVol_G_atStorageT == 0. or self.PCap == 0.:
-            raise Exception("The system hasn't been sized yet!")
+            raise Exception("The system hasn't been sized yet! Run sizeVol_Cap() first")
 
         return [ self.PVol_G_atStorageT,  self.PCap ]
     
@@ -315,15 +310,11 @@ class PrimarySystem_SP:
         N = len(G_hw)
         V0 = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * self.percentUseable
         Vtrig = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * (1 - self.aquaFract)
-        
-        print(self.percentUseable)
-        print(self.aquaFract)
-        print(V0)
-        print(Vtrig)
-        
         run = [0] * (N)
         V = [V0] + [0] * (N - 1)
         heating = False
+        
+        #Run the "simulation"
         for ii in range(1,N):
             
             if heating:
@@ -346,22 +337,6 @@ class PrimarySystem_SP:
                 
         return [ V, G_hw, D_hw, run ]
                 
-##############################################################################
-class PrimarySystem_MP_NR:
-    """ Sizes primary multipass HPWH system with NO recirculation loop """
-    def __init__(self, totalHWLoad, loadShapeNorm,
-                 incomingT_F, supplyT_F, storageT_F,
-                 defrostFactor, percentUseable, aquaFract,
-                 compRuntime_hr):
-        pass
-
-##############################################################################
-class PrimarySystem_MP_R:
-    """ Sizes primary multipass HPWH system WITH a recirculation loop """
-
-    def __init__(self):
-        """Initialize the sizer object with 0's for the inputs"""
-        pass
 
 ##############################################################################
 class ParallelLoopTank:
@@ -504,12 +479,24 @@ class SwingTank:
         
 
 ##############################################################################
-class TrimTank:
-    """ Sizes a trim tank for use in a multipass HPWH system """
-
-    def __init__(self):
-        """Initialize the sizer object with 0's for the inputs"""
-
-
 ##############################################################################
 ##############################################################################
+
+def getPeakIndices(diff1):
+    """
+    Finds the points of an array where the values go from positive to negative 
+
+    Parameters
+    ----------
+    diff1
+    Any 1 dimensional array
+
+    Returns
+    -------
+    array
+    Array of indices in which input array changes from positive to negative
+    """
+    if not isinstance(diff1, np.ndarray):
+        diff1 = np.array(diff1)
+    diff1 = np.insert(diff1, 0, 0)
+    return np.where(np.diff(np.sign(diff1))<0)[0]

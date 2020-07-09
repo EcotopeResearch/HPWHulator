@@ -15,8 +15,8 @@ LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.
 loadShift, False
 PCap, 449.235
 PVol_G_atStorageT, 512.000
-primaryCurve_vol, [512.  ,443.27,369.97,308.32,245.36,178.23,129.7 , 77.29, 31.59,  0.74]
-primaryCurve_heatCap, [449.23,463.71,479.14,495.64,513.32,532.3 ,552.74,574.81,598.72,624.71]
+primaryCurve_vol, [512.  ,443.27]
+primaryCurve_heatCap, [449.23,463.71]
 
 temperatureMaintenanceSystem:
 schematic, paralleltank
