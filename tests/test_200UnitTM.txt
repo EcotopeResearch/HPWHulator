@@ -5,7 +5,6 @@ supplyT_F 120
 incomingT_F 40
 storageT_F 150
 compRuntime_hr 16
-metered 0
 percentUseable 80
 schematic paralleltank
 TMonTemp_F 122
@@ -15,3 +14,4 @@ TMRuntime_hr 1
 offTime_hr 0.5
 setpointTM_F 130
 defrostFactor 0.9
+aquaFract 0.4

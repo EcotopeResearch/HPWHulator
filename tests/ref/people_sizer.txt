@@ -9,19 +9,18 @@ supplyT_F, 120
 defrostFactor, 0.900
 percentUseable, 0.900
 compRuntime_hr, 18.000
+aquaFract, 0.400
 maxDayRun_hr, 18.000
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False
 PCap, 113.443
-PVol_G_atStorageT, 195.352
-aquaFract, 0.308
-primaryCurve_vol, [195.35,183.44,170.49,156.37,140.89,128.11,115.56,107.13, 99.33, 98.96]
-primaryCurve_heatCap, [113.44,118.18,123.33,128.95,135.11,141.88,149.37,157.69,167.  ,177.47]
+PVol_G_atStorageT, 225.296
+primaryCurve_vol, [225.3 ,201.48,175.58,147.32,116.37, 88.68]
+primaryCurve_heatCap, [113.44,118.18,123.33,128.95,135.11,141.88]
 
 temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 36
 Wapt, 100
-Qdot_tank, 100.000
-TMCap, 24.567
-TMVol_G_atStorageT, 180
+TMCap, 21.496
+TMVol_G_atStorageT, 80

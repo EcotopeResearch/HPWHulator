@@ -6,6 +6,8 @@ import numpy as np
 import os
 import HPWHsizer
 import dataFetch
+from HPWHComponents import getPeakIndices
+
 
 def file_regression(fileRef, fileResults):
         return filecmp.cmp(fileRef, fileResults)
@@ -23,8 +25,8 @@ def units_sizer():
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                     120, 50, 150, 16, 0, 0.8, .9,
-                     'paralleltank',True )
+                     120, 50, 150, 16, 0.8, .9, 0.4,
+                     'paralleltank', True )
     hpwh.initTempMaint(100)
     return hpwh
 
@@ -36,7 +38,7 @@ def people_sizer():
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                        0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150., 18., 0, .9, .9,
+                    120, 50, 150., 18., 0.9, 0.9, 0.4,
                     "swingtank", True, 36)
     hpwh.initTempMaint(100)
 
@@ -50,7 +52,7 @@ def primary_sizer():
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., 0, .9, .9,
+                    120, 50, 150., 16., .9, .9, 0.4,
                     "primary", True, 36)
     return hpwh
 
@@ -79,9 +81,10 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.incomingT_F      == 0. # The incoming cold water temperature for the city
     assert empty_sizer.translate.storageT_F       == 0. # The primary hot water storage temperature
     assert empty_sizer.translate.compRuntime_hr   == 0. # The runtime?
-    assert empty_sizer.translate.percentUseable   == 0 #The  percent of useable storage
+    assert empty_sizer.translate.percentUseable   == 0  # The  percent of useable storage
     assert empty_sizer.translate.defrostFactor    == 1. # The defrost factor. Derates the output power for defrost cycles.
     assert empty_sizer.translate.totalHWLoad_G    == 0
+    assert empty_sizer.translate.aquaFract        == 0
 
     assert empty_sizer.translate.schematic        == "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
     assert empty_sizer.translate.TMonTemp_F       == 0. # The temperature the swing tank turns on at
@@ -148,9 +151,39 @@ def test_getCDF_array(fetcher, x, s, expected):
     ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
     ([-1, 0, 0, -5, 0, 0, 1, 7, 8, 9, 10, -1], [0,3,11])
 ])
-def test_getPeakIndices(units_sizer, arr, expected):
-    units_sizer.buildSystem()
-    assert all(units_sizer.primarySystem.getPeakIndices(arr) == np.array(expected))
+def test_getPeakIndices( arr, expected):
+    assert all(getPeakIndices(arr) == np.array(expected))
+
+
+# Check for AF errors
+def test_AF_initialize_error():
+    hpwh = HPWHsizer.HPWHsizer()
+    with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
+        hpwh.initPrimaryByPeople(100, 22.,
+                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 111,
+                    "primary", True, 36)
+    with pytest.raises(Exception): # Get get to match text for some weird reason
+        hpwh.initPrimaryByPeople(100, 22.,
+                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 0.05,
+                    "primary", True, 36)
+        
+def test_AF_sizing_error():
+    hpwh = HPWHsizer.HPWHsizer()
+    hpwh.initPrimaryByPeople(100, 22.,
+                  [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                    0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                    0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                120, 50, 150., 16., .9, .9, 0.11,
+                "primary", True, 36)
+    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
+        hpwh.build_size()
+
 
 
 
@@ -164,7 +197,7 @@ def test_primarySizer(primary_sizer):
         assert primary_sizer.sizeSystem()
     
     results = primary_sizer.build_size()
-    assert len(results) == 3
+    assert len(results) == 2
     
     with pytest.raises(Exception):
         assert primary_sizer.sizePrimaryTankVolume(-10)
@@ -179,7 +212,7 @@ def test_initPrimaryByPeople(people_sizer):
         assert people_sizer.sizeSystem()
     
     results = people_sizer.build_size()
-    assert len(results) == 5    
+    assert len(results) == 4    
     
     with pytest.raises(Exception):
         assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
@@ -195,7 +228,7 @@ def test_initPrimaryByUnits(units_sizer):
         assert units_sizer.sizeSystem()
     
     results = units_sizer.build_size()
-    assert len(results) == 5
+    assert len(results) == 4
     
     with pytest.raises(Exception):
         assert units_sizer.sizePrimaryTankVolume(-10)
@@ -212,7 +245,7 @@ def test_initPrimaryByUnits(units_sizer):
 def test_hpwh_from_file(empty_sizer, file1):
     empty_sizer.initializeFromFile(file1)
     results = empty_sizer.build_size()
-    assert len(results) == 5
+    assert len(results) == 4
     empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
 
     assert file_regression("tests/ref/"+os.path.basename(file1),
