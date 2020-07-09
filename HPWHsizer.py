@@ -8,7 +8,11 @@ from plotly.offline import plot
 
 ##############################################################################
 class HPWHsizerRead:
-    """ Class for gathering hpwh sizing inputs """
+    """ 
+    Class for gathering hpwh sizing inputs and checking them. Will gather inputs be manual entry or from a file. 
+    
+    
+    """
 
     schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"]
 
@@ -93,7 +97,7 @@ class HPWHsizerRead:
             pass
         elif self.schematic == "paralleltank":
             if any(x==0 for x in [offTime_hr,TMRuntime_hr,setpointTM_F,TMonTemp_F]):
-                raise Exception("ERROR in initTempMaint, paralleltank needs inputs != 0")
+                raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
             else:
                 self.offTime_hr       = offTime_hr
                 self.TMRuntime_hr     = TMRuntime_hr
@@ -107,15 +111,15 @@ class HPWHsizerRead:
         if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
             raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
         if self.schematic not in self.schematicNames:
-            raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')
+            raise Exception('Invalid input given for the schematic: "'+ self.schematic +'".\n')
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for percentUseable, must be between 0 and 1.\n')
+            raise Exception('Invalid input given for percentUseable, it must be between 0 and 1.\n')
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for defrostFactor, must be between 0 and 1.\n')
+            raise Exception('Invalid input given for defrostFactor, it must be between 0 and 1.\n')
         if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for aquastatFract, must be between 0 and 1.\n')
+            raise Exception('Invalid input given for aquaFract, it must be between 0 and 1.\n')
         if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for aquastatFract, must be greater the 1 - percentUseable otherwise the AF is in the cold part of the storage tank.\n')
+            raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
 
     def __calcedVariables(self):
         """ Calculate other variables needed."""

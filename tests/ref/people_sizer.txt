@@ -15,8 +15,8 @@ LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.
 loadShift, False
 PCap, 113.443
 PVol_G_atStorageT, 225.296
-primaryCurve_vol, [2.25e+02,2.01e+02,1.76e+02,1.47e+02,1.16e+02,8.87e+01,6.04e+01,3.73e+01,1.39e+01,2.23e-01]
-primaryCurve_heatCap, [113.44,118.18,123.33,128.95,135.11,141.88,149.37,157.69,167.  ,177.47]
+primaryCurve_vol, [225.3 ,201.48,175.58,147.32,116.37, 88.68]
+primaryCurve_heatCap, [113.44,118.18,123.33,128.95,135.11,141.88]
 
 temperatureMaintenanceSystem:
 schematic, swingtank

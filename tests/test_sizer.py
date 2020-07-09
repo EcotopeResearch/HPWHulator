@@ -5,6 +5,7 @@ import numpy as np
 
 import os
 import HPWHsizer
+from HPWHComponents import getPeakIndices
 
 
 def file_regression(fileRef, fileResults):
@@ -110,9 +111,39 @@ def test_trimtank(people_sizer):
     ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
     ([-1, 0, 0, -5, 0, 0, 1, 7, 8, 9, 10, -1], [0,3,11])
 ])
-def test_getPeakIndices(units_sizer, arr, expected):
-    units_sizer.buildSystem()
-    assert all(units_sizer.primarySystem.getPeakIndices(arr) == np.array(expected))
+def test_getPeakIndices( arr, expected):
+    assert all(getPeakIndices(arr) == np.array(expected))
+
+
+# Check for AF errors
+def test_AF_initialize_error():
+    hpwh = HPWHsizer.HPWHsizer()
+    with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
+        hpwh.initPrimaryByPeople(100, 22.,
+                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 111,
+                    "primary", True, 36)
+    with pytest.raises(Exception): # Get get to match text for some weird reason
+        hpwh.initPrimaryByPeople(100, 22.,
+                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 0.05,
+                    "primary", True, 36)
+        
+def test_AF_sizing_error():
+    hpwh = HPWHsizer.HPWHsizer()
+    hpwh.initPrimaryByPeople(100, 22.,
+                  [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                    0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                    0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                120, 50, 150., 16., .9, .9, 0.11,
+                "primary", True, 36)
+    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
+        hpwh.build_size()
+
 
 # Full model and file tests!
 def test_primarySizer(primary_sizer):
