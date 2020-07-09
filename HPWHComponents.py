@@ -4,7 +4,7 @@ HPWHComponents
 @author: paul
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, SafteyWapt, QdotTank
+from cfg import rhoCp, W_TO_BTUHR, SafteyWapt
 
 
 ##############################################################################
@@ -413,10 +413,10 @@ class ParallelLoopTank:
             Calculated temperature maintenance equipment capacity.
         """
 
-        self.TMVol_G_atStorageT =  (self.Wapt * self.nApt + QdotTank) / rhoCp * \
+        self.TMVol_G_atStorageT =  SafteyWapt*(self.Wapt * self.nApt) / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
-        self.TMCap =  SafteyWapt*rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
+        self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
             (1./self.TMRuntime_hr + 1./self.offTime_hr) / 1000
             
     def getSizingResults(self):
@@ -483,7 +483,7 @@ class SwingTank:
         else:
             self.TMVol_G_atStorageT = self.sizingTable_MEASHRAE[ind]
         
-        self.TMCap = SafteyWapt*(self.Wapt* self.nApt  + QdotTank) * W_TO_BTUHR / 1000.
+        self.TMCap = SafteyWapt*(self.Wapt* self.nApt) * W_TO_BTUHR / 1000.
         
     def getSizingResults(self):
         """
