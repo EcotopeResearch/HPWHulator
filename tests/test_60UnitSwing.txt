@@ -5,10 +5,10 @@ supplyT_F 120
 incomingT_F 40
 storageT_F 150
 compRuntime_hr 16
-metered 0
 percentUseable 90
 schematic swingtank
 TMonTemp_F 122
 nApt 60
 Wapt 90
 defrostFactor 0.9
+aquaFract 0.4

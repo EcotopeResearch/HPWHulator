@@ -19,6 +19,7 @@ aquaFract, 0.258
 primaryCurve_vol, [257.91,240.5 ,221.69,201.3 ,179.12,158.58,140.09,123.16,110.42,100.79]
 primaryCurve_heatCap, [122.54,127.28,132.41,137.96,144.  ,150.59,157.81,165.77,174.56,184.34]
 
+
 temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 36
