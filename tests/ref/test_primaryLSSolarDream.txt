@@ -9,6 +9,7 @@ supplyT_F, 120
 defrostFactor, 0.900
 percentUseable, 0.900
 compRuntime_hr, 16.000
+extraLoad_GPH, 0.000
 aquaFract, 0.400
 maxDayRun_hr, 8
 LS_on_off, [0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0]
