@@ -1,7 +1,9 @@
 
 import numpy as np
+
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
+from dataFetch import hpwhDataFetch
 
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
@@ -60,7 +62,8 @@ class HPWHsizerRead:
 
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
-
+        
+        self.__loadVariables()
         self.__checkInputs()
         self.__calcedVariables()
 
@@ -82,10 +85,11 @@ class HPWHsizerRead:
         self.singlePass     = singlePass # Single pass or multipass
 
         self.nApt           = nApt
-
+        
+        self.__loadVariables()
         self.__checkInputs()
         self.__calcedVariables()
-
+        
     def initTempMaint(self, Wapt, offTime_hr=0, TMRuntime_hr=0, setpointTM_F=0, TMonTemp_F=0):
         self.Wapt = Wapt
         if self.schematic == "swingtank":
@@ -99,18 +103,50 @@ class HPWHsizerRead:
                 self.setpointTM_F     = setpointTM_F
                 self.TMonTemp_F       = TMonTemp_F
                 
+            # Quick Check the inputs makes sense
+            if self.setpointTM_F <= self.TMonTemp_F:
+                raise Exception("The temperature maintenance setpoint temperature must be greater than the turn on temperature")
+            if self.setpointTM_F <= self.incomingT_F:
+                raise Exception("The temperature maintenance setpoint temperature must be greater than the city cold water temperature ")
+            if self.TMonTemp_F <= self.incomingT_F:
+                raise Exception("The temperature maintenance turn on temperature must be greater than the city cold water temperature ")
+
+    def __loadVariables(self):
+        """
+        Loads data for the inputs if they are of string types
+
+        Returns:
+            None.
+
+        """
+        if self.loadShapeNorm.dtype.type is np.str_: # if the input here is a string get the loadshape.
+            self.loadShapeNorm = hpwhDataFetch.getLoadshape()
+        if isinstance(self.gpdpp, str): # if the input here is a string get the get the gpdpp.
+            self.gpdpp = hpwhDataFetch.getGPDPP(self.gpdpp)[0]
+        if self.rBR.dtype.type is np.str_: # if the input here is a string get the loadshape.
+            self.rBR = hpwhDataFetch.getLoadshape()
+
     def __checkInputs(self):
-        """Checks inputs are all valid"""
+        """
+        Cheacks inputs are all valid
+        """
+        if self.supplyT_F > self.storageT_F:
+            raise Exception("The hot water supply temperature must be less than or equal to the primary storage temperature")
+        if self.incomingT_F >= self.storageT_F:
+            raise Exception("The city cold water temperature must be less than the primary storage temperature")
+        if self.incomingT_F >= self.supplyT_F:
+            raise Exception("The city cold water temperature must be less than the supply hot water temperature")
+            
         if len(self.loadShapeNorm) != 24 :
             raise Exception("loadShapeNorm is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
         if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
             raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
         if self.schematic not in self.schematicNames:
-            raise Exception('\nERROR: Invalid input given for the schematic: "'+ self.schematic +'".\n')
+            raise Exception('Invalid input given for the schematic: "'+ self.schematic +'".\n')
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for percentUseable, must be between 0 and 1.\n')
+            raise Exception('Invalid input given for percentUseable, must be between 0 and 1.\n')
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('\nERROR: Invalid input given for defrostFactor, must be between 0 and 1.\n')
+            raise Exception('Invalid input given for defrostFactor, must be between 0 and 1.\n')
 
     def __calcedVariables(self):
         """ Calculate other variables needed."""

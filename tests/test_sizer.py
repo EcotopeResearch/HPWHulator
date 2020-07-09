@@ -5,7 +5,7 @@ import numpy as np
 
 import os
 import HPWHsizer
-
+import dataFetch
 
 def file_regression(fileRef, fileResults):
         return filecmp.cmp(fileRef, fileResults)
@@ -54,8 +54,13 @@ def primary_sizer():
                     "primary", True, 36)
     return hpwh
 
+@pytest.fixture
+def fetcher():
+    fetch = dataFetch.hpwhDataFetch()
+    return fetch
 # End of fixtures
-
+###############################################################################
+###############################################################################
 # Start of tests
 
 #Init Tests
@@ -103,7 +108,41 @@ def test_trimtank(people_sizer):
     with pytest.raises(Exception, match="Trim tanks are not supported yet"):
         assert people_sizer.build_size()   
 
+# Test the Fetcher
+def test_getLoadshape(fetcher):
+    assert fetcher.getLoadshape() == [0.008915,0.004458,0.001486,0.001486,0.001486,0.014859,
+                    0.069837,0.13373,0.104012,0.077266,0.035067,0.031204,
+                    0.020802,0.022288,0.024071,0.024071,0.020802,0.043388,
+                    0.047251,0.07578,0.092125,0.059435,0.053492,0.032689]
+def test_getGPDPP(fetcher):
+    with pytest.raises(Exception):
+        assert fetcher.getGPDPP("wrong")
+def test_getRPepperBR(fetcher):
+    assert fetcher.getRPepperBR("CA") == [1.374, 1.74, 2.567, 3.109, 4.225, 3.769] 
+    assert fetcher.getRPepperBR("ASHSTD") == [1.49, 1.94, 2.39, 2.84, 3.29, 3.74] 
+    assert fetcher.getRPepperBR("ASHLOW") == [1.69, 2.26, 2.83, 3.4, 3.97, 4.54] 
+    with pytest.raises(Exception):
+        assert fetcher.getRPepperBR("wrong")
+
+@pytest.mark.parametrize("x, s, expected", [ 
+    (1,0, 9.367514819547965e-15),
+    (19,0, 0.40480748655575766),
+    (25,0, 0.9859985113759763),
+    (19,19, 3.3521114861106406e-16),
+    (30,5,.9859985113759763),
+    ])
+def test_getCDF(fetcher, x, s, expected):
+    assert fetcher.getCDF(x, s) == expected
     
+@pytest.mark.parametrize("x, s, expected", [
+    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
+    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
+    ])    
+def test_getCDF_array(fetcher, x, s, expected):
+    temp = [round(n, 3) for n in fetcher.getCDF(x, s)]
+    assert temp == expected
+
+
 @pytest.mark.parametrize("arr, expected", [
     ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
     ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
@@ -113,6 +152,12 @@ def test_getPeakIndices(units_sizer, arr, expected):
     units_sizer.buildSystem()
     assert all(units_sizer.primarySystem.getPeakIndices(arr) == np.array(expected))
 
+
+
+
+
+
+###############################################################################
 # Full model and file tests!
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
