@@ -49,7 +49,7 @@ class PrimarySystem_SP:
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
                  incomingT_F, supplyT_F, storageT_F,
                  defrostFactor, percentUseable,
-                 compRuntime_hr, aquaFract):
+                 compRuntime_hr, aquaFract, swingTankLoad_W = 0):
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad
@@ -68,6 +68,9 @@ class PrimarySystem_SP:
         self.compRuntime_hr     = compRuntime_hr
         self.aquaFract          = aquaFract#Fraction
 
+        self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
+            (self.storageT_F - self.incomingT_F)
+            
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
@@ -133,7 +136,7 @@ class PrimarySystem_SP:
             The heating capacity in [btu/hr].
         """
         self._checkHeatHours(heathours)        
-        heatCap = self.totalHWLoad / heathours * rhoCp * \
+        heatCap = (self.totalHWLoad + 24*self.extraLoad_GPH) / heathours * rhoCp * \
             (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000. 
         return heatCap
 
@@ -163,13 +166,16 @@ class PrimarySystem_SP:
         
         # Get total volume from max of primary method or load shift method
         totalVolMax = max(runningVol_G, LSrunningVol_G)
-        totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
         
+        # If the swing tank is not being used
+        if self.extraLoad_GPH == 0:
+            totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
+
         # Check the Cycling Volume ##############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
         min_runtime_hr  = 10/60. # Hard coded minimum run time for water heater in hours
         minRunVol_G     = min_runtime_hr * (self.totalHWLoad / heatHrs) # (generation rate - no usage)
-        
+
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.2f" % min_AF)
@@ -194,7 +200,7 @@ class PrimarySystem_SP:
             runV_G (float): the running volume in gallons
 
         """
-        diffN   = np.tile(onOffArr,2) / heatHrs - np.tile(self.loadShapeNorm,2)
+        diffN   = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs - np.tile(self.loadShapeNorm,2)
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
         # Get the running volume ##############################################
@@ -206,6 +212,7 @@ class PrimarySystem_SP:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
         runV_G = runVolTemp * self.totalHWLoad
+        
         return runV_G
         
     def __SUPPLYV_TO_STORAGEV(self, vol):
@@ -247,7 +254,9 @@ class PrimarySystem_SP:
         array
             Array of heat input...
         """
-        heatHours = np.linspace(self.compRuntime_hr, 1/max(self.loadShapeNorm)*1.001, 10)
+        
+        maxHeatHours = 1/(max(self.loadShapeNorm) - self.extraLoad_GPH/self.totalHWLoad)*1.001 
+        heatHours = np.linspace(self.compRuntime_hr, maxHeatHours,10)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
             try:
@@ -427,6 +436,9 @@ class SwingTank:
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt #W/ apartment
 
+        self.swingLoadToPrimary_Wapt = 50.
+        self.swingLoadToPrimary_W = self.swingLoadToPrimary_Wapt * self.nApt
+
         # Outputs:
         self.TMCap                   = 0 #kBTU/Hr
         self.TMVol_G_atStorageT      = 0 # Gallons
@@ -463,6 +475,16 @@ class SwingTank:
             self.TMVol_G_atStorageT, self.TMCap
         """
         return [ self.TMVol_G_atStorageT, self.TMCap ]
+    
+    def getSwingLoadOnPrimary_W(self):
+        """
+        Returns the load in watts that the primary system handles from the reciruclation loop losses.
+        Returns
+        -------
+        float
+            self.swingLoadToPrimary_W
+        """
+        return self.swingLoadToPrimary_W
     
     def getSizingTable(self, CA = True):
         if CA:

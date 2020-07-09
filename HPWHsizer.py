@@ -257,6 +257,9 @@ class HPWHsizer:
         self.tempmaintSystem = None
         self.ashraeSize = None
         
+        self.swingTankLoad_W = 0.
+
+        
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName)
 
@@ -296,23 +299,7 @@ class HPWHsizer:
                                         self.translate.defrostFactor,
                                         self.translate.percentUseable,
                                         self.translate.compRuntime_hr)
-        if self.translate.singlePass:
-            self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
-                                                 self.translate.loadShapeNorm,
-                                                 self.translate.nPeople,
-                                                 self.translate.incomingT_F,
-                                                 self.translate.supplyT_F,
-                                                 self.translate.storageT_F,
-                                                 self.translate.defrostFactor,
-                                                 self.translate.percentUseable,
-                                                 self.translate.compRuntime_hr,
-                                                 self.translate.aquaFract)
-
-        # Multipass world: will have multipass no recirc, multipass with recirc, and multipass with trim tank.
-        elif not self.translate.singlePass:
-            # Multipass systems not yet supported
-            raise Exception("Multipass is yet supported")
-
+       
         if self.translate.schematic == "primary":
             pass
         elif self.translate.schematic == "paralleltank":
@@ -325,10 +312,32 @@ class HPWHsizer:
         elif self.translate.schematic == "swingtank":
             self.tempmaintSystem = SwingTank(self.translate.nApt,
                                      self.translate.Wapt)
+            # Get part of recicualtion loop losses added to primary system
+            self.swingTankLoad_W = self.tempmaintSystem.getSwingLoadOnPrimary_W()
+            
         elif self.translate.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else:
             raise Exception ("Invalid schematic set up: " + self.translate.schematic)
+
+
+        if self.translate.singlePass:
+            self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
+                                                 self.translate.loadShapeNorm,
+                                                 self.translate.nPeople,
+                                                 self.translate.incomingT_F,
+                                                 self.translate.supplyT_F,
+                                                 self.translate.storageT_F,
+                                                 self.translate.defrostFactor,
+                                                 self.translate.percentUseable,
+                                                 self.translate.compRuntime_hr,
+                                                 self.translate.aquaFract,
+                                                 self.swingTankLoad_W)
+
+        elif not self.translate.singlePass:
+            # Multipass systems not yet supported
+            raise Exception("Multipass is yet supported")
+
 
         if self.primarySystem is not None:
             self.validbuild = True
