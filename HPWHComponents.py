@@ -173,10 +173,7 @@ class PrimarySystem_SP:
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
         min_runtime_hr  = 10/60. # Hard coded minimum run time for water heater in hours
         minRunVol_G     = min_runtime_hr * (self.totalHWLoad / heatHrs) # (generation rate - no usage)
-        print(minRunVol_G)
-        print(cyclingVol_G)
-        print(self.aquaFract )
-        print((1 - self.percentUseable))
+
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.2f" % min_AF)
