@@ -41,7 +41,6 @@ class HPWHsizerRead:
         self.TMRuntime_hr   = 0. # The temperature maintenance minimum runtime.
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
-        self.UAFudge        = 100. # A fudge factor used to adjust loop losses.
         self.offTime_hr     = 0. # The numbers of hours the tempeature maintenence system is designed to be off for.
 
         self.singlePass     = True # Single pass or multipass
@@ -276,17 +275,14 @@ class HPWHsizer:
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass, nApt )
 
-    def initTempMaint(self, Wapt, offTime_hr = 1, TMRuntime_hr = 2, setpointTM_F = 135, TMonTemp_F = 0):
+    def initTempMaint(self, Wapt, offTime_hr = 1./6., TMRuntime_hr = 0.5, setpointTM_F = 130., TMonTemp_F = 0):
         """Initializes the temperature maintanence system after the primary system"""
         if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
             
-        if self.translate.schematic == "swingtank":
-            self.translate.initTempMaint(Wapt, 0, 0, 0, 0) 
-            
-        elif  self.translate.schematic == "paralleltank":
+        else:
             if TMonTemp_F == 0: 
-                TMonTemp_F = self.translate.supplyT_F + 2;
+                TMonTemp_F = self.translate.supplyT_F + 1.;
             self.translate.initTempMaint(Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F)
 
     
