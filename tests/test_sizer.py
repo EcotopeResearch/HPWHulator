@@ -120,8 +120,9 @@ def test_AF_initialize_error():
     hpwh = HPWHsizer.HPWHsizer()
     with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
         hpwh.initPrimaryByPeople(100, 22.,
-                        [0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 111,
                     "primary", True, 36)
     with pytest.raises(Exception): # Get get to match text for some weird reason
