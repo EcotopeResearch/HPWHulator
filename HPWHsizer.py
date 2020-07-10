@@ -48,7 +48,7 @@ class HPWHsizerRead:
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
-                    schematic, singlePass):
+                    schematic, singlePass = True):
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
         self.gpdpp          = gpdpp # Gallons per day per person
@@ -68,9 +68,9 @@ class HPWHsizerRead:
         self.__checkInputs()
         self.__calcedVariables()
 
-    def initPrimaryByPeople(self, nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByPeople(self, nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
-                    schematic, singlePass, nApt):
+                    schematic,  singlePass = True):
         self.nPeople        = nPeople
         self.gpdpp          = gpdpp # Gallons per day per person
         self.loadShapeNorm  = np.array(loadShapeNorm) # The normalized load shape
@@ -91,7 +91,11 @@ class HPWHsizerRead:
         self.__checkInputs()
         self.__calcedVariables()
 
-    def initTempMaint(self, Wapt, offTime_hr=0, TMRuntime_hr=0, setpointTM_F=0, TMonTemp_F=0):
+    def initTempMaint(self, Wapt,setpointTM_F=0, TMonTemp_F=0, offTime_hr=0, TMRuntime_hr=0):
+        """
+        Assign temperature maintenance variables with either "swingtank" or "paralleltank"
+        """
+        
         self.Wapt = Wapt
         if self.schematic == "swingtank":
             pass
@@ -263,34 +267,38 @@ class HPWHsizer:
         
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName)
-
+    
     def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass):
+                    schematic, singlePass=True):
         self.translate.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass)
         self.primaryInit = True
 
-    def initPrimaryByPeople(self,  nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByPeople(self,  nPeople, nApt,  gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass, nApt):
-        self.translate.initPrimaryByPeople(nPeople, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    schematic, singlePass=True):
+        self.translate.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass, nApt )
+                    schematic, singlePass )
 
-    def initTempMaint(self, Wapt, offTime_hr = 1, TMRuntime_hr = 2, setpointTM_F = 135, TMonTemp_F = 0):
-        """Initializes the temperature maintanence system after the primary system"""
+
+    def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0, offTime_hr = 10/60, TMRuntime_hr = 0.5 ):
+        """
+        Initializes the temperature maintanence system after the primary system 
+        with either "swingtank" or "paralleltank". Recommend to leave offtime_hr 
+        and TMRuntime_hr as defaulted, since they're setup for a minimum runtime of 
+        10 minutes at the lower end of the design criteria for loop losses.
+        
+        """
         if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
             
-        if self.translate.schematic == "swingtank":
-            self.translate.initTempMaint(Wapt, 0, 0, 0, 0) 
-            
-        elif  self.translate.schematic == "paralleltank":
+        if self.translate.schematic == "swingtank" or self.translate.schematic == "paralleltank":
             if TMonTemp_F == 0: 
                 TMonTemp_F = self.translate.supplyT_F + 2;
-            self.translate.initTempMaint(Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F)
+            self.translate.initTempMaint(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
 
     
     def buildSystem(self):
