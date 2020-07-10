@@ -23,9 +23,9 @@ temperatureMaintenanceSystem:
 schematic, paralleltank
 nApt, 200
 Wapt, 100
-offTime_hr, 1
-TMRuntime_hr, 2
+offTime_hr, 0.167
+TMRuntime_hr, 0.500
 setpointTM_F, 135
 TMonTemp_F, 122
-TMCap, 179.137
-TMVol_G_atStorageT, 1099.718
+TMCap, 159.233
+TMVol_G_atStorageT, 183.286
