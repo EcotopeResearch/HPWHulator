@@ -381,21 +381,22 @@ class ParallelLoopTank:
 
     def sizeVol_Cap(self):
         """
-        Sizes the volume in gallons and heat capactiy in BTU/h
+        Sizes the volume in gallons and heat capactiy in kBTU/h
 
         Calculates:
         TMVol_G_atStorageT
             Dedicated loop tank volume.
         TMCap
-            Calculated temperature maintenance equipment capacity.
+            Calculated temperature maintenance equipment capacity in kBTU/h.
         """
 
-        self.TMVol_G_atStorageT =  SafteyWapt*(self.Wapt * self.nApt) / rhoCp * \
+        self.TMVol_G_atStorageT =  SafteyWapt * self.Wapt * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
-        self.TMCap =  rhoCp * self.TMVol_G_atStorageT * (self.setpointTM_F - self.TMonTemp_F) * \
-            (1./self.TMRuntime_hr + 1./self.offTime_hr) / 1000
-            
+        self.TMCap =   SafteyWapt * self.Wapt * self.nApt * W_TO_BTUHR * \
+            (1. + self.offTime_hr/self.TMRuntime_hr) / 1000
+
+        
     def getSizingResults(self):
         """
         Returns sizing results as array
@@ -448,7 +449,7 @@ class SwingTank:
 
     def sizeVol_Cap(self, CA = False):
         """
-        Sizes the volume in gallons and heat capactiy in BTU/hr
+        Sizes the volume in gallons and heat capactiy in kBTU/hr
 
         Calculates:
         TMVol_G_atStorageT
@@ -463,7 +464,7 @@ class SwingTank:
         else:
             self.TMVol_G_atStorageT = self.sizingTable_MEASHRAE[ind]
         
-        self.TMCap = SafteyWapt*(self.Wapt* self.nApt) * W_TO_BTUHR / 1000.
+        self.TMCap = SafteyWapt * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
         
     def getSizingResults(self):
         """

@@ -25,7 +25,7 @@ def units_sizer():
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
                      120, 50, 150, 16, 0.8, .9, 0.4,
-                     'paralleltank', True )
+                     'paralleltank' )
     hpwh.initTempMaint(100)
     return hpwh
 
@@ -33,12 +33,12 @@ def units_sizer():
 def people_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 22.,
+    hpwh.initPrimaryByPeople(100, 36, 22.,
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                        0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
                     120, 50, 150., 18., 0.9, 0.9, 0.4,
-                    "swingtank", True, 36)
+                    "swingtank" )
     hpwh.initTempMaint(100)
 
     return hpwh
@@ -47,12 +47,12 @@ def people_sizer():
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 22.,
+    hpwh.initPrimaryByPeople(100, 36, 22., 
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 0.4,
-                    "primary", True, 36)
+                    "primary")
     return hpwh
 
 # End of fixtures
@@ -61,7 +61,7 @@ def primary_sizer():
 
 #Init Tests
 def test_default_init(empty_sizer):
-    assert empty_sizer.validbuild  == False
+    assert empty_sizer.validbuild               == False
     assert empty_sizer.primarySystem            == None
     assert empty_sizer.tempmaintSystem          == None
     assert empty_sizer.ashraeSize               == None
@@ -119,28 +119,28 @@ def test_getPeakIndices( arr, expected):
 def test_AF_initialize_error():
     hpwh = HPWHsizer.HPWHsizer()
     with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
-        hpwh.initPrimaryByPeople(100, 22.,
+        hpwh.initPrimaryByPeople(100, 22., 36,
                         [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 111,
-                    "primary", True, 36)
+                    "primary")
     with pytest.raises(Exception): # Get get to match text for some weird reason
-        hpwh.initPrimaryByPeople(100, 22.,
+        hpwh.initPrimaryByPeople(100, 22.,  36,
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                         0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                         0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 0.05,
-                    "primary", True, 36)
+                    "primary")
         
 def test_AF_sizing_error():
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 22.,
+    hpwh.initPrimaryByPeople(100, 22., 36,
                   [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                     0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                 120, 50, 150., 16., .9, .9, 0.11,
-                "primary", True, 36)
+                "primary")
     with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
         hpwh.build_size()
 

@@ -25,7 +25,3 @@ nApt, 200
 Wapt, 100
 offTime_hr, 0.167
 TMRuntime_hr, 0.500
-setpointTM_F, 130.000
-TMonTemp_F, 121.000
-TMCap, 159.233
-TMVol_G_atStorageT, 264.747
