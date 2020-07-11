@@ -55,11 +55,14 @@ def primary_sizer():
                     "primary")
     return hpwh
 
-# End of fixtures
 
+# End of fixtures
+##############################################################################
+##############################################################################
+##############################################################################
 # Start of tests
 
-#Init Tests
+# Init Tests
 def test_default_init(empty_sizer):
     assert empty_sizer.validbuild               == False
     assert empty_sizer.primarySystem            == None
@@ -84,11 +87,7 @@ def test_default_init(empty_sizer):
     assert empty_sizer.translate.TMonTemp_F       == 0. # The temperature the swing tank turns on at
     assert empty_sizer.translate.nApt             == 0. # The number of apartments
     assert empty_sizer.translate.Wapt             == 0. # The recirculation loop losses in terms of W/apt
-    assert empty_sizer.translate.TMRuntime_hr     == 0. # The temperature maintenance minimum runtime.
-    assert empty_sizer.translate.offTime_hr       == 0.
     assert empty_sizer.translate.Wapt             == 0.
-    assert empty_sizer.translate.returnT_F        == 0.
-    assert empty_sizer.translate.fdotRecirc_gpm   == 0.
 
     with pytest.raises(Exception):
         assert empty_sizer.sizeSystem()
@@ -105,7 +104,7 @@ def test_trimtank(people_sizer):
     with pytest.raises(Exception, match="Trim tanks are not supported yet"):
         assert people_sizer.build_size()   
 
-    
+##############################################################################
 @pytest.mark.parametrize("arr, expected", [
     ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
     ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
@@ -113,7 +112,6 @@ def test_trimtank(people_sizer):
 ])
 def test_getPeakIndices( arr, expected):
     assert all(getPeakIndices(arr) == np.array(expected))
-
 
 # Check for AF errors
 def test_AF_initialize_error():
@@ -144,8 +142,22 @@ def test_AF_sizing_error():
     with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
         hpwh.build_size()
 
-
+##############################################################################
 # Full model and file tests!
+@pytest.mark.parametrize("file1", [
+    "tests/test_60UnitSwing.txt",
+    "tests/test_200UnitTM.txt"
+])
+def test_hpwh_from_file(empty_sizer, file1):
+    empty_sizer.initializeFromFile(file1)
+    results = empty_sizer.build_size()
+    assert len(results) == 4
+    empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
+
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                           "tests/output/"+os.path.basename(file1))
+
+
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert primary_sizer.sizeSystem()
@@ -192,74 +204,110 @@ def test_initPrimaryByUnits(units_sizer):
     assert file_regression("tests/ref/units_sizer.txt",
                            "tests/output/units_sizer.txt")
 
-@pytest.mark.parametrize("file1", [
-    "tests/test_60UnitSwing.txt",
-    "tests/test_200UnitTM.txt"
-])
-def test_hpwh_from_file(empty_sizer, file1):
-    empty_sizer.initializeFromFile(file1)
-    results = empty_sizer.build_size()
-    assert len(results) == 4
-    empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
-
-    assert file_regression("tests/ref/"+os.path.basename(file1),
-                           "tests/output/"+os.path.basename(file1))
-
-
-def test_primaryPlot(primary_sizer):    
+##############################################################################
+# Load Shift tests
+def test_size_LS_8hr(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
     primary_sizer.build_size()
-    fig = primary_sizer.plotSizingCurve(return_as_div=False)
-    fig.write_html("tests/output/primarytest.html")
-    
-def test_simPlot(primary_sizer):    
-    primary_sizer.build_size()
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/simtest.html")
-    
-def test_simLSP_8hr(primary_sizer): 
-    primary_sizer.buildSystem()
-    primary_sizer.primarySystem.setLoadShift([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
-    primary_sizer.sizeSystem()
+   
     primary_sizer.writeToFile("tests/output/test_primaryLS8.txt")
-
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/simLS8test.html")
-    
     assert file_regression("tests/ref/test_primaryLS8.txt",
                            "tests/output/test_primaryLS8.txt")
     
-def test_simLSP_4hr(primary_sizer): 
-    primary_sizer.buildSystem()
-    primary_sizer.primarySystem.setLoadShift([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
-    primary_sizer.sizeSystem()
+def test_size_LS_4hr(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
+    primary_sizer.build_size()
     primary_sizer.writeToFile("tests/output/test_primaryLS4.txt")
-
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/simLS4test.html")
-    
+   
     assert file_regression("tests/ref/test_primaryLS4.txt",
                            "tests/output/test_primaryLS4.txt")
-
-def test_simLS_TOU(primary_sizer): 
-    primary_sizer.buildSystem()
-    primary_sizer.primarySystem.setLoadShift([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1])
-    primary_sizer.sizeSystem()
-    primary_sizer.writeToFile("tests/output/test_primaryLSTOU.txt")
-
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/simLSTOUtest.html")
     
+def test_size_LS_TOU(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1])
+    primary_sizer.build_size()
+    primary_sizer.writeToFile("tests/output/test_primaryLSTOU.txt")
+     
     assert file_regression("tests/ref/test_primaryLSTOU.txt",
                            "tests/output/test_primaryLSTOU.txt")
     
-def test_simLS_SolarDream(primary_sizer): 
-    primary_sizer.buildSystem()
-    primary_sizer.primarySystem.setLoadShift([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
-    primary_sizer.sizeSystem()
+def test_size_LS_SolarDream(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+    primary_sizer.build_size()
     primary_sizer.writeToFile("tests/output/test_primaryLSSolarDream.txt")
 
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/simLSSolarDreamtest.html")
-    
     assert file_regression("tests/ref/test_primaryLSSolarDream.txt",
-                           "tests/output/test_primaryLSSolarDream.txt")
+                           "tests/output/test_primaryLSSolarDream.txt")  
+    
+##############################################################################  
+## Test ploting outputs stay same
+def test_plot_primaryCurve(primary_sizer):    
+    primary_sizer.build_size()
+    fig = primary_sizer.plotSizingCurve(return_as_div=False)
+    fig.write_html("tests/output/test_plot_primaryCurve.html")
+    with open('tests/output/test_plot_primaryCurve.txt', 'w') as file:
+        file.write(str(fig))   
+    assert file_regression("tests/ref/test_plot_primaryCurve.txt",
+                           "tests/output/test_plot_primaryCurve.txt")
+ 
+    
+def test_parallel_curve(units_sizer):    
+    units_sizer.build_size()
+    fig = units_sizer.plotParallelTankCurve(return_as_div=False)
+    with open('tests/output/test_plot__parallelCurve.txt', 'w') as file:
+        file.write(str(fig))    
+    fig.write_html("tests/output/test_plot__parallelCurve.html")
+    assert file_regression("tests/ref/test_plot__parallelCurve.txt",
+                           "tests/output/test_plot__parallelCurve.txt")
+       
+def test_plot_simPrimary(primary_sizer):    
+    primary_sizer.build_size()
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simPrimary.html")
+    with open('tests/output/test_plot_simPrimary.txt', 'w') as file:
+        file.write(str(fig))   
+    assert file_regression("tests/ref/test_plot_simPrimary.txt",
+                           "tests/output/test_plot_simPrimary.txt")
+    
+def test_plot_LS_8hr(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
+    primary_sizer.build_size()
+    
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simLS8.html")
+    with open('tests/output/test_plot_simLS8.txt', 'w') as file:
+        file.write(str(fig))  
+    assert file_regression("tests/ref/test_primaryLS8.txt",
+                           "tests/output/test_primaryLS8.txt")
+    
+def test_plot_LS_4hr(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
+    primary_sizer.build_size()
+    
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simLS4.html")
+    with open('tests/output/test_plot_simLS4.txt', 'w') as file:
+        file.write(str(fig))   
+    assert file_regression("tests/ref/test_plot_simLS4.txt",
+                           "tests/output/test_plot_simLS4.txt")
+    
+def test_plot_LS_TOU(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1])
+    primary_sizer.build_size()    
+    
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simLSTOU.html") 
+    with open('tests/output/test_plot_simLSTOU.txt', 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/test_plot_simLSTOU.txt",
+                           "tests/output/test_plot_simLSTOU.txt")
+
+def test_plot_LS_SolarDream(primary_sizer): 
+    primary_sizer.setLoadShiftforPrimary([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+    primary_sizer.build_size()
+    
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simLSSolarDream.html")
+    with open('tests/output/test_plot_simLSSolarDream.txt', 'w') as file:
+        file.write(str(fig))    
+    assert file_regression("tests/ref/test_plot_simLSSolarDream.txt",
+                           "tests/output/test_plot_simLSSolarDream.txt")

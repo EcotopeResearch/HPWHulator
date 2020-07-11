@@ -14,18 +14,18 @@ extraLoad_GPH, 0.000
 maxDayRun_hr, 16.000
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False
-PCap, 449.235
+PCap_kBTUhr, 449.235
 PVol_G_atStorageT, 512.000
 primaryCurve_vol, [512.  ,443.27]
-primaryCurve_heatCap, [449.23,463.71]
+primaryCurve_heatCap_kBTUhr, [449.23,463.71]
 
 temperatureMaintenanceSystem:
 schematic, paralleltank
 nApt, 200.000
 Wapt, 90.000
-offTime_hr, 0.500
-TMRuntime_hr, 1.000
 setpointTM_F, 130.000
 TMonTemp_F, 122.000
-TMCap, 161.224
-TMVol_G_atStorageT, 804.169
+TMCap_kBTUhr, 161.224
+TMVol_G, 300.989
+TMCurve_vol, [ 300.99, 337.78, 374.57, 411.36, 448.15, 484.94, 521.73, 558.52, 595.31, 632.1 , 668.89, 705.68, 742.47, 779.26, 816.05, 852.84, 889.63, 926.42, 963.21,1000.  ]
+TMCurve_heatCap_kBTUhr, [161.22,175.98,190.73,205.48,220.23,234.98,249.73,264.49,279.24,293.99,308.74,323.49,338.24,353.  ,367.75,382.5 ,397.25,412.  ,426.75,441.51]

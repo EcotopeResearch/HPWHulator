@@ -4,7 +4,7 @@ HPWHComponents
 @author: paul
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, SafteyWapt
+from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor 
 
 
 ##############################################################################
@@ -38,7 +38,7 @@ class PrimarySystem_SP:
         The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
     compRuntime_hr: float
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
-    PCap
+    PCap_kBTUhr
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT
         Primary storage tank volume [gals]
@@ -77,7 +77,7 @@ class PrimarySystem_SP:
         self.loadShift = False;
         
         # Outputs
-        self.PCap              = 0. #kBTU/Hr
+        self.PCap_kBTUhr              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
 
@@ -92,18 +92,11 @@ class PrimarySystem_SP:
             None.
 
         """
-        if len(schedule) != 24:
-            raise Exception("Length of the load shifting schedule must be equal to 24 it has length "+ str(len(schedule)))
-        # Check if list is 0 and 1s.
-        if isinstance(schedule, list):
-            schedule = np.array(schedule)
         # Coerce to 0s and 1s
         self.LS_on_off = np.where(schedule > 0, 1, 0)
         self.loadShift = True
         # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
         self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
-
-    
 
     def _checkHeatHours(self, heathours):
         """
@@ -271,10 +264,10 @@ class PrimarySystem_SP:
 
     def sizeVol_Cap(self):
         """
-        Calculates PVol_G_atStorageT and PCap
+        Calculates PVol_G_atStorageT and PCap_kBTUhr
         """
         self.PVol_G_atStorageT = self.sizePrimaryTankVolume(self.maxDayRun_hr)
-        self.PCap = self.primaryHeatHrs2kBTUHR(self.maxDayRun_hr)
+        self.PCap_kBTUhr = self.primaryHeatHrs2kBTUHR(self.maxDayRun_hr)
 
     def getSizingResults(self):
         """
@@ -283,12 +276,12 @@ class PrimarySystem_SP:
         Returns
         -------
         list
-            self.PVol_G_atStorageT, self.PCap
+            self.PVol_G_atStorageT, self.PCap_kBTUhr
         """
-        if self.PVol_G_atStorageT == 0. or self.PCap == 0.:
+        if self.PVol_G_atStorageT == 0. or self.PCap_kBTUhr == 0.:
             raise Exception("The system hasn't been sized yet! Run sizeVol_Cap() first")
 
-        return [ self.PVol_G_atStorageT,  self.PCap ]
+        return [ self.PVol_G_atStorageT,  self.PCap_kBTUhr ]
     
     def runStorage_Load_Sim(self):
         """
@@ -302,7 +295,7 @@ class PrimarySystem_SP:
         D_hw - The hot water demand with time
 
         """
-        if self.PVol_G_atStorageT == 0. or self.PCap == 0.:
+        if self.PVol_G_atStorageT == 0. or self.PCap_kBTUhr == 0.:
             raise Exception("The system hasn't been sized yet!")
         
         G_hw = self.totalHWLoad/self.maxDayRun_hr * np.tile(self.LS_on_off,3) 
@@ -360,43 +353,42 @@ class ParallelLoopTank:
         Temperature maintenance tank setpoint.
     TMonTemp_F: float
         Temperature at which temperature maintenance equipment will engauge.
-    TMCap
+    TMCap_kBTUhr
         Temperature maintenance equipment capacity.
-    TMVol_G_atStorageT
+    TMVol_G
         Volume of parrallel loop tank.
     """
-
-    def __init__(self, nApt, Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
+    minimumRunTime  = 10./60.
+    
+    def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-        self.offTime_hr  = offTime_hr # Hour
-        self.TMRuntime_hr  = TMRuntime_hr
+        
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
         # Outputs:
-        self.TMCap = 0 #kBTU/Hr
-        self.TMVol_G_atStorageT = 0 # Gallons
+        self.TMCap_kBTUhr = 0 #kBTU/Hr
+        self.TMVol_G = 0 # Gallons
 
     def sizeVol_Cap(self):
         """
         Sizes the volume in gallons and heat capactiy in kBTU/h
 
         Calculates:
-        TMVol_G_atStorageT
+        TMVol_G
             Dedicated loop tank volume.
-        TMCap
+        TMCap_kBTUhr
             Calculated temperature maintenance equipment capacity in kBTU/h.
         """
-
-        self.TMVol_G_atStorageT =  SafteyWapt * self.Wapt * self.nApt / rhoCp * \
-            W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
-
-        self.TMCap =   SafteyWapt * self.Wapt * self.nApt * W_TO_BTUHR * \
-            (1. + self.offTime_hr/self.TMRuntime_hr) / 1000
-
         
+        self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
+        self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
+                        self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
+    
+        
+    
     def getSizingResults(self):
         """
         Returns sizing results as array
@@ -404,9 +396,31 @@ class ParallelLoopTank:
         Returns
         -------
         list
-            self.TMVol_G_atStorageT, self.TMCap
+            self.TMVol_G, self.TMCap_kBTUhr
         """
-        return [ self.TMVol_G_atStorageT, self.TMCap ]
+        return [ self.TMVol_G, self.TMCap_kBTUhr ]
+
+    def tempMaintCurve(self, runtime = None):
+        """
+        Returns the sizing curve for a parallel loop tank
+
+        Returns
+        -------
+        list
+            volN_G, capacity
+        """
+        if runtime is None:
+            runtime = self.minimumRunTime
+            
+        volN_G = np.linspace(self.TMVol_G , 1000, 20)
+        capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
+                    self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR 
+        capacity /= 1000.
+        
+        keep = capacity >= self.TMCap_kBTUhr
+        
+        return [ volN_G[keep], capacity[keep] ]
+
 
 ##############################################################################
 
@@ -421,15 +435,16 @@ class SwingTank:
         The number of apartments. Use with Qdot_apt to determine total recirculation losses.
     Wapt:  float
         Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
-    TMCap
+    TMCap_kBTUhr
         The required capacity of temperature maintenance equipment.
-    TMVol_G_atStorageT
+    TMVol_G
         The volume of the swing tank required to ride out the low use period.
     """
     Table_Napts = [0, 12, 24, 48, 96]
     sizingTable_MEASHRAE = ["80", "80", "80", "120 - 300", "120 - 300"] 
     sizingTable_CA = ["80", "96", "168", "288", "480"] 
     
+    swingLoadToPrimary_Wapt = 50.
     
     def __init__(self, nApt, Wapt):
         # Inputs from primary system
@@ -437,12 +452,11 @@ class SwingTank:
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt #W/ apartment
 
-        self.swingLoadToPrimary_Wapt = 50.
         self.swingLoadToPrimary_W = self.swingLoadToPrimary_Wapt * self.nApt
 
         # Outputs:
-        self.TMCap                   = 0 #kBTU/Hr
-        self.TMVol_G_atStorageT      = 0 # Gallons
+        self.TMCap_kBTUhr                   = 0 #kBTU/Hr
+        self.TMVol_G      = 0 # Gallons
 
         if self.Wapt == 0:
             raise Exception("Swing tank initialized with 0 W per apt heat loss")
@@ -452,19 +466,19 @@ class SwingTank:
         Sizes the volume in gallons and heat capactiy in kBTU/hr
 
         Calculates:
-        TMVol_G_atStorageT
+        TMVol_G
             Calculated swing tank volume.
-        TMCap
+        TMCap_kBTUhr
             Calculated temperature maintenance equipment capacity.
         """
         ind = [idx for idx, val in enumerate(self.Table_Napts) if val <= self.nApt][-1]
         
         if CA:
-            self.TMVol_G_atStorageT = self.sizingTable_CA[ind]
+            self.TMVol_G = self.sizingTable_CA[ind]
         else:
-            self.TMVol_G_atStorageT = self.sizingTable_MEASHRAE[ind]
+            self.TMVol_G = self.sizingTable_MEASHRAE[ind]
         
-        self.TMCap = SafteyWapt * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
+        self.TMCap_kBTUhr = TMSafetyFactor * Wapt75 * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
         
     def getSizingResults(self):
         """
@@ -473,9 +487,9 @@ class SwingTank:
         Returns
         -------
         list
-            self.TMVol_G_atStorageT, self.TMCap
+            self.TMVol_G, self.TMCap_kBTUhr
         """
-        return [ self.TMVol_G_atStorageT, self.TMCap ]
+        return [ self.TMVol_G, self.TMCap_kBTUhr ]
     
     def getSwingLoadOnPrimary_W(self):
         """
