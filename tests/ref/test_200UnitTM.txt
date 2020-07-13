@@ -10,21 +10,22 @@ defrostFactor, 0.900
 percentUseable, 0.800
 compRuntime_hr, 16.000
 aquaFract, 0.400
+extraLoad_GPH, 0.000
 maxDayRun_hr, 16.000
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False
-PCap, 449.235
+PCap_kBTUhr, 449.235
 PVol_G_atStorageT, 512.000
-primaryCurve_vol, [512.  ,443.27]
-primaryCurve_heatCap, [449.23,463.71]
+primaryCurve_vol, [512.  ,491.13,469.86,448.16,426.02,403.43]
+primaryCurve_heatCap_kBTUhr, [449.23,453.63,458.11,462.68,467.34,472.1 ]
 
 temperatureMaintenanceSystem:
 schematic, paralleltank
 nApt, 200.000
 Wapt, 90.000
-offTime_hr, 0.500
-TMRuntime_hr, 1.000
 setpointTM_F, 130.000
 TMonTemp_F, 122.000
-TMCap, 161.224
-TMVol_G_atStorageT, 804.169
+TMCap_kBTUhr, 161.224
+TMVol_G, 300.989
+TMCurve_vol, [ 300.99, 325.09, 349.2 , 373.3 , 397.4 , 421.51, 445.61, 469.72, 493.82, 517.92, 542.03, 566.13, 590.23, 614.34, 638.44, 662.55, 686.65, 710.75, 734.86, 758.96, 783.07, 807.17, 831.27, 855.38, 879.48, 903.58, 927.69, 951.79, 975.9 ,1000.  ]
+TMCurve_heatCap_kBTUhr, [161.22,170.89,180.55,190.22,199.88,209.55,219.21,228.88,238.54,248.21,257.87,267.54,277.2 ,286.87,296.53,306.2 ,315.86,325.53,335.19,344.86,354.52,364.19,373.85,383.52,393.18,402.85,412.51,422.18,431.84,441.51]
