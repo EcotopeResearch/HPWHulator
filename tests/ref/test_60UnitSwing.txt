@@ -14,16 +14,15 @@ extraLoad_GPH, 11.140
 maxDayRun_hr, 16.000
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False
-PCap, 157.447
+PCap_kBTUhr, 157.447
 PVol_G_atStorageT, 129.215
-primaryCurve_vol, [129.21,114.3 , 98.56, 84.54]
-primaryCurve_heatCap, [157.45,161.69,166.18,170.92]
+primaryCurve_vol, [129.21,124.67,120.05,115.35,110.58,105.72,100.78, 95.76, 91.08, 87.18, 83.21]
+primaryCurve_heatCap_kBTUhr, [157.45,158.74,160.06,161.39,162.75,164.14,165.55,166.98,168.43,169.92,171.42]
 
 temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 60.000
 Wapt, 90.000
-swingLoadToPrimary_Wapt, 50.000
 swingLoadToPrimary_W, 3000.000
-TMCap, 32.245
-TMVol_G_atStorageT, 120 - 300
+TMCap_kBTUhr, 48.367
+TMVol_G, 120 - 300

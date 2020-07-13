@@ -6,14 +6,16 @@ from ashraesizer import ASHRAEsizer
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
 
-##############################################################################
+
 ##############################################################################
 class HPWHsizer:
     """ Organizes a primary and temperature maintenance system and sizes it"""
     def __init__(self):
-        self.validbuild = False
-        self.primaryInit = False
-        self.translate = HPWHsizerRead()
+        self.validbuild     = False
+        self.primaryInit    = False
+        self.systemSized    = False
+        self.doLoadShift    = False
+        self.inputs = HPWHsizerRead()
 
         self.primarySystem = None
         self.tempmaintSystem = None
@@ -23,12 +25,12 @@ class HPWHsizer:
 
         
     def initializeFromFile(self, fileName):
-        self.translate.initializeFromFile(fileName)
+        self.inputs.initializeFromFile(fileName)
     
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
-        self.translate.initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
+        self.inputs.initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass)
         self.primaryInit = True
@@ -36,74 +38,84 @@ class HPWHsizer:
     def initPrimaryByPeople(self,  nPeople, nApt,  gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
-        self.translate.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+        self.inputs.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass )
 
-
-    def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0, offTime_hr = 10/60, TMRuntime_hr = 0.5 ):
+    def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
         """
         Initializes the temperature maintanence system after the primary system 
-        with either "swingtank" or "paralleltank". Recommend to leave offtime_hr 
-        and TMRuntime_hr as defaulted, since they're setup for a minimum runtime of 
-        10 minutes at the lower end of the design criteria for loop losses.
+        with either "swingtank" or "paralleltank". 
         
         """
         if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
             
-        if self.translate.schematic == "swingtank" or self.translate.schematic == "paralleltank":
+        if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
             if TMonTemp_F == 0: 
-                TMonTemp_F = self.translate.supplyT_F + 2;
-            self.translate.initTempMaint(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
+                TMonTemp_F = self.inputs.supplyT_F + 2;
+            self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
 
-    
+    def setLoadShiftforPrimary(self, ls_arr):
+        """
+        Resets the load shift to user defined values
+
+        Args:
+            ls_arr (array): Array of zeros and ones to define when HPWH's are allowed to run for load shift.
+
+        Returns:
+            None.
+
+        """
+        self.inputs.setLoadShift(ls_arr)
+        self.doLoadShift    = True
+
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
-        self.ashraeSize = ASHRAEsizer(self.translate.nPeople,
-                                        self.translate.gpdpp,
-                                        self.translate.incomingT_F,
-                                        self.translate.supplyT_F,
-                                        self.translate.storageT_F,
-                                        self.translate.defrostFactor,
-                                        self.translate.percentUseable,
-                                        self.translate.compRuntime_hr)
+        self.ashraeSize = ASHRAEsizer(self.inputs.nPeople,
+                                        self.inputs.gpdpp,
+                                        self.inputs.incomingT_F,
+                                        self.inputs.supplyT_F,
+                                        self.inputs.storageT_F,
+                                        self.inputs.defrostFactor,
+                                        self.inputs.percentUseable,
+                                        self.inputs.compRuntime_hr)
        
-        if self.translate.schematic == "primary":
+        if self.inputs.schematic == "primary":
             pass
-        elif self.translate.schematic == "paralleltank":
-            self.tempmaintSystem = ParallelLoopTank(self.translate.nApt,
-                                     self.translate.Wapt,
-                                     self.translate.offTime_hr,
-                                     self.translate.TMRuntime_hr,
-                                     self.translate.setpointTM_F,
-                                     self.translate.TMonTemp_F)
-        elif self.translate.schematic == "swingtank":
-            self.tempmaintSystem = SwingTank(self.translate.nApt,
-                                     self.translate.Wapt)
+        elif self.inputs.schematic == "paralleltank":
+            self.tempmaintSystem = ParallelLoopTank(self.inputs.nApt,
+                                     self.inputs.Wapt,
+                                     self.inputs.setpointTM_F,
+                                     self.inputs.TMonTemp_F)
+        elif self.inputs.schematic == "swingtank":
+            self.tempmaintSystem = SwingTank(self.inputs.nApt,
+                                     self.inputs.Wapt)
             # Get part of recicualtion loop losses added to primary system
             self.swingTankLoad_W = self.tempmaintSystem.getSwingLoadOnPrimary_W()
             
-        elif self.translate.schematic == "trimtank":
+        elif self.inputs.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else:
-            raise Exception ("Invalid schematic set up: " + self.translate.schematic)
+            raise Exception ("Invalid schematic set up: " + self.inputs.schematic)
 
 
-        if self.translate.singlePass:
-            self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
-                                                 self.translate.loadShapeNorm,
-                                                 self.translate.nPeople,
-                                                 self.translate.incomingT_F,
-                                                 self.translate.supplyT_F,
-                                                 self.translate.storageT_F,
-                                                 self.translate.defrostFactor,
-                                                 self.translate.percentUseable,
-                                                 self.translate.compRuntime_hr,
-                                                 self.translate.aquaFract,
+        if self.inputs.singlePass:
+            self.primarySystem = PrimarySystem_SP(self.inputs.totalHWLoad_G,
+                                                 self.inputs.loadShapeNorm,
+                                                 self.inputs.nPeople,
+                                                 self.inputs.incomingT_F,
+                                                 self.inputs.supplyT_F,
+                                                 self.inputs.storageT_F,
+                                                 self.inputs.defrostFactor,
+                                                 self.inputs.percentUseable,
+                                                 self.inputs.compRuntime_hr,
+                                                 self.inputs.aquaFract,
                                                  self.swingTankLoad_W)
-
-        elif not self.translate.singlePass:
+            if self.doLoadShift:
+                self.primarySystem.setLoadShift(self.inputs.loadshift)
+            
+        elif not self.inputs.singlePass:
             # Multipass systems not yet supported
             raise Exception("Multipass is yet supported")
 
@@ -120,11 +132,13 @@ class HPWHsizer:
         Returns
         -------
         list 
-            [PVol_G_atStorageT, PCap, aquaFract, TMVol_G_atStorageT, TMCap]
+            [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G_atStorageT, TMCap_kBTUhr]
         """
         if self.validbuild:
             self.primarySystem.sizeVol_Cap()
-            # It is fine if the temperature maintenance system is 0
+            self.systemSized = True
+
+            #Check for a temp maint system
             if self.tempmaintSystem :
                 self.tempmaintSystem.sizeVol_Cap()
                 return self.primarySystem.getSizingResults() + self.tempmaintSystem.getSizingResults()
@@ -139,7 +153,7 @@ class HPWHsizer:
         Returns
         -------
         list 
-            [PVol_G_atStorageT, PCap, aquaFract, TMVol_G_atStorageT, TMCap]
+            [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G_atStorageT, TMCap_kBTUhr]
         """
         self.buildSystem()
         return self.sizeSystem()
@@ -157,6 +171,9 @@ class HPWHsizer:
         div/fig
             plot_div
         """
+        if not self.systemSized:
+            raise Exception("System must be sized first")
+
         fig = Figure()
 
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
@@ -186,7 +203,7 @@ class HPWHsizer:
         #              name='ASHRAE Medium Curve' ))
         
         fig.add_trace(Scatter(x=(0,x_data[-2]), 
-                              y=(self.primarySystem.PCap,self.primarySystem.PCap),
+                              y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
                               mode='lines', name='Minimum Size',
                               opacity=0.8, marker_color='grey'))     
         
@@ -203,7 +220,7 @@ class HPWHsizer:
         
     def plotPrimaryStorageLoadSim(self, return_as_div = True):
         """
-        Returns a plot of the sizing curve as a div
+        Returns a plot of the of the simulation for the minimum sized primary system
         
         Parameters
         ----------
@@ -214,6 +231,11 @@ class HPWHsizer:
         div/fig
             plot_div
         """
+        if not self.systemSized:
+            raise Exception("System must be sized first")
+        if self.inputs.schematic == "swingtank":
+            raise Exception("Simulation does not support swing tanks at the moment")
+            
         fig = Figure()
         
         [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim();
@@ -245,20 +267,81 @@ class HPWHsizer:
         else:
             return fig
         
-        
     
+    def plotParallelTankCurve(self, return_as_div = True):
+        """
+        Returns a plot of the sizing curve as a div
+        
+        Parameters
+        ----------
+        return_as_div
+            A logical on the output, as a div (true) or as a figure (false)
+        Returns
+        -------
+        div/fig
+            plot_div
+        """
+        if not self.systemSized:
+            raise Exception("System must be sized first")
+        if self.inputs.schematic != "paralleltank":
+            raise Exception("No parallel tank detected in the system")
+        fig = Figure()
+
+        hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
+        
+        [x_data, y_data] = self.tempmaintSystem.tempMaintCurve()
+        [x_data2, y_data2] = self.tempmaintSystem.tempMaintCurve(2 * self.tempmaintSystem.minimumRunTime)
+
+        fig.add_trace(Scatter(x=x_data, y=y_data,
+                              mode='lines', name='Maximum Capacity',
+                              hovertemplate = hovertext,
+                              opacity=0.8, marker_color='red'))
+                
+        
+        fig.add_trace(Scatter(x=(x_data[0],x_data[-1]), 
+                              y=(self.tempmaintSystem.TMCap_kBTUhr,self.tempmaintSystem.TMCap_kBTUhr),
+                              mode='lines', name='Capacity',
+                              opacity=0.8, marker_color='grey',
+                              fill='tonexty' # fill area between trace0 and trace1
+                              ))   
+        
+        fig.add_trace(Scatter(x=x_data2, y=y_data2,
+                              mode='lines', name='Recommended Curve',
+                              hovertemplate = hovertext,
+                              opacity=0.8, marker_color='green'))
+  
+        
+        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (self.tempmaintSystem.minimumRunTime *60) ,
+                          xaxis_title="Parallel Loop Tank Volume (Gallons)",
+                          yaxis_title="Parallel Loop Heating Capacity (kBTU/hr)")
+        fig.update_xaxes(range=[0, x_data[-1]])
+        fig.update_yaxes(range=[0, y_data[-1]])
+        
+        if return_as_div:
+            plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
+                        include_plotlyjs = False)
+            return plot_div
+        else:
+            return fig
+        
+      
     def writeToFile(self,fileName):
         primaryWriter = writeClassAtts(self.primarySystem, fileName, 'w+')
         primaryWriter.writeLine('primarySystem:\n')
         primaryWriter.writeToFile()
         pCurve = self.primarySystem.primaryCurve()
         primaryWriter.writeLine('primaryCurve_vol, ' +np.array2string(pCurve[0], precision = 2, separator=",", max_line_width = 300.))
-        primaryWriter.writeLine('primaryCurve_heatCap, ' +np.array2string(pCurve[1], precision = 2, separator=",", max_line_width = 300.))
+        primaryWriter.writeLine('primaryCurve_heatCap_kBTUhr, ' +np.array2string(pCurve[1], precision = 2, separator=",", max_line_width = 300.))
         if self.tempmaintSystem is not None:
             TMWriter = writeClassAtts(self.tempmaintSystem, fileName, 'a')
             TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
-            TMWriter.writeLine('schematic, '+ self.translate.schematic)
+            TMWriter.writeLine('schematic, '+ self.inputs.schematic)
             TMWriter.writeToFile()
+            if self.inputs.schematic == "paralleltank":
+                TMCurve = self.tempmaintSystem.tempMaintCurve()
+                TMWriter.writeLine('TMCurve_vol, ' +np.array2string(TMCurve[0], precision = 2, separator=",", max_line_width = 300.))
+                TMWriter.writeLine('TMCurve_heatCap_kBTUhr, ' +np.array2string(TMCurve[1], precision = 2, separator=",", max_line_width = 300.))
+        
 
 ##############################################################################
 ##############################################################################
@@ -288,19 +371,17 @@ class HPWHsizerRead:
         self.compRuntime_hr = 0. # The runtime?
         self.percentUseable = 0 # The  percent of useable storage
 
-        self.aquaFract  = 0 # The aquatstat fractrion
+        self.aquaFract      = 0 # The aquatstat fractrion
         self.defrostFactor  = 1. # The defrost factor. Derates the output power for defrost cycles.
         self.totalHWLoad_G  = 0. #Total hot water load to calculated
 
         self.schematic      = "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.Wapt           = 0. # The recirculation loop losses in terms of W/apt
-        self.fdotRecirc_gpm = 0. # The reciculation loop flow rate (gpm)
-        self.returnT_F      = 0. # The reciculation loop return temperature (F)
-        self.TMRuntime_hr   = 0. # The temperature maintenance minimum runtime.
+        
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
-        self.UAFudge        = 100. # A fudge factor used to adjust loop losses.
-        self.offTime_hr     = 0. # The numbers of hours the tempeature maintenence system is designed to be off for.
+        
+        self.loadshift      = np.ones(24) # The load shift array
 
         self.singlePass     = True # Single pass or multipass
 
@@ -349,23 +430,46 @@ class HPWHsizerRead:
         self.__checkInputs()
         self.__calcedVariables()
 
-    def initTempMaint(self, Wapt,setpointTM_F=0, TMonTemp_F=0, offTime_hr=0, TMRuntime_hr=0):
+    def initTempMaint(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
-        
         self.Wapt = Wapt
+        
         if self.schematic == "swingtank":
             pass
         elif self.schematic == "paralleltank":
-            if any(x==0 for x in [offTime_hr,TMRuntime_hr,setpointTM_F,TMonTemp_F]):
+            if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
                 raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
             else:
-                self.offTime_hr       = offTime_hr
-                self.TMRuntime_hr     = TMRuntime_hr
                 self.setpointTM_F     = setpointTM_F
                 self.TMonTemp_F       = TMonTemp_F
-                
+     
+    def setLoadShift(self, ls_arr):
+        """
+        Checks and initilize the load shift variable. 
+
+        Args:
+            ls_arr (TYPE): array of 0's and 1's or Boolean where 1 or True is .
+
+        Raises:
+            Exception: Loadshift input array not on length 24.
+
+        Returns:
+            None.
+
+        """
+        ls_arr = np.array(ls_arr, dtype = bool) # Coerce to numpy array of data type boolean
+        # Check 
+        if len(ls_arr) != 24 :
+            raise Exception("loadshift is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
+        if sum(ls_arr) == 0 :
+            raise Exception("When using Load shift the HPWH's must run for at least 1 hour each day.")
+        if sum(ls_arr) == 0 :
+            raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
+        self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
+        
+    
     def __checkInputs(self):
         """Checks inputs are all valid"""
         if len(self.loadShapeNorm) != 24 :
@@ -490,14 +594,10 @@ class HPWHsizerRead:
             elif temp[0] == "napt":
                 self.nApt       = float(temp[1])
 
-            elif temp[0] == "tmruntime_hr":
-                self.TMRuntime_hr  = float(temp[1])
             elif temp[0] == "setpointtm_f":
                 self.setpointTM_F  = float(temp[1])
             elif temp[0] == "tmontemp_f":
                 self.TMonTemp_F   = float(temp[1])
-            elif temp[0] == "offtime_hr":
-                self.offTime_hr   = float(temp[1])
             elif temp[0] == "wapt":
                 self.Wapt      = float(temp[1])
             else:
