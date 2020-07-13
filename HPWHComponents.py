@@ -249,7 +249,7 @@ class PrimarySystem_SP:
         """
         
         maxHeatHours = 1/(max(self.loadShapeNorm) - self.extraLoad_GPH/self.totalHWLoad)*1.001 
-        heatHours = np.linspace(self.compRuntime_hr, maxHeatHours,10)
+        heatHours = np.linspace(self.compRuntime_hr, maxHeatHours,30)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
             try:
@@ -283,10 +283,15 @@ class PrimarySystem_SP:
 
         return [ self.PVol_G_atStorageT,  self.PCap_kBTUhr ]
     
-    def runStorage_Load_Sim(self):
+    def runStorage_Load_Sim(self, capacity = None, volume = None):
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
 
+        Args:
+        -------
+        capacity (float) : The primary heating capacity in kBTUhr to use for the simulation, default is the sized system
+        volume (float) : The primary storage volume in gallons to  to use for the simulation, default is the sized system
+        
         Returns
         -------
         list [ V, G_hw, D_hw ] 
@@ -295,16 +300,28 @@ class PrimarySystem_SP:
         D_hw - The hot water demand with time
 
         """
-        if self.PVol_G_atStorageT == 0. or self.PCap_kBTUhr == 0.:
-            raise Exception("The system hasn't been sized yet!")
-        
-        G_hw = self.totalHWLoad/self.maxDayRun_hr * np.tile(self.LS_on_off,3) 
+        if not capacity:
+            if self.PCap_kBTUhr:
+                capacity =  self.PCap_kBTUhr
+            else:
+                raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
+
+        if not volume:
+            if self.PVol_G_atStorageT:
+                volume =  self.PVol_G_atStorageT
+            else:
+                raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
+
+        heathours = (self.totalHWLoad + 24*self.extraLoad_GPH) / capacity * rhoCp * \
+            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000. 
+            
+        G_hw = self.totalHWLoad/heathours * np.tile(self.LS_on_off,3) 
         D_hw = self.totalHWLoad * np.tile(self.loadShapeNorm,3)
         
         #Init the "simulation"
         N = len(G_hw)
-        V0 = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * self.percentUseable
-        Vtrig = self.__STORAGEV_TO_SUPPLYV(self.PVol_G_atStorageT) * (1 - self.aquaFract)
+        V0 = self.__STORAGEV_TO_SUPPLYV(volume) * self.percentUseable
+        Vtrig = self.__STORAGEV_TO_SUPPLYV(volume) * (1 - self.aquaFract)
         run = [0] * (N)
         V = [V0] + [0] * (N - 1)
         heating = False
@@ -330,7 +347,7 @@ class PrimarySystem_SP:
                 run[ii] = G_hw[ii] * (1-time_over)
                 heating = False # Stop heating
                 
-        return [ V, G_hw, D_hw, run ]
+        return [ roundList(V,3), roundList(G_hw,3), roundList(D_hw,3), roundList(run,3) ]
                 
 
 ##############################################################################
@@ -412,7 +429,7 @@ class ParallelLoopTank:
         if runtime is None:
             runtime = self.minimumRunTime
             
-        volN_G = np.linspace(self.TMVol_G , 1000, 20)
+        volN_G = np.linspace(self.TMVol_G , 1000, 30)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
                     self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR 
         capacity /= 1000.
@@ -530,3 +547,17 @@ def getPeakIndices(diff1):
         diff1 = np.array(diff1)
     diff1 = np.insert(diff1, 0, 0)
     return np.where(np.diff(np.sign(diff1))<0)[0]
+
+def roundList(a_list, n=3):
+    """
+    Rounds elements in a python list
+
+    Args:
+        a_list (float): list to round values of.
+        n (int, optional): number of digits to round too. Defaults to 2.
+
+    Returns:
+        list: rounded values.
+
+    """
+    return [round(num, n) for num in a_list]
