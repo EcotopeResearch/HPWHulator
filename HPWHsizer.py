@@ -487,13 +487,19 @@ class HPWHsizerRead:
         if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
         
+        # Check temperature inputs
         if not self.__checkLiqudWater(self.supplyT_F):
             raise Exception('Invalid input given for supplyT_F, it must be between 32 and 212F.\n')
         if not self.__checkLiqudWater(self.incomingT_F):
             raise Exception('Invalid input given for incomingT_F, it must be between 32 and 212F.\n')
         if not self.__checkLiqudWater(self.storageT_F):
             raise Exception('Invalid input given for storageT_F, it must be between 32 and 212F.\n')
-
+        if self.supplyT_F <= self.incomingT_F:
+            raise Exception('Invalid input given for supplyT_F, supplyT_F must be greater than incomingT_F\n')
+        if self.storageT_F <= self.incomingT_F:
+            raise Exception('Invalid input given for storageT_F, storageT_F must be greater than incomingT_F\n')
+        if self.storageT_F <= self.supplyT_F:
+            raise Exception('Invalid input given for storageT_F, storageT_F must be greater than supplyT_F\n')
     
     def __checkLiqudWater(self,var_F):
         """
