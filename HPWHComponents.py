@@ -80,7 +80,6 @@ class PrimarySystem_SP:
         self.PCap_kBTUhr              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-
     def setLoadShift(self, schedule):
         """
         Sets the load shifting schedule from input schedule

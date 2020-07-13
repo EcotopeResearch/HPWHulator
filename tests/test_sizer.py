@@ -20,7 +20,7 @@ def empty_sizer():
 def units_sizer():
     '''Returns a HPWHsizer instance initialized to with by units'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByUnits( [50,50,50,50,0,0], [1.374,1.74,2.567,3.109,4.225,3.769], 20,
+    hpwh.initPrimaryByUnits( [50,50,50,50,0,0], [1.374,1.74,2.567,3.109,4.225,3.769], [20,20,20,20,20,20],
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
