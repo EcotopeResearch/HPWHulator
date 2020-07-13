@@ -465,15 +465,13 @@ class HPWHsizerRead:
             raise Exception("loadshift is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
         if sum(ls_arr) == 0 :
             raise Exception("When using Load shift the HPWH's must run for at least 1 hour each day.")
-        if sum(ls_arr) == 0 :
+        if sum(ls_arr) == 24 :
             raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
         
     
     def __checkInputs(self):
         """Checks inputs are all valid"""
-        if len(self.loadShapeNorm) != 24 :
-            raise Exception("loadShapeNorm is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
         if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
             raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
         if self.schematic not in self.schematicNames:
