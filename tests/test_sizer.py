@@ -48,10 +48,7 @@ def people_sizer():
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 36, 22., 
-                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+    hpwh.initPrimaryByPeople(100, 36, 22., "stream",
                     120, 50, 150., 16., .9, .9, 0.4,
                     "primary")
     return hpwh
@@ -260,7 +257,7 @@ def test_initPrimaryByUnits(units_sizer):
 @pytest.mark.parametrize("file1, LS", [
    ( "test_primaryLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ( "test_primaryLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
+   ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1]),
    ( "test_primaryLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
 def test_size_LS(primary_sizer, file1, LS): 
@@ -311,7 +308,8 @@ def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.build_size()
     
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/"+os.path.basename(file1))
+    fig.write_html("tests/output/"+os.path.basename(file1)+".html")
+    
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
         file.write(str(fig))  
     assert file_regression("tests/ref/"+os.path.basename(file1),

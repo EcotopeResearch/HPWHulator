@@ -5,19 +5,17 @@
 import json
 from scipy.stats import lognorm
 
-
 class hpwhDataFetch():
     
     with open('hpwhdata.json') as json_file:
         dataDict = json.load(json_file)
     
+    
     def __init__(self):
-        pass
         pass
     
     def getLoadshape(self):
         return self.dataDict['loadshapes']['Stream']
-    
     
     def getGPDPP(self, key):
         try: 

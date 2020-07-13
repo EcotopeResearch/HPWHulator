@@ -355,7 +355,8 @@ class HPWHsizerRead:
     
     """
     schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"]
-
+    hpwhData = hpwhDataFetch()
+    
     def __init__(self):
         """Initialize the sizer object with 0's for the inputs"""
         self.nBR            = np.zeros(6) # Number of bedrooms 0Br, 1Br...
@@ -462,15 +463,17 @@ class HPWHsizerRead:
         Loads data for the inputs if they are of string types
 		"""
 		
-        if self.loadShapeNorm.dtype.type is np.str_: # if the input here is a string get the loadshape.
-            self.loadShapeNorm = hpwhDataFetch.getLoadshape()
-        if isinstance(self.gpdpp, str): # if the input here is a string get the get the gpdpp.
-            self.gpdpp = hpwhDataFetch.getGPDPP(self.gpdpp)[0]
+        # loadShapeNorm and rBR have been coeerced to np.arrays so check these for string inputs
+        if self.loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
+            self.loadShapeNorm = self.hpwhData.getLoadshape()
         if self.rBR.dtype.type is np.str_: # if the input here is a string get the loadshape.
-            self.rBR = hpwhDataFetch.getLoadshape()     
+            self.rBR = self.hpwhData.getLoadshape()     
+        # Check if gpdpp is a string and look up by key
+        if isinstance(self.gpdpp, str): # if the input here is a string get the get the gpdpp.
+            self.gpdpp = self.hpwhData.getGPDPP(self.gpdpp)[0]
 			
 			
-	def setLoadShift(self, ls_arr):
+    def setLoadShift(self, ls_arr):
         """
         Checks and initilize the load shift variable. 
         Args:
