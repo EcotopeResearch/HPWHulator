@@ -47,7 +47,7 @@ def people_sizer():
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 36, 22., 
+    hpwh.initPrimaryByPeople(100, 36, 22.,
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
@@ -68,7 +68,7 @@ def test_default_init(empty_sizer):
     assert empty_sizer.primarySystem            == None
     assert empty_sizer.tempmaintSystem          == None
     assert empty_sizer.ashraeSize               == None
-    
+
     assert (empty_sizer.inputs.nBR             == np.zeros(6)).all()
     assert (empty_sizer.inputs.rBR             == np.zeros(6)).all()
     assert empty_sizer.inputs.nPeople          == 0. # Nnumber of people
@@ -90,21 +90,21 @@ def test_default_init(empty_sizer):
     assert empty_sizer.inputs.Wapt             == 0.
 
     with pytest.raises(Exception):
-        assert empty_sizer.sizeSystem()     
+        assert empty_sizer.sizeSystem()
     with pytest.raises(Exception):
-        assert empty_sizer.getSizingResults() 
+        assert empty_sizer.getSizingResults()
     with pytest.raises(Exception):
         assert empty_sizer.primarySystem.sizeVol_Cap()
-        
+
 def test_multipass(people_sizer):
     people_sizer.inputs.singlePass = False
     with pytest.raises(Exception, match="Multipass is yet supported"):
         assert people_sizer.build_size()
-    
+
 def test_trimtank(people_sizer):
     people_sizer.inputs.schematic = 'trimtank'
     with pytest.raises(Exception, match="Trim tanks are not supported yet"):
-        assert people_sizer.build_size()   
+        assert people_sizer.build_size()
 
 ##############################################################################
 @pytest.mark.parametrize("arr, expected", [
@@ -118,11 +118,11 @@ def test_getPeakIndices( arr, expected):
 @pytest.mark.parametrize("hrs", [
     -0.1, 0, 24.1, np.array([ 1, 3, 44]), np.array([-1, 2, 3]), np.array([0,2,4,25])
 ])
-def test_checkHeatHours(primary_sizer, hrs):   
+def test_checkHeatHours(primary_sizer, hrs):
     primary_sizer.build_size()
     with pytest.raises(Exception, match="Heat hours is not within 1 - 24 hours"):
         primary_sizer.primarySystem.sizePrimaryTankVolume(hrs)
-        
+
 # Check for AF errors
 def test_AF_initialize_error(empty_sizer):
     with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
@@ -139,7 +139,7 @@ def test_AF_initialize_error(empty_sizer):
                         0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 0.05,
                     "primary")
-        
+
 def test_AF_sizing_error(empty_sizer):
     empty_sizer.initPrimaryByPeople(100, 22., 36,
                   [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
@@ -169,10 +169,10 @@ def test_hpwh_from_file(empty_sizer, file1):
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert primary_sizer.sizeSystem()
-    
+
     results = primary_sizer.build_size()
     assert len(results) == 2
-    
+
     with pytest.raises(Exception):
         assert primary_sizer.sizePrimaryTankVolume(-10)
     with pytest.raises(Exception):
@@ -184,10 +184,10 @@ def test_primarySizer(primary_sizer):
 def test_initPrimaryByPeople(people_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert people_sizer.sizeSystem()
-    
+
     results = people_sizer.build_size()
-    assert len(results) == 4    
-    
+    assert len(results) == 4
+
     with pytest.raises(Exception):
         assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
     with pytest.raises(Exception):
@@ -196,14 +196,14 @@ def test_initPrimaryByPeople(people_sizer):
     people_sizer.writeToFile("tests/output/people_sizer.txt")
     assert file_regression("tests/ref/people_sizer.txt",
                            "tests/output/people_sizer.txt")
-    
+
 def test_initPrimaryByUnits(units_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert units_sizer.sizeSystem()
-    
+
     results = units_sizer.build_size()
     assert len(results) == 4
-    
+
     with pytest.raises(Exception):
         assert units_sizer.sizePrimaryTankVolume(-10)
     with pytest.raises(Exception):
@@ -220,57 +220,57 @@ def test_initPrimaryByUnits(units_sizer):
    ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
    ( "test_primaryLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
-def test_size_LS(primary_sizer, file1, LS): 
+def test_size_LS(primary_sizer, file1, LS):
     primary_sizer.setLoadShiftforPrimary(LS)
     primary_sizer.build_size()
-   
+
     primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
-    
-##############################################################################  
+
+##############################################################################
 ## Test ploting outputs stay same
-def test_plot_primaryCurve(primary_sizer):    
+def test_plot_primaryCurve(primary_sizer):
     primary_sizer.build_size()
     fig = primary_sizer.plotSizingCurve(return_as_div=False)
     fig.write_html("tests/output/test_plot_primaryCurve.html")
     with open('tests/output/test_plot_primaryCurve.txt', 'w') as file:
-        file.write(str(fig))   
+        file.write(str(fig))
     assert file_regression("tests/ref/test_plot_primaryCurve.txt",
                            "tests/output/test_plot_primaryCurve.txt")
- 
-def test_parallel_curve(units_sizer):    
+
+def test_parallel_curve(units_sizer):
     units_sizer.build_size()
     fig = units_sizer.plotParallelTankCurve(return_as_div=False)
     with open('tests/output/test_plot_parallelCurve.txt', 'w') as file:
-        file.write(str(fig))    
+        file.write(str(fig))
     fig.write_html("tests/output/test_plot_parallelCurve.html")
     assert file_regression("tests/ref/test_plot_parallelCurve.txt",
                            "tests/output/test_plot_parallelCurve.txt")
-    
-def test_plot_simPrimary(primary_sizer):    
+
+def test_plot_simPrimary(primary_sizer):
     primary_sizer.build_size()
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/test_plot_simPrimary.html")
     with open('tests/output/test_plot_simPrimary.txt', 'w') as file:
-        file.write(str(fig))   
+        file.write(str(fig))
     assert file_regression("tests/ref/test_plot_simPrimary.txt",
-                           "tests/output/test_plot_simPrimary.txt")   
-    
+                           "tests/output/test_plot_simPrimary.txt")
+
 @pytest.mark.parametrize("file1, LS", [
    ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ( "test_plot_simLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
    ( "test_plot_simLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
-def test_plot_LS(primary_sizer, file1, LS): 
+def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.setLoadShiftforPrimary(LS)
     primary_sizer.build_size()
-    
+
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/"+os.path.basename(file1))
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
-        file.write(str(fig))  
+        file.write(str(fig))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
 
