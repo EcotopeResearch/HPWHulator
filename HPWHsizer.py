@@ -15,7 +15,7 @@ class HPWHsizer:
         self.primaryInit    = False
         self.systemSized    = False
         self.doLoadShift    = False
-        self.translate = HPWHsizerRead()
+        self.inputs = HPWHsizerRead()
 
         self.primarySystem = None
         self.tempmaintSystem = None
@@ -25,12 +25,12 @@ class HPWHsizer:
 
         
     def initializeFromFile(self, fileName):
-        self.translate.initializeFromFile(fileName)
+        self.inputs.initializeFromFile(fileName)
     
     def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
-        self.translate.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+        self.inputs.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass)
         self.primaryInit = True
@@ -38,7 +38,7 @@ class HPWHsizer:
     def initPrimaryByPeople(self,  nPeople, nApt,  gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
-        self.translate.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+        self.inputs.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass )
 
@@ -51,10 +51,10 @@ class HPWHsizer:
         if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
             
-        if self.translate.schematic == "swingtank" or self.translate.schematic == "paralleltank":
+        if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
             if TMonTemp_F == 0: 
-                TMonTemp_F = self.translate.supplyT_F + 2;
-            self.translate.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
+                TMonTemp_F = self.inputs.supplyT_F + 2;
+            self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
 
     def setLoadShiftforPrimary(self, ls_arr):
         """
@@ -67,55 +67,55 @@ class HPWHsizer:
             None.
 
         """
-        self.translate.setLoadShift(ls_arr)
+        self.inputs.setLoadShift(ls_arr)
         self.doLoadShift    = True
 
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
-        self.ashraeSize = ASHRAEsizer(self.translate.nPeople,
-                                        self.translate.gpdpp,
-                                        self.translate.incomingT_F,
-                                        self.translate.supplyT_F,
-                                        self.translate.storageT_F,
-                                        self.translate.defrostFactor,
-                                        self.translate.percentUseable,
-                                        self.translate.compRuntime_hr)
+        self.ashraeSize = ASHRAEsizer(self.inputs.nPeople,
+                                        self.inputs.gpdpp,
+                                        self.inputs.incomingT_F,
+                                        self.inputs.supplyT_F,
+                                        self.inputs.storageT_F,
+                                        self.inputs.defrostFactor,
+                                        self.inputs.percentUseable,
+                                        self.inputs.compRuntime_hr)
        
-        if self.translate.schematic == "primary":
+        if self.inputs.schematic == "primary":
             pass
-        elif self.translate.schematic == "paralleltank":
-            self.tempmaintSystem = ParallelLoopTank(self.translate.nApt,
-                                     self.translate.Wapt,
-                                     self.translate.setpointTM_F,
-                                     self.translate.TMonTemp_F)
-        elif self.translate.schematic == "swingtank":
-            self.tempmaintSystem = SwingTank(self.translate.nApt,
-                                     self.translate.Wapt)
+        elif self.inputs.schematic == "paralleltank":
+            self.tempmaintSystem = ParallelLoopTank(self.inputs.nApt,
+                                     self.inputs.Wapt,
+                                     self.inputs.setpointTM_F,
+                                     self.inputs.TMonTemp_F)
+        elif self.inputs.schematic == "swingtank":
+            self.tempmaintSystem = SwingTank(self.inputs.nApt,
+                                     self.inputs.Wapt)
             # Get part of recicualtion loop losses added to primary system
             self.swingTankLoad_W = self.tempmaintSystem.getSwingLoadOnPrimary_W()
             
-        elif self.translate.schematic == "trimtank":
+        elif self.inputs.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else:
-            raise Exception ("Invalid schematic set up: " + self.translate.schematic)
+            raise Exception ("Invalid schematic set up: " + self.inputs.schematic)
 
 
-        if self.translate.singlePass:
-            self.primarySystem = PrimarySystem_SP(self.translate.totalHWLoad_G,
-                                                 self.translate.loadShapeNorm,
-                                                 self.translate.nPeople,
-                                                 self.translate.incomingT_F,
-                                                 self.translate.supplyT_F,
-                                                 self.translate.storageT_F,
-                                                 self.translate.defrostFactor,
-                                                 self.translate.percentUseable,
-                                                 self.translate.compRuntime_hr,
-                                                 self.translate.aquaFract,
+        if self.inputs.singlePass:
+            self.primarySystem = PrimarySystem_SP(self.inputs.totalHWLoad_G,
+                                                 self.inputs.loadShapeNorm,
+                                                 self.inputs.nPeople,
+                                                 self.inputs.incomingT_F,
+                                                 self.inputs.supplyT_F,
+                                                 self.inputs.storageT_F,
+                                                 self.inputs.defrostFactor,
+                                                 self.inputs.percentUseable,
+                                                 self.inputs.compRuntime_hr,
+                                                 self.inputs.aquaFract,
                                                  self.swingTankLoad_W)
             if self.doLoadShift:
-                self.primarySystem.setLoadShift(self.translate.loadshift)
+                self.primarySystem.setLoadShift(self.inputs.loadshift)
             
-        elif not self.translate.singlePass:
+        elif not self.inputs.singlePass:
             # Multipass systems not yet supported
             raise Exception("Multipass is yet supported")
 
@@ -233,7 +233,7 @@ class HPWHsizer:
         """
         if not self.systemSized:
             raise Exception("System must be sized first")
-        if self.translate.schematic == "swingtank":
+        if self.inputs.schematic == "swingtank":
             raise Exception("Simulation does not support swing tanks at the moment")
             
         fig = Figure()
@@ -283,7 +283,7 @@ class HPWHsizer:
         """
         if not self.systemSized:
             raise Exception("System must be sized first")
-        if self.translate.schematic != "paralleltank":
+        if self.inputs.schematic != "paralleltank":
             raise Exception("No parallel tank detected in the system")
         fig = Figure()
 
@@ -335,9 +335,9 @@ class HPWHsizer:
         if self.tempmaintSystem is not None:
             TMWriter = writeClassAtts(self.tempmaintSystem, fileName, 'a')
             TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
-            TMWriter.writeLine('schematic, '+ self.translate.schematic)
+            TMWriter.writeLine('schematic, '+ self.inputs.schematic)
             TMWriter.writeToFile()
-            if self.translate.schematic == "paralleltank":
+            if self.inputs.schematic == "paralleltank":
                 TMCurve = self.tempmaintSystem.tempMaintCurve()
                 TMWriter.writeLine('TMCurve_vol, ' +np.array2string(TMCurve[0], precision = 2, separator=",", max_line_width = 300.))
                 TMWriter.writeLine('TMCurve_heatCap_kBTUhr, ' +np.array2string(TMCurve[1], precision = 2, separator=",", max_line_width = 300.))
@@ -461,6 +461,10 @@ class HPWHsizerRead:
         # Check 
         if len(ls_arr) != 24 :
             raise Exception("loadshift is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
+        if sum(ls_arr) == 0 :
+            raise Exception("When using Load shift the HPWH's must run for at least 1 hour each day.")
+        if sum(ls_arr) == 0 :
+            raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
         
     
