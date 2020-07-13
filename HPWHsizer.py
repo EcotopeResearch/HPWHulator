@@ -25,10 +25,10 @@ class HPWHsizer:
     def initializeFromFile(self, fileName):
         self.translate.initializeFromFile(fileName)
     
-    def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
-        self.translate.initPrimaryByUnits(nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+        self.translate.initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass)
         self.primaryInit = True
@@ -269,15 +269,18 @@ class HPWHsizerRead:
     
     
     """
-
     schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"]
 
     def __init__(self):
         """Initialize the sizer object with 0's for the inputs"""
         self.nBR            = np.zeros(6) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.zeros(6) # Ratio of people bedrooms 0Br, 1Br...
-        self.nPeople        = 0. # Nnumber of people
+        self.nPeople        = 0. # Nnumber of people        
+        self.nApt           = 0. # The number of apartments
+
         self.gpdpp          = 0. # Gallons per day per person
+        self.gpdpp_BR       = np.zeros(6) # Gallons per day per person by bedrooms
+
         self.loadShapeNorm  = np.zeros(24) # The normalized load shape
         self.supplyT_F      = 0. # The supply temperature to the occupants
         self.incomingT_F    = 0. # The incoming cold water temperature for the city
@@ -290,7 +293,6 @@ class HPWHsizerRead:
         self.totalHWLoad_G  = 0. #Total hot water load to calculated
 
         self.schematic      = "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
-        self.nApt           = 0. # The number of apartments
         self.Wapt           = 0. # The recirculation loop losses in terms of W/apt
         self.fdotRecirc_gpm = 0. # The reciculation loop flow rate (gpm)
         self.returnT_F      = 0. # The reciculation loop return temperature (F)
@@ -302,12 +304,12 @@ class HPWHsizerRead:
 
         self.singlePass     = True # Single pass or multipass
 
-    def initPrimaryByUnits(self, nBR, rBR, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+    def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
                     schematic, singlePass = True):
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
-        self.gpdpp          = gpdpp # Gallons per day per person
+        self.gpdpp_BR       = np.array(gpdpp_BR) # Gallons per day per person by bedrooms
         self.loadShapeNorm  = np.array(loadShapeNorm) # The normalized load shape
         self.supplyT_F      = supplyT_F # The supply temperature to the occupants
         self.incomingT_F    = incomingT_F # The incoming cold water temperature for the city
@@ -380,6 +382,30 @@ class HPWHsizerRead:
             raise Exception('Invalid input given for aquaFract, it must be between 0 and 1.\n')
         if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
+        
+        if not self.__checkLiqudWater(self.supplyT_F):
+            raise Exception('Invalid input given for supplyT_F, it must be between 32 and 212F.\n')
+        if not self.__checkLiqudWater(self.incomingT_F):
+            raise Exception('Invalid input given for incomingT_F, it must be between 32 and 212F.\n')
+        if not self.__checkLiqudWater(self.storageT_F):
+            raise Exception('Invalid input given for storageT_F, it must be between 32 and 212F.\n')
+
+    
+    def __checkLiqudWater(self,var_F):
+        """
+        Checks if the variable has a temperuter with in the range of liquid water at atm pressure
+
+        Args:
+            var_F (float): Temperature of water.
+
+        Returns:
+            bool: True if liquid, False if solid or gas.
+
+        """
+        if var_F < 32 or var_F > 212:
+            return False
+        else:
+            return True
 
     def __calcedVariables(self):
         """ Calculate other variables needed."""
@@ -389,7 +415,10 @@ class HPWHsizerRead:
             self.nApt = sum(self.nBR)
         if self.nPeople == 0:
             self.nPeople = sum(self.nBR * self.rBR)
-        self.totalHWLoad_G = self.gpdpp * self.nPeople
+        if self.gpdpp == 0:
+            self.totalHWLoad_G = sum(self.gpdpp_BR * self.nBR * self.rBR)
+        else:
+            self.totalHWLoad_G = self.gpdpp * self.nPeople
 
 
 # Helper Functions for reading and writing files
@@ -422,6 +451,8 @@ class HPWHsizerRead:
                 self.nPeople    = float(temp[1])
             elif temp[0] == "gpdpp":
                 self.gpdpp      = float(temp[1])
+            elif temp[0] == "gpdpp_br":
+                self.gpdpp_br      = float(temp[1])
             elif temp[0] == "loadshapenorm":
                 self.loadShapeNorm  = self.__importArrLine(temp, 25)
             elif temp[0] == "supplyt_f":

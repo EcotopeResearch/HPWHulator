@@ -84,7 +84,6 @@ class PrimarySystem_SP:
         self.PCap              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-
     def setLoadShift(self, schedule):
         """
         Sets the load shifting schedule from input schedule
@@ -106,8 +105,6 @@ class PrimarySystem_SP:
         self.loadShift = True
         # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
         self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
-
-    
 
     def _checkHeatHours(self, heathours):
         """
