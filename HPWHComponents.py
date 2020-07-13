@@ -104,7 +104,7 @@ class PrimarySystem_SP:
         
         Parameters
         ----------
-        heathours
+        heathours (float or numpy.ndarray)
             The number of hours primary heating equipment can run.
         """
         if isinstance(heathours, np.ndarray):
@@ -120,7 +120,7 @@ class PrimarySystem_SP:
 
         Parameters
         ----------
-        heathours
+        heathours  (float or numpy.ndarray)
             The number of hours primary heating equipment can run.
 
         Returns
@@ -139,7 +139,7 @@ class PrimarySystem_SP:
 
         Parameters
         ----------
-        heatHrs
+        heatHrs 
             The number of hours primary heating equipment can run in a day.
 
         Returns

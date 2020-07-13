@@ -69,38 +69,40 @@ def test_default_init(empty_sizer):
     assert empty_sizer.tempmaintSystem          == None
     assert empty_sizer.ashraeSize               == None
     
-    assert (empty_sizer.translate.nBR             == np.zeros(6)).all()
-    assert (empty_sizer.translate.rBR             == np.zeros(6)).all()
-    assert empty_sizer.translate.nPeople          == 0. # Nnumber of people
-    assert empty_sizer.translate.gpdpp            == 0. # Gallons per day per person
-    assert (empty_sizer.translate.loadShapeNorm   == np.zeros(24)).all() # The normalized load shape
-    assert empty_sizer.translate.supplyT_F        == 0. # The supply temperature to the occupants
-    assert empty_sizer.translate.incomingT_F      == 0. # The incoming cold water temperature for the city
-    assert empty_sizer.translate.storageT_F       == 0. # The primary hot water storage temperature
-    assert empty_sizer.translate.compRuntime_hr   == 0. # The runtime?
-    assert empty_sizer.translate.percentUseable   == 0  # The  percent of useable storage
-    assert empty_sizer.translate.defrostFactor    == 1. # The defrost factor. Derates the output power for defrost cycles.
-    assert empty_sizer.translate.totalHWLoad_G    == 0
-    assert empty_sizer.translate.aquaFract        == 0
+    assert (empty_sizer.inputs.nBR             == np.zeros(6)).all()
+    assert (empty_sizer.inputs.rBR             == np.zeros(6)).all()
+    assert empty_sizer.inputs.nPeople          == 0. # Nnumber of people
+    assert empty_sizer.inputs.gpdpp            == 0. # Gallons per day per person
+    assert (empty_sizer.inputs.loadShapeNorm   == np.zeros(24)).all() # The normalized load shape
+    assert empty_sizer.inputs.supplyT_F        == 0. # The supply temperature to the occupants
+    assert empty_sizer.inputs.incomingT_F      == 0. # The incoming cold water temperature for the city
+    assert empty_sizer.inputs.storageT_F       == 0. # The primary hot water storage temperature
+    assert empty_sizer.inputs.compRuntime_hr   == 0. # The runtime?
+    assert empty_sizer.inputs.percentUseable   == 0  # The  percent of useable storage
+    assert empty_sizer.inputs.defrostFactor    == 1. # The defrost factor. Derates the output power for defrost cycles.
+    assert empty_sizer.inputs.totalHWLoad_G    == 0
+    assert empty_sizer.inputs.aquaFract        == 0
 
-    assert empty_sizer.translate.schematic        == "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
-    assert empty_sizer.translate.TMonTemp_F       == 0. # The temperature the swing tank turns on at
-    assert empty_sizer.translate.nApt             == 0. # The number of apartments
-    assert empty_sizer.translate.Wapt             == 0. # The recirculation loop losses in terms of W/apt
-    assert empty_sizer.translate.Wapt             == 0.
+    assert empty_sizer.inputs.schematic        == "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
+    assert empty_sizer.inputs.TMonTemp_F       == 0. # The temperature the swing tank turns on at
+    assert empty_sizer.inputs.nApt             == 0. # The number of apartments
+    assert empty_sizer.inputs.Wapt             == 0. # The recirculation loop losses in terms of W/apt
+    assert empty_sizer.inputs.Wapt             == 0.
 
     with pytest.raises(Exception):
-        assert empty_sizer.sizeSystem()
+        assert empty_sizer.sizeSystem()     
+    with pytest.raises(Exception):
+        assert empty_sizer.getSizingResults() 
     with pytest.raises(Exception):
         assert empty_sizer.primarySystem.sizeVol_Cap()
         
 def test_multipass(people_sizer):
-    people_sizer.translate.singlePass = False
+    people_sizer.inputs.singlePass = False
     with pytest.raises(Exception, match="Multipass is yet supported"):
         assert people_sizer.build_size()
     
 def test_trimtank(people_sizer):
-    people_sizer.translate.schematic = 'trimtank'
+    people_sizer.inputs.schematic = 'trimtank'
     with pytest.raises(Exception, match="Trim tanks are not supported yet"):
         assert people_sizer.build_size()   
 
@@ -113,34 +115,40 @@ def test_trimtank(people_sizer):
 def test_getPeakIndices( arr, expected):
     assert all(getPeakIndices(arr) == np.array(expected))
 
+@pytest.mark.parametrize("hrs", [
+    -0.1, 0, 24.1, np.array([ 1, 3, 44]), np.array([-1, 2, 3]), np.array([0,2,4,25])
+])
+def test_checkHeatHours(primary_sizer, hrs):   
+    primary_sizer.build_size()
+    with pytest.raises(Exception, match="Heat hours is not within 1 - 24 hours"):
+        primary_sizer.primarySystem.sizePrimaryTankVolume(hrs)
+        
 # Check for AF errors
-def test_AF_initialize_error():
-    hpwh = HPWHsizer.HPWHsizer()
+def test_AF_initialize_error(empty_sizer):
     with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
-        hpwh.initPrimaryByPeople(100, 22., 36,
+        empty_sizer.initPrimaryByPeople(100, 22., 36,
                         [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 111,
                     "primary")
     with pytest.raises(Exception): # Get get to match text for some weird reason
-        hpwh.initPrimaryByPeople(100, 22.,  36,
+        empty_sizer.initPrimaryByPeople(100, 22.,  36,
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                         0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                         0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, .9, 0.05,
                     "primary")
         
-def test_AF_sizing_error():
-    hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 22., 36,
+def test_AF_sizing_error(empty_sizer):
+    empty_sizer.initPrimaryByPeople(100, 22., 36,
                   [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                     0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                 120, 50, 150., 16., .9, .9, 0.11,
                 "primary")
     with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
-        hpwh.build_size()
+        empty_sizer.build_size()
 
 ##############################################################################
 # Full model and file tests!
