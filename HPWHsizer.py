@@ -184,25 +184,20 @@ class HPWHsizer:
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='green'))
 
-        [x_data, y_data] = self.ashraeSize.primaryCurve()
-        fig.add_trace(Scatter(x=x_data[:-1], y=y_data[:-1], #Drops the last point
+        [x_ash, y_ash] = self.ashraeSize.primaryCurve()
+        fig.add_trace(Scatter(x=x_ash[:-1], y=y_ash[:-1], #Drops the last point
                               mode='lines', name='ASHRAE Sizing Curve',
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='red'))
 
-        [xlow, ylow] = self.ashraeSize.getLowCurve()
-        [xmed, ymed] = self.ashraeSize.getMediumCurve()
-        fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
-                      mode='lines',   opacity=0.4,  marker_color='crimson',
-                      hovertemplate = hovertext,
-                      name='ASHRAE Low Curve' ))
+        # [xlow, ylow] = self.ashraeSize.getLowCurve()
+        # fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
+        #               mode='lines',   opacity=0.4,  marker_color='crimson',
+        #               hovertemplate = hovertext,
+        #               name='ASHRAE Low Curve' ))
+        
 
-        #fig.add_trace(Scatter(x=xmed[:-1], y=ymed[:-1], #Drops the last point
-        #              mode='lines',   opacity=0.6,
-        #              hovertemplate = hovertext,
-        #              name='ASHRAE Medium Curve' ))
-
-        fig.add_trace(Scatter(x=(0,x_data[-2]),
+        fig.add_trace(Scatter(x=(0,max(x_data[-1],x_ash[-2])),
                               y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
                               mode='lines', name='Minimum Size',
                               opacity=0.8, marker_color='grey'))
