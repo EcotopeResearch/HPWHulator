@@ -5,6 +5,7 @@ import numpy as np
 
 import os
 import HPWHsizer
+import dataFetch
 from HPWHComponents import getPeakIndices, mixVolume
 
 
@@ -47,19 +48,18 @@ def people_sizer():
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 36, 22.,
-                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+    hpwh.initPrimaryByPeople(100, 36, 22., "stream",
                     120, 50, 150., 16., .9, .9, 0.4,
                     "primary")
     return hpwh
 
-
+@pytest.fixture
+def fetcher():
+    fetch = dataFetch.hpwhDataFetch()
+    return fetch
 # End of fixtures
-##############################################################################
-##############################################################################
-##############################################################################
+###############################################################################
+###############################################################################
 # Start of tests
 
 # Unit Tests
@@ -114,6 +114,40 @@ def test_AF_sizing_error(empty_sizer):
                 "primary")
     with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
         empty_sizer.build_size()
+
+# Test the Fetcher
+def test_getLoadshape(fetcher):
+    assert fetcher.getLoadshape() == [0.008915,0.004458,0.001486,0.001486,0.001486,0.014859,
+                    0.069837,0.13373,0.104012,0.077266,0.035067,0.031204,
+                    0.020802,0.022288,0.024071,0.024071,0.020802,0.043388,
+                    0.047251,0.07578,0.092125,0.059435,0.053492,0.032689]
+def test_getGPDPP(fetcher):
+    with pytest.raises(Exception):
+        assert fetcher.getGPDPP("wrong")
+def test_getRPepperBR(fetcher):
+    assert fetcher.getRPepperBR("CA") == [1.374, 1.74, 2.567, 3.109, 4.225, 3.769] 
+    assert fetcher.getRPepperBR("ASHSTD") == [1.49, 1.94, 2.39, 2.84, 3.29, 3.74] 
+    assert fetcher.getRPepperBR("ASHLOW") == [1.69, 2.26, 2.83, 3.4, 3.97, 4.54] 
+    with pytest.raises(Exception):
+        assert fetcher.getRPepperBR("wrong")
+
+@pytest.mark.parametrize("x, s, expected", [ 
+    (1,0, 9.367514819547965e-15),
+    (19,0, 0.40480748655575766),
+    (25,0, 0.9859985113759763),
+    (19,19, 3.3521114861106406e-16),
+    (30,5,.9859985113759763),
+    ])
+def test_getCDF(fetcher, x, s, expected):
+    assert fetcher.getCDF(x, s) == expected
+    
+@pytest.mark.parametrize("x, s, expected", [
+    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
+    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
+    ])    
+def test_getCDF_array(fetcher, x, s, expected):
+    temp = [round(n, 3) for n in fetcher.getCDF(x, s)]
+    assert temp == expected
 
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
@@ -264,7 +298,7 @@ def test_initPrimaryByUnits(units_sizer):
 @pytest.mark.parametrize("file1, LS", [
    ( "test_primaryLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ( "test_primaryLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
+   ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1]),
    ( "test_primaryLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
 def test_size_LS(primary_sizer, file1, LS):

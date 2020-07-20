@@ -1,7 +1,9 @@
 
 import numpy as np
+
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank, mixVolume # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
+from dataFetch import hpwhDataFetch
 
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
@@ -359,7 +361,8 @@ class HPWHsizerRead:
 
     """
     schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"]
-
+    hpwhData = hpwhDataFetch()
+    
     def __init__(self):
         """Initialize the sizer object with 0's for the inputs"""
         self.nBR            = np.zeros(6) # Number of bedrooms 0Br, 1Br...
@@ -410,6 +413,7 @@ class HPWHsizerRead:
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
 
+        self.__loadVariables()
         self.checkInputs()
         self.calcedVariables()
 
@@ -432,7 +436,8 @@ class HPWHsizerRead:
         self.singlePass     = singlePass # Single pass or multipass
 
         self.nApt           = nApt
-
+        
+        self.__loadVariables()
         self.checkInputs()
         self.calcedVariables()
 
@@ -449,7 +454,31 @@ class HPWHsizerRead:
                 raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
             else:
                 self.setpointTM_F     = setpointTM_F
-                self.TMonTemp_F       = TMonTemp_F
+                self.TMonTemp_F       = TMonTemp_F                
+            # Quick Check the inputs makes sense
+            if self.setpointTM_F <= self.TMonTemp_F:
+                raise Exception("The temperature maintenance setpoint temperature must be greater than the turn on temperature")
+            if self.setpointTM_F <= self.incomingT_F:
+                raise Exception("The temperature maintenance setpoint temperature must be greater than the city cold water temperature ")
+            if self.TMonTemp_F <= self.incomingT_F:
+                raise Exception("The temperature maintenance turn on temperature must be greater than the city cold water temperature ")
+
+    def __loadVariables(self):
+        """
+        Loads data for the inputs if they are of string types
+		"""
+		
+        # loadShapeNorm and rBR have been coeerced to np.arrays so check these for string inputs
+        if self.loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
+            self.loadShapeNorm = self.hpwhData.getLoadshape()
+        if self.rBR.dtype.type is np.str_: # if the input here is a string get the loadshape.
+            self.rBR = self.hpwhData.getLoadshape()     
+        # Check if gpdpp is a string and look up by key
+        if isinstance(self.gpdpp, str): # if the input here is a string get the get the gpdpp.
+            self.gpdpp = self.hpwhData.getGPDPP(self.gpdpp)[0]
+			
+			
+
 
     def setLoadShift(self, ls_arr):
         """
@@ -457,13 +486,10 @@ class HPWHsizerRead:
 
         Args:
             ls_arr (TYPE): array of 0's and 1's or Boolean where 1 or True is .
-
         Raises:
             Exception: Loadshift input array not on length 24.
-
         Returns:
             None.
-
         """
         ls_arr = np.array(ls_arr, dtype = bool) # Coerce to numpy array of data type boolean
         # Check
@@ -483,7 +509,7 @@ class HPWHsizerRead:
         if self.schematic not in self.schematicNames:
             raise Exception('Invalid input given for the schematic: "'+ self.schematic +'".\n')
         if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('Invalid input given for percentUseable, it must be between 0 and 1.\n')
+            raise Exception('Invalid input given for percentUseable, must be between 0 and 1.\n')
         if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for defrostFactor, it must be between 0 and 1.\n')
         if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
@@ -498,12 +524,13 @@ class HPWHsizerRead:
             raise Exception('Invalid input given for incomingT_F, it must be between 32 and 212F.\n')
         if not self.__checkLiqudWater(self.storageT_F):
             raise Exception('Invalid input given for storageT_F, it must be between 32 and 212F.\n')
-        if self.supplyT_F <= self.incomingT_F:
-            raise Exception('Invalid input given for supplyT_F, supplyT_F must be greater than incomingT_F\n')
-        if self.storageT_F <= self.incomingT_F:
-            raise Exception('Invalid input given for storageT_F, storageT_F must be greater than incomingT_F\n')
-        if self.storageT_F < self.supplyT_F:
-            raise Exception('Invalid input given for storageT_F, storageT_F must be greater than supplyT_F\n')
+        if self.supplyT_F > self.storageT_F:
+            raise Exception("The hot water supply temperature must be less than or equal to the primary storage temperature")
+        if self.incomingT_F >= self.storageT_F:
+            raise Exception("The city cold water temperature must be less than the primary storage temperature")
+        if self.incomingT_F >= self.supplyT_F:
+            raise Exception("The city cold water temperature must be less than the supply hot water temperature")
+    
 
     def __checkLiqudWater(self,var_F):
         """
