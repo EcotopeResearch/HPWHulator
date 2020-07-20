@@ -1,0 +1,4 @@
+numpy==1.18.3
+plotly==4.0.0
+plotly_express==0.4.0
+pytest

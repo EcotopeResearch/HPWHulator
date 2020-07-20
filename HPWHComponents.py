@@ -4,7 +4,7 @@ HPWHComponents
 @author: paul
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor 
+from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor
 
 
 ##############################################################################
@@ -53,7 +53,7 @@ class PrimarySystem_SP:
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad
-        if not isinstance(loadShapeNorm, np.ndarray): 
+        if not isinstance(loadShapeNorm, np.ndarray):
             self.loadShapeNorm  = np.array(loadShapeNorm)
         else:
             self.loadShapeNorm  = loadShapeNorm
@@ -70,12 +70,12 @@ class PrimarySystem_SP:
 
         self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
             (self.storageT_F - self.incomingT_F)
-            
+
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
         self.loadShift = False;
-        
+
         # Outputs
         self.PCap_kBTUhr              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
@@ -100,7 +100,7 @@ class PrimarySystem_SP:
     def _checkHeatHours(self, heathours):
         """
         Quick check to see if heating hours is a valid number between 1 and 24
-        
+
         Parameters
         ----------
         heathours (float or numpy.ndarray)
@@ -112,7 +112,7 @@ class PrimarySystem_SP:
         else:
             if heathours > 24 or heathours <= 0:
                 raise Exception("Heat hours is not within 1 - 24 hours")
-        
+
     def primaryHeatHrs2kBTUHR(self, heathours):
         """
         Converts from hours of heating in a day to heating capacity.
@@ -127,9 +127,9 @@ class PrimarySystem_SP:
         heatCap
             The heating capacity in [btu/hr].
         """
-        self._checkHeatHours(heathours)        
+        self._checkHeatHours(heathours)
         heatCap = (self.totalHWLoad + 24*self.extraLoad_GPH) / heathours * rhoCp * \
-            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000. 
+            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000.
         return heatCap
 
     def sizePrimaryTankVolume(self, heatHrs):
@@ -138,7 +138,7 @@ class PrimarySystem_SP:
 
         Parameters
         ----------
-        heatHrs 
+        heatHrs
             The number of hours primary heating equipment can run in a day.
 
         Returns
@@ -146,19 +146,19 @@ class PrimarySystem_SP:
         volume
             A total volume adjusted to the storage tempreature
         """
-        self._checkHeatHours(heatHrs)        
+        self._checkHeatHours(heatHrs)
 
         # Running vol
         runningVol_G = self.__calcRunningVol(heatHrs,np.ones(24))
 
-        # If doing load shift, solve for the runningVol_G and take the larger volume 
+        # If doing load shift, solve for the runningVol_G and take the larger volume
         LSrunningVol_G = 0
         if self.loadShift:
             LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off)
-        
+
         # Get total volume from max of primary method or load shift method
         totalVolMax = max(runningVol_G, LSrunningVol_G)
-        
+
         # If the swing tank is not being used
         if self.extraLoad_GPH == 0:
             totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
@@ -171,7 +171,7 @@ class PrimarySystem_SP:
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.2f" % min_AF)
-        
+
         # Return the temperature adjusted total volume ########################
         return totalVolMax
 
@@ -179,7 +179,7 @@ class PrimarySystem_SP:
         """
         Function to find the running volume for the hot water storage tank, which
         is needed for calculating the total volume for primary sizing and in the event of load shift sizing
-        represents the entire volume. 
+        represents the entire volume.
 
         Args:
             heatHrs (float): The number of hours primary heating equipment can run in a day.
@@ -204,9 +204,9 @@ class PrimarySystem_SP:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
         runV_G = runVolTemp * self.totalHWLoad
-        
+
         return runV_G
-        
+
     def __SUPPLYV_TO_STORAGEV(self, vol):
         """
         Converts the volume of water at the supply temperature to an equivalent volume at the storage temperature
@@ -218,8 +218,8 @@ class PrimarySystem_SP:
             float: Volume at storage temperature.
 
         """
-        return vol * (self.supplyT_F - self.incomingT_F) / (self.storageT_F - self.incomingT_F)
-    
+        return mixVolume(vol, self.storageT_F, self.incomingT_F, self.supplyT_F)
+
     def __STORAGEV_TO_SUPPLYV(self, vol):
         """
         Converts the volume of water at the storage temperature to an equivalent volume at the supply temperature
@@ -231,8 +231,9 @@ class PrimarySystem_SP:
             float: Volume at supply temperature.
 
         """
-        return vol * (self.storageT_F - self.incomingT_F) /  (self.supplyT_F - self.incomingT_F) 
-    
+        return mixVolume(vol, self.supplyT_F,  self.incomingT_F, self.storageT_F)
+
+
     def primaryCurve(self):
         """
         Sizes the primary system curve. Will catch the point at which the aquatstat
@@ -246,8 +247,8 @@ class PrimarySystem_SP:
         array
             Array of heat input...
         """
-        
-        maxHeatHours = 1/(max(self.loadShapeNorm) - self.extraLoad_GPH/self.totalHWLoad)*1.001 
+
+        maxHeatHours = 1/(max(self.loadShapeNorm) - self.extraLoad_GPH/self.totalHWLoad)*1.001
         heatHours = np.linspace(self.compRuntime_hr, maxHeatHours,30)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
@@ -258,7 +259,7 @@ class PrimarySystem_SP:
         # Cut to the point the aquastat fraction was too small
         volN        = volN[:ii]
         heatHours   = heatHours[:ii]
-        
+
         return [volN, self.primaryHeatHrs2kBTUHR(heatHours)]
 
     def sizeVol_Cap(self):
@@ -281,8 +282,8 @@ class PrimarySystem_SP:
             raise Exception("The system hasn't been sized yet! Run sizeVol_Cap() first")
 
         return [ self.PVol_G_atStorageT,  self.PCap_kBTUhr ]
-    
-    def runStorage_Load_Sim(self, capacity = None, volume = None):
+
+    def runStorage_Load_Sim(self, capacity = None, volume = None, hourly = True):
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
 
@@ -290,14 +291,14 @@ class PrimarySystem_SP:
         -------
         capacity (float) : The primary heating capacity in kBTUhr to use for the simulation, default is the sized system
         volume (float) : The primary storage volume in gallons to  to use for the simulation, default is the sized system
-        
+
         Returns
         -------
-        list [ V, G_hw, D_hw ] 
+        list [ V, G_hw, D_hw, run ]
         V - Volume of HW in the tank with time
-        G_hw - The generation of HW with time 
+        G_hw - The generation of HW with time
         D_hw - The hot water demand with time
-
+        run - The actual output in gallons of the HPWH with time
         """
         if not capacity:
             if self.PCap_kBTUhr:
@@ -312,11 +313,16 @@ class PrimarySystem_SP:
                 raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
 
         heathours = (self.totalHWLoad + 24*self.extraLoad_GPH) / capacity * rhoCp * \
-            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000. 
-            
-        G_hw = self.totalHWLoad/heathours * np.tile(self.LS_on_off,3) 
+            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000.
+
+
+        G_hw = self.totalHWLoad/heathours * np.tile(self.LS_on_off,3)
         D_hw = self.totalHWLoad * np.tile(self.loadShapeNorm,3)
-        
+
+        if not hourly:
+            G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
+            D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
+            
         #Init the "simulation"
         N = len(G_hw)
         V0 = self.__STORAGEV_TO_SUPPLYV(volume) * self.percentUseable
@@ -324,30 +330,30 @@ class PrimarySystem_SP:
         run = [0] * (N)
         V = [V0] + [0] * (N - 1)
         heating = False
-        
+
         #Run the "simulation"
         for ii in range(1,N):
-            
+
             if heating:
                 V[ii] = V[ii-1] + G_hw[ii] - D_hw[ii] # If heating, generate HW and lose HW
                 run[ii] = G_hw[ii]
-            
-            else:  # Else not heating, 
+
+            else:  # Else not heating,
                 V[ii] = V[ii-1] - D_hw[ii] # So lose HW
                 if V[ii] < Vtrig: # If should heat
                     time_missed = (Vtrig - V[ii])/D_hw[ii] #Volume below turn on / rate of draw gives time below tigger
                     V[ii] += G_hw[ii]*time_missed # Start heating
                     run[ii] = G_hw[ii]*time_missed
                     heating = True
-                    
+
             if V[ii] > V0: # If full
                 time_over = (V[ii] - V0)/(G_hw[ii]-D_hw[ii]) # Volume over generated / rate of generation gives time above full
                 V[ii] = V0 - D_hw[ii]*time_over # Make full with miss volume
                 run[ii] = G_hw[ii] * (1-time_over)
                 heating = False # Stop heating
-                
+
         return [ roundList(V,3), roundList(G_hw,3), roundList(D_hw,3), roundList(run,3) ]
-                
+
 
 ##############################################################################
 class ParallelLoopTank:
@@ -375,13 +381,13 @@ class ParallelLoopTank:
         Volume of parrallel loop tank.
     """
     minimumRunTime  = 10./60.
-    
+
     def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-        
+
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
         # Outputs:
@@ -398,13 +404,13 @@ class ParallelLoopTank:
         TMCap_kBTUhr
             Calculated temperature maintenance equipment capacity in kBTU/h.
         """
-        
+
         self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
         self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
                         self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
-    
-        
-    
+
+
+
     def getSizingResults(self):
         """
         Returns sizing results as array
@@ -427,14 +433,14 @@ class ParallelLoopTank:
         """
         if runtime is None:
             runtime = self.minimumRunTime
-            
+
         volN_G = np.linspace(self.TMVol_G , 1000, 30)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
-                    self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR 
+                    self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR
         capacity /= 1000.
-        
+
         keep = capacity >= self.TMCap_kBTUhr
-        
+
         return [ volN_G[keep], capacity[keep] ]
 
 
@@ -457,11 +463,11 @@ class SwingTank:
         The volume of the swing tank required to ride out the low use period.
     """
     Table_Napts = [0, 12, 24, 48, 96]
-    sizingTable_MEASHRAE = ["80", "80", "80", "120 - 300", "120 - 300"] 
-    sizingTable_CA = ["80", "96", "168", "288", "480"] 
-    
+    sizingTable_MEASHRAE = ["80", "80", "80", "120 - 300", "120 - 300"]
+    sizingTable_CA = ["80", "96", "168", "288", "480"]
+
     swingLoadToPrimary_Wapt = 50.
-    
+
     def __init__(self, nApt, Wapt):
         # Inputs from primary system
         self.nApt       = nApt
@@ -488,14 +494,14 @@ class SwingTank:
             Calculated temperature maintenance equipment capacity.
         """
         ind = [idx for idx, val in enumerate(self.Table_Napts) if val <= self.nApt][-1]
-        
+
         if CA:
             self.TMVol_G = self.sizingTable_CA[ind]
         else:
             self.TMVol_G = self.sizingTable_MEASHRAE[ind]
-        
+
         self.TMCap_kBTUhr = TMSafetyFactor * Wapt75 * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
-        
+
     def getSizingResults(self):
         """
         Returns sizing results as array
@@ -506,7 +512,7 @@ class SwingTank:
             self.TMVol_G, self.TMCap_kBTUhr
         """
         return [ self.TMVol_G, self.TMCap_kBTUhr ]
-    
+
     def getSwingLoadOnPrimary_W(self):
         """
         Returns the load in watts that the primary system handles from the reciruclation loop losses.
@@ -516,13 +522,13 @@ class SwingTank:
             self.swingLoadToPrimary_W
         """
         return self.swingLoadToPrimary_W
-    
+
     def getSizingTable(self, CA = True):
         if CA:
             return list(zip(self.Table_Napts, self.sizingTable_CA))
         else:
             return list(zip(self.Table_Napts, self.sizingTable_MEASHRAE))
-        
+
 
 ##############################################################################
 ##############################################################################
@@ -530,7 +536,7 @@ class SwingTank:
 
 def getPeakIndices(diff1):
     """
-    Finds the points of an array where the values go from positive to negative 
+    Finds the points of an array where the values go from positive to negative
 
     Parameters
     ----------
@@ -560,3 +566,40 @@ def roundList(a_list, n=3):
 
     """
     return [round(num, n) for num in a_list]
+
+def HRLIST_to_MINLIST(a_list):
+    """
+    Repeats each element of a_list 60 times to go from hourly to minute. 
+    Still may need other unit conversions to get data from per hour to per minute
+
+    Args:
+        a_list (TYPE): DESCRIPTION.
+
+    Returns:
+        out_list (TYPE): DESCRIPTION.
+
+    """
+    out_list = []
+    for num in a_list:
+        out_list += [num]*60
+    return out_list
+
+
+def mixVolume(vol, hotT, coldT, outT):
+    """
+    Adjusts the volume of water such that the hotT water and outT water have the 
+    same amount of energy, meaning different volumes.
+
+    Args:
+        vol (float): The reference volume to convert.
+        hotT (float): The hot water temperature used for mixing.
+        coldT (float): The cold water tempeature used for mixing.
+        outT (float): The out water temperature from mixing.
+
+    Returns:
+        Temperature adjusted volume.
+
+    """
+    fraction = (outT - coldT) / (hotT - coldT)
+    
+    return vol * fraction

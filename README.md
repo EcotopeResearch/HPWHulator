@@ -1,4 +1,5 @@
-# HPWHulator
+![Python package](https://github.com/EcotopeResearch/HPWHulator/workflows/Python%20package/badge.svg)
+# HPWHulator 	
 
 ### Installing:
 Steps for installing conda enviroment from the Anaconda prompt

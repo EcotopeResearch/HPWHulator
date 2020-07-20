@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
+from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank, mixVolume # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
 from dataFetch import hpwhDataFetch
 
@@ -22,13 +22,13 @@ class HPWHsizer:
         self.primarySystem = None
         self.tempmaintSystem = None
         self.ashraeSize = None
-        
+
         self.swingTankLoad_W = 0.
 
-        
+
     def initializeFromFile(self, fileName):
         self.inputs.initializeFromFile(fileName)
-    
+
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
@@ -46,15 +46,15 @@ class HPWHsizer:
 
     def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
         """
-        Initializes the temperature maintanence system after the primary system 
-        with either "swingtank" or "paralleltank". 
-        
+        Initializes the temperature maintanence system after the primary system
+        with either "swingtank" or "paralleltank".
+
         """
         if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
-            
+
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
-            if TMonTemp_F == 0: 
+            if TMonTemp_F == 0:
                 TMonTemp_F = self.inputs.supplyT_F + 2;
             self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
 
@@ -82,7 +82,7 @@ class HPWHsizer:
                                         self.inputs.defrostFactor,
                                         self.inputs.percentUseable,
                                         self.inputs.compRuntime_hr)
-       
+
         if self.inputs.schematic == "primary":
             pass
         elif self.inputs.schematic == "paralleltank":
@@ -95,7 +95,7 @@ class HPWHsizer:
                                      self.inputs.Wapt)
             # Get part of recicualtion loop losses added to primary system
             self.swingTankLoad_W = self.tempmaintSystem.getSwingLoadOnPrimary_W()
-            
+
         elif self.inputs.schematic == "trimtank":
             raise Exception("Trim tanks are not supported yet")
         else:
@@ -116,7 +116,7 @@ class HPWHsizer:
                                                  self.swingTankLoad_W)
             if self.doLoadShift:
                 self.primarySystem.setLoadShift(self.inputs.loadshift)
-            
+
         elif not self.inputs.singlePass:
             # Multipass systems not yet supported
             raise Exception("Multipass is yet supported")
@@ -125,15 +125,15 @@ class HPWHsizer:
         if self.primarySystem is not None:
             self.validbuild = True
         else:
-            raise Exception ("The HPWH system did not build properly") 
+            raise Exception ("The HPWH system did not build properly")
 
     def sizeSystem(self):
         """
         Sizes the built system
-        
+
         Returns
         -------
-        list 
+        list
             [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G_atStorageT, TMCap_kBTUhr]
         """
         if self.validbuild:
@@ -151,19 +151,19 @@ class HPWHsizer:
 
     def build_size(self):
         """
-        One function to build and size the HPWH system after initalization, that returns minimum results 
+        One function to build and size the HPWH system after initalization, that returns minimum results
         Returns
         -------
-        list 
+        list
             [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G_atStorageT, TMCap_kBTUhr]
         """
         self.buildSystem()
         return self.sizeSystem()
-    
+
     def plotSizingCurve(self, return_as_div = True):
         """
         Returns a plot of the sizing curve as a div
-        
+
         Parameters
         ----------
         return_as_div
@@ -179,51 +179,46 @@ class HPWHsizer:
         fig = Figure()
 
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
-        
+
         [x_data, y_data] = self.primarySystem.primaryCurve()
         fig.add_trace(Scatter(x=x_data, y=y_data,
                               mode='lines', name='Primary Sizing Curve',
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='green'))
-        
-        [x_data, y_data] = self.ashraeSize.primaryCurve()
-        fig.add_trace(Scatter(x=x_data[:-1], y=y_data[:-1], #Drops the last point
+
+        [x_ash, y_ash] = self.ashraeSize.primaryCurve()
+        fig.add_trace(Scatter(x=x_ash[:-1], y=y_ash[:-1], #Drops the last point
                               mode='lines', name='ASHRAE Sizing Curve',
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='red'))
+
+        # [xlow, ylow] = self.ashraeSize.getLowCurve()
+        # fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
+        #               mode='lines',   opacity=0.4,  marker_color='crimson',
+        #               hovertemplate = hovertext,
+        #               name='ASHRAE Low Curve' ))
         
-        [xlow, ylow] = self.ashraeSize.getLowCurve()
-        [xmed, ymed] = self.ashraeSize.getMediumCurve()
-        fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
-                      mode='lines',   opacity=0.4,  marker_color='crimson',
-                      hovertemplate = hovertext,
-                      name='ASHRAE Low Curve' ))
-        
-        #fig.add_trace(Scatter(x=xmed[:-1], y=ymed[:-1], #Drops the last point
-        #              mode='lines',   opacity=0.6,
-        #              hovertemplate = hovertext,
-        #              name='ASHRAE Medium Curve' ))
-        
-        fig.add_trace(Scatter(x=(0,x_data[-2]), 
+
+        fig.add_trace(Scatter(x=(0,max(x_data[-1],x_ash[-2])),
                               y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
                               mode='lines', name='Minimum Size',
-                              opacity=0.8, marker_color='grey'))     
-        
+                              opacity=0.8, marker_color='grey'))
+
         fig.update_layout(title="Primary Sizing Curve",
                           xaxis_title="Primary Tank Volume (Gallons)",
                           yaxis_title="Primary Heating Capacity (kBTU/hr)")
-        
+
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
                         include_plotlyjs = False)
             return plot_div
         else:
             return fig
-        
-    def plotPrimaryStorageLoadSim(self, return_as_div = True):
+
+    def plotPrimaryStorageLoadSim(self, return_as_div = True, hourly = True):
         """
         Returns a plot of the of the simulation for the minimum sized primary system
-        
+
         Parameters
         ----------
         return_as_div
@@ -237,43 +232,54 @@ class HPWHsizer:
             raise Exception("System must be sized first")
         if self.inputs.schematic == "swingtank":
             raise Exception("Simulation does not support swing tanks at the moment")
-            
+
         fig = Figure()
-        
+
         [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim();
+
+        if hourly:
+            run = run[-24:]*60
+            G_hw = G_hw[-24:]*60
+            D_hw = D_hw[-24:]*60
+            V = V[-24:]
+        else:
+            run = run[-(60*24):]*60
+            G_hw = G_hw[-(60*24):]*60
+            D_hw = D_hw[-(60*24):]*60
+            V = V[-(60*24):]
         
         nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % (sum(run[24:])/max(G_hw)/2)
         x_data = list(range(len(V)))
-        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume', 
+        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='green'))
-        fig.add_trace(Scatter(x=x_data, y=run, name = nameG_hw,  
+        fig.add_trace(Scatter(x=x_data, y=run, name = nameG_hw,
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='red'))
-        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand', 
+        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='blue'))
-        fig.add_trace(Scatter(x=x_data, y=G_hw, name='Generation Volume per Hour',  
+        fig.add_trace(Scatter(x=x_data, y=G_hw, name='Generation Volume per Hour',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='grey'))
-        
+
         fig.update_layout(title="Hot Water Psuedo-Simulation",
                           xaxis_title="Hour",
                           yaxis_title="Gallons at Supply Temperature",
                           legend_orientation="h")
-        
+
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
                         include_plotlyjs = False)
             return plot_div
         else:
             return fig
-        
-    
+
+
     def plotParallelTankCurve(self, return_as_div = True):
         """
         Returns a plot of the sizing curve as a div
-        
+
         Parameters
         ----------
         return_as_div
@@ -290,7 +296,7 @@ class HPWHsizer:
         fig = Figure()
 
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
-        
+
         [x_data, y_data] = self.tempmaintSystem.tempMaintCurve()
         [x_data2, y_data2] = self.tempmaintSystem.tempMaintCurve(2 * self.tempmaintSystem.minimumRunTime)
 
@@ -298,35 +304,35 @@ class HPWHsizer:
                               mode='lines', name='Maximum Capacity',
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='red'))
-                
-        
-        fig.add_trace(Scatter(x=(x_data[0],x_data[-1]), 
+
+
+        fig.add_trace(Scatter(x=(x_data[0],x_data[-1]),
                               y=(self.tempmaintSystem.TMCap_kBTUhr,self.tempmaintSystem.TMCap_kBTUhr),
                               mode='lines', name='Capacity',
                               opacity=0.8, marker_color='grey',
                               fill='tonexty' # fill area between trace0 and trace1
-                              ))   
-        
+                              ))
+
         fig.add_trace(Scatter(x=x_data2, y=y_data2,
                               mode='lines', name='Recommended Curve',
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='green'))
-  
-        
+
+
         fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (self.tempmaintSystem.minimumRunTime *60) ,
                           xaxis_title="Parallel Loop Tank Volume (Gallons)",
                           yaxis_title="Parallel Loop Heating Capacity (kBTU/hr)")
         fig.update_xaxes(range=[0, x_data[-1]])
         fig.update_yaxes(range=[0, y_data[-1]])
-        
+
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
                         include_plotlyjs = False)
             return plot_div
         else:
             return fig
-        
-      
+
+
     def writeToFile(self,fileName):
         primaryWriter = writeClassAtts(self.primarySystem, fileName, 'w+')
         primaryWriter.writeLine('primarySystem:\n')
@@ -343,16 +349,16 @@ class HPWHsizer:
                 TMCurve = self.tempmaintSystem.tempMaintCurve()
                 TMWriter.writeLine('TMCurve_vol, ' +np.array2string(TMCurve[0], precision = 2, separator=",", max_line_width = 300.))
                 TMWriter.writeLine('TMCurve_heatCap_kBTUhr, ' +np.array2string(TMCurve[1], precision = 2, separator=",", max_line_width = 300.))
-        
+
 
 ##############################################################################
 ##############################################################################
 ##############################################################################
 class HPWHsizerRead:
-    """ 
-    Class for gathering hpwh sizing inputs and checking them. Will gather inputs be manual entry or from a file. 
-    
-    
+    """
+    Class for gathering hpwh sizing inputs and checking them. Will gather inputs be manual entry or from a file.
+
+
     """
     schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"]
     hpwhData = hpwhDataFetch()
@@ -361,7 +367,7 @@ class HPWHsizerRead:
         """Initialize the sizer object with 0's for the inputs"""
         self.nBR            = np.zeros(6) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.zeros(6) # Ratio of people bedrooms 0Br, 1Br...
-        self.nPeople        = 0. # Nnumber of people        
+        self.nPeople        = 0. # Nnumber of people
         self.nApt           = 0. # The number of apartments
 
         self.gpdpp          = 0. # Gallons per day per person
@@ -380,10 +386,10 @@ class HPWHsizerRead:
 
         self.schematic      = "" # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.Wapt           = 0. # The recirculation loop losses in terms of W/apt
-        
+
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
-        
+
         self.loadshift      = np.ones(24) # The load shift array
 
         self.singlePass     = True # Single pass or multipass
@@ -406,10 +412,10 @@ class HPWHsizerRead:
 
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
-        
+
         self.__loadVariables()
-        self.__checkInputs()
-        self.__calcedVariables()
+        self.checkInputs()
+        self.calcedVariables()
 
     def initPrimaryByPeople(self, nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
@@ -432,15 +438,15 @@ class HPWHsizerRead:
         self.nApt           = nApt
         
         self.__loadVariables()
-        self.__checkInputs()
-        self.__calcedVariables()
+        self.checkInputs()
+        self.calcedVariables()
 
     def initTempMaint(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
         self.Wapt = Wapt
-        
+
         if self.schematic == "swingtank":
             pass
         elif self.schematic == "paralleltank":
@@ -448,8 +454,7 @@ class HPWHsizerRead:
                 raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
             else:
                 self.setpointTM_F     = setpointTM_F
-                self.TMonTemp_F       = TMonTemp_F
-                
+                self.TMonTemp_F       = TMonTemp_F                
             # Quick Check the inputs makes sense
             if self.setpointTM_F <= self.TMonTemp_F:
                 raise Exception("The temperature maintenance setpoint temperature must be greater than the turn on temperature")
@@ -473,9 +478,12 @@ class HPWHsizerRead:
             self.gpdpp = self.hpwhData.getGPDPP(self.gpdpp)[0]
 			
 			
+
+
     def setLoadShift(self, ls_arr):
         """
-        Checks and initilize the load shift variable. 
+        Checks and initilize the load shift variable.
+
         Args:
             ls_arr (TYPE): array of 0's and 1's or Boolean where 1 or True is .
         Raises:
@@ -484,7 +492,7 @@ class HPWHsizerRead:
             None.
         """
         ls_arr = np.array(ls_arr, dtype = bool) # Coerce to numpy array of data type boolean
-        # Check 
+        # Check
         if len(ls_arr) != 24 :
             raise Exception("loadshift is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
         if sum(ls_arr) == 0 :
@@ -493,7 +501,8 @@ class HPWHsizerRead:
             raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
 
-    def __checkInputs(self):
+
+    def checkInputs(self):
         """Checks inputs are all valid"""
         if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
             raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
@@ -507,7 +516,7 @@ class HPWHsizerRead:
             raise Exception('Invalid input given for aquaFract, it must be between 0 and 1.\n')
         if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
-        
+
         # Check temperature inputs
         if not self.__checkLiqudWater(self.supplyT_F):
             raise Exception('Invalid input given for supplyT_F, it must be between 32 and 212F.\n')
@@ -522,6 +531,7 @@ class HPWHsizerRead:
         if self.incomingT_F >= self.supplyT_F:
             raise Exception("The city cold water temperature must be less than the supply hot water temperature")
     
+
     def __checkLiqudWater(self,var_F):
         """
         Checks if the variable has a temperuter with in the range of liquid water at atm pressure
@@ -533,12 +543,12 @@ class HPWHsizerRead:
             bool: True if liquid, False if solid or gas.
 
         """
-        if var_F < 32 or var_F > 212:
+        if var_F < 32. or var_F > 212.:
             return False
         else:
             return True
 
-    def __calcedVariables(self):
+    def calcedVariables(self):
         """ Calculate other variables needed."""
         if sum(self.nBR + self.nApt) == 0:
             raise Exception("Need input given for number of bedrooms by size or number of apartments")
@@ -550,7 +560,8 @@ class HPWHsizerRead:
             self.totalHWLoad_G = sum(self.gpdpp_BR * self.nBR * self.rBR)
         else:
             self.totalHWLoad_G = self.gpdpp * self.nPeople
-
+        # Covert hw load to gallons at the given supply temperature using 120 F and cold water of 40 F 
+        self.totalHWLoad_G = mixVolume(self.totalHWLoad_G, self.supplyT_F, 40., 120.)
 
 # Helper Functions for reading and writing files
     def __importArrLine(self, line, setLength):
@@ -594,7 +605,7 @@ class HPWHsizerRead:
                 self.storageT_F   = float(temp[1])
             elif temp[0] == "compruntime_hr":
                 self.compRuntime_hr  = float(temp[1])
-                
+
             elif temp[0] == "percentuseable":
                 temp[1] = float(temp[1])
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
@@ -606,13 +617,13 @@ class HPWHsizerRead:
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
                     temp[1] = temp[1]/100.
                 self.defrostFactor = temp[1]
-            
+
             elif temp[0] == "aquafract":
                 temp[1] = float(temp[1])
                 if temp[1] > 1: # Check to make sure the percent is stored as anumber 0 to 1.
                     temp[1] = temp[1]/100.
                 self.aquaFract = temp[1]
-                
+
             elif temp[0] == "schematic":
                 self.schematic  = temp[1]
             elif temp[0] == "singlepass":
@@ -631,8 +642,8 @@ class HPWHsizerRead:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.
 
-        self.__checkInputs()
-        self.__calcedVariables()
+        self.checkInputs()
+        self.calcedVariables()
 
 ##############################################################################
 class writeClassAtts:
