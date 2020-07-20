@@ -5,7 +5,7 @@ import numpy as np
 
 import os
 import HPWHsizer
-from HPWHComponents import getPeakIndices
+from HPWHComponents import getPeakIndices, mixVolume
 
 
 def file_regression(fileRef, fileResults):
@@ -62,6 +62,98 @@ def primary_sizer():
 ##############################################################################
 # Start of tests
 
+# Unit Tests
+@pytest.mark.parametrize("arr, expected", [
+    ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
+    ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
+    ([-1, 0, 0, -5, 0, 0, 1, 7, 8, 9, 10, -1], [0,3,11])
+])
+def test_getPeakIndices( arr, expected):
+    assert all(getPeakIndices(arr) == np.array(expected))
+
+@pytest.mark.parametrize("hotT, coldT, outT, expected", [
+   (125, 50, 120, 93.333),
+   (120, 40, 120, 100.0),
+   (150, 40, 120, 72.727),
+   (100, 40, 120, 133.333)
+])
+def test_mixVolume(hotT, coldT, outT, expected):
+    assert round(mixVolume(100, hotT, coldT, outT), 3) == expected
+
+@pytest.mark.parametrize("hrs", [
+    -0.1, 0, 24.1, np.array([ 1, 3, 44]), np.array([-1, 2, 3]), np.array([0,2,4,25])
+])
+def test_checkHeatHours(primary_sizer, hrs):
+    primary_sizer.build_size()
+    with pytest.raises(Exception, match="Heat hours is not within 1 - 24 hours"):
+        primary_sizer.primarySystem.sizePrimaryTankVolume(hrs)
+
+# Check for AF errors
+def test_AF_initialize_error(empty_sizer):
+    with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
+        empty_sizer.initPrimaryByPeople(100, 22., 36,
+                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 111,
+                    "primary")
+    with pytest.raises(Exception): # Get get to match text for some weird reason
+        empty_sizer.initPrimaryByPeople(100, 22.,  36,
+                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 0.05,
+                    "primary")
+
+def test_AF_sizing_error(empty_sizer):
+    empty_sizer.initPrimaryByPeople(100, 22., 36,
+                  [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                    0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                    0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                120, 50, 150., 16., .9, .9, 0.11,
+                "primary")
+    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
+        empty_sizer.build_size()
+
+
+@pytest.mark.parametrize("nSupplyT, nStorageT_F", [
+    (120, 120),
+    (125, 125),
+    (150, 150),
+    (130, 150),
+    (120, 125)
+    ])
+@pytest.mark.parametrize("nPercentUseable, nAF", [
+    (.8, .4),
+    (1., .4),
+    (1., .2),
+    (1., .8),
+    (.5, .55),
+    (.1, .99),
+    ])
+@pytest.mark.parametrize("LS", [
+   ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+   ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+   ([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+])
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, 
+                              nPercentUseable, nAF, LS):
+    # Reset inputs
+    primary_sizer.inputs.supplyT_F = nSupplyT
+    primary_sizer.inputs.storageT_F = nStorageT_F
+    primary_sizer.inputs.percentUseable = nPercentUseable
+    primary_sizer.inputs.aquaFract = nAF
+    # Recheck and recalc inputs
+    primary_sizer.inputs.checkInputs()
+    primary_sizer.inputs.calcedVariables()
+    primary_sizer.setLoadShiftforPrimary(LS)
+    # Size the system
+    primary_sizer.build_size()
+    # Check the simulation plot is all >= 0
+    [ V, G_hw, D_hw, run ] = primary_sizer.primarySystem.runStorage_Load_Sim()
+    assert all(i >= 0 for i in V + G_hw + D_hw + run)
+
+##############################################################################
 # Init Tests
 def test_default_init(empty_sizer):
     assert empty_sizer.validbuild               == False
@@ -107,50 +199,6 @@ def test_trimtank(people_sizer):
         assert people_sizer.build_size()
 
 ##############################################################################
-@pytest.mark.parametrize("arr, expected", [
-    ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
-    ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
-    ([-1, 0, 0, -5, 0, 0, 1, 7, 8, 9, 10, -1], [0,3,11])
-])
-def test_getPeakIndices( arr, expected):
-    assert all(getPeakIndices(arr) == np.array(expected))
-
-@pytest.mark.parametrize("hrs", [
-    -0.1, 0, 24.1, np.array([ 1, 3, 44]), np.array([-1, 2, 3]), np.array([0,2,4,25])
-])
-def test_checkHeatHours(primary_sizer, hrs):
-    primary_sizer.build_size()
-    with pytest.raises(Exception, match="Heat hours is not within 1 - 24 hours"):
-        primary_sizer.primarySystem.sizePrimaryTankVolume(hrs)
-
-# Check for AF errors
-def test_AF_initialize_error(empty_sizer):
-    with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
-        empty_sizer.initPrimaryByPeople(100, 22., 36,
-                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, .9, 111,
-                    "primary")
-    with pytest.raises(Exception): # Get get to match text for some weird reason
-        empty_sizer.initPrimaryByPeople(100, 22.,  36,
-                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, .9, 0.05,
-                    "primary")
-
-def test_AF_sizing_error(empty_sizer):
-    empty_sizer.initPrimaryByPeople(100, 22., 36,
-                  [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                    0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                    0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                120, 50, 150., 16., .9, .9, 0.11,
-                "primary")
-    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
-        empty_sizer.build_size()
-
-##############################################################################
 # Full model and file tests!
 @pytest.mark.parametrize("file1", [
     "tests/test_60UnitSwing.txt",
@@ -164,7 +212,6 @@ def test_hpwh_from_file(empty_sizer, file1):
 
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
-
 
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
@@ -268,9 +315,8 @@ def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.build_size()
 
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/"+os.path.basename(file1))
+    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
-

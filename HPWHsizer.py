@@ -1,6 +1,6 @@
 
 import numpy as np
-from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
+from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank, mixVolume # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
 
 from plotly.graph_objs import Figure, Scatter
@@ -213,7 +213,7 @@ class HPWHsizer:
         else:
             return fig
 
-    def plotPrimaryStorageLoadSim(self, return_as_div = True):
+    def plotPrimaryStorageLoadSim(self, return_as_div = True, hourly = True):
         """
         Returns a plot of the of the simulation for the minimum sized primary system
 
@@ -235,6 +235,17 @@ class HPWHsizer:
 
         [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim();
 
+        if hourly:
+            run = run[-24:]*60
+            G_hw = G_hw[-24:]*60
+            D_hw = D_hw[-24:]*60
+            V = V[-24:]
+        else:
+            run = run[-(60*24):]*60
+            G_hw = G_hw[-(60*24):]*60
+            D_hw = D_hw[-(60*24):]*60
+            V = V[-(60*24):]
+        
         nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % (sum(run[24:])/max(G_hw)/2)
         x_data = list(range(len(V)))
         fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume',
@@ -399,8 +410,8 @@ class HPWHsizerRead:
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
 
-        self.__checkInputs()
-        self.__calcedVariables()
+        self.checkInputs()
+        self.calcedVariables()
 
     def initPrimaryByPeople(self, nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
@@ -422,8 +433,8 @@ class HPWHsizerRead:
 
         self.nApt           = nApt
 
-        self.__checkInputs()
-        self.__calcedVariables()
+        self.checkInputs()
+        self.calcedVariables()
 
     def initTempMaint(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
         """
@@ -465,7 +476,7 @@ class HPWHsizerRead:
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
 
 
-    def __checkInputs(self):
+    def checkInputs(self):
         """Checks inputs are all valid"""
         if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
             raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
@@ -491,7 +502,7 @@ class HPWHsizerRead:
             raise Exception('Invalid input given for supplyT_F, supplyT_F must be greater than incomingT_F\n')
         if self.storageT_F <= self.incomingT_F:
             raise Exception('Invalid input given for storageT_F, storageT_F must be greater than incomingT_F\n')
-        if self.storageT_F <= self.supplyT_F:
+        if self.storageT_F < self.supplyT_F:
             raise Exception('Invalid input given for storageT_F, storageT_F must be greater than supplyT_F\n')
 
     def __checkLiqudWater(self,var_F):
@@ -505,12 +516,12 @@ class HPWHsizerRead:
             bool: True if liquid, False if solid or gas.
 
         """
-        if var_F < 32 or var_F > 212:
+        if var_F < 32. or var_F > 212.:
             return False
         else:
             return True
 
-    def __calcedVariables(self):
+    def calcedVariables(self):
         """ Calculate other variables needed."""
         if sum(self.nBR + self.nApt) == 0:
             raise Exception("Need input given for number of bedrooms by size or number of apartments")
@@ -522,7 +533,8 @@ class HPWHsizerRead:
             self.totalHWLoad_G = sum(self.gpdpp_BR * self.nBR * self.rBR)
         else:
             self.totalHWLoad_G = self.gpdpp * self.nPeople
-
+        # Covert hw load to gallons at the given supply temperature using 120 F and cold water of 40 F 
+        self.totalHWLoad_G = mixVolume(self.totalHWLoad_G, self.supplyT_F, 40., 120.)
 
 # Helper Functions for reading and writing files
     def __importArrLine(self, line, setLength):
@@ -603,8 +615,8 @@ class HPWHsizerRead:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.
 
-        self.__checkInputs()
-        self.__calcedVariables()
+        self.checkInputs()
+        self.calcedVariables()
 
 ##############################################################################
 class writeClassAtts:
