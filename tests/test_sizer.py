@@ -125,24 +125,24 @@ def test_AF_sizing_error(empty_sizer):
     ])
 @pytest.mark.parametrize("nPercentUseable, nAF", [
     (.8, .4),
-    (1., .4),
     (1., .2),
     (1., .8),
     (.5, .55),
     (.1, .99),
     ])
+@pytest.mark.parametrize('ngpdpp',[(5.),(20.),(40.)])
 @pytest.mark.parametrize("LS", [
    ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
-def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, 
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp,
                               nPercentUseable, nAF, LS):
     # Reset inputs
     primary_sizer.inputs.supplyT_F = nSupplyT
     primary_sizer.inputs.storageT_F = nStorageT_F
     primary_sizer.inputs.percentUseable = nPercentUseable
     primary_sizer.inputs.aquaFract = nAF
+    primary_sizer.inputs.gpdpp = ngpdpp
     # Recheck and recalc inputs
     primary_sizer.inputs.checkInputs()
     primary_sizer.inputs.calcedVariables()

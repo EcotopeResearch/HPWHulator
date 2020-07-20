@@ -158,6 +158,13 @@ class HPWHsizer:
         self.buildSystem()
         return self.sizeSystem()
 
+    def getASHRAEResult(self):
+        if self.validbuild:
+            return self.ashraeSize.sizeVol_Cap()
+        else:
+            raise Exception("The system can not be sized without a valid build")
+
+
     def plotSizingCurve(self, return_as_div = True):
         """
         Returns a plot of the sizing curve as a div
@@ -490,7 +497,9 @@ class HPWHsizerRead:
             raise Exception('Invalid input given for aquaFract, it must be between 0 and 1.\n')
         if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
-
+        if self.gpdpp > 49: # or self.gpdpp < 20:
+            raise Exception('\nERROR: Please ensure your gallons per day per person is less than 49, the recommend max volume used per day\n')
+                         
         # Check temperature inputs
         if not self.__checkLiqudWater(self.supplyT_F):
             raise Exception('Invalid input given for supplyT_F, it must be between 32 and 212F.\n')
