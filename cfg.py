@@ -12,3 +12,4 @@ TONS_TOKBTUHR = 12.
 Wapt75 = 1.75
 Wapt25 = 0.66
 TMSafetyFactor = 2
+parallelMinimumRunTime  = 20./60.

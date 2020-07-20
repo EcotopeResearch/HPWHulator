@@ -374,7 +374,6 @@ class ParallelLoopTank:
     TMVol_G
         Volume of parrallel loop tank.
     """
-    minimumRunTime  = 20./60.
     
     def __init__(self, nApt, Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
         # Inputs from primary system

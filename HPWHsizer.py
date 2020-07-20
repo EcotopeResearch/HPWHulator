@@ -2,6 +2,7 @@
 import numpy as np
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
+from cfg import parallelMinimumRunTime
 
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
@@ -56,7 +57,7 @@ class HPWHsizer:
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
             if TMonTemp_F == 0:
                 TMonTemp_F = self.inputs.supplyT_F + 2;
-            #self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
+            #self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F)
             self.translate.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
 
 
@@ -432,7 +433,7 @@ class HPWHsizerRead:
         self.__checkInputs()
         self.__calcedVariables()
 
-    def initTempMaintInputs(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
+    def initTempMaintInputs(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0, offTime_hr = 0, TMRuntime_hr = 0):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
@@ -442,7 +443,9 @@ class HPWHsizerRead:
             pass
         elif self.schematic == "paralleltank":
             if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
-                raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
+                raise Exception("Error in initTempMaintInputs, paralleltank needs inputs != 0")
+            elif TMRuntime_hr < parallelMinimumRunTime:
+                raise Exception("TMRuntime_hr is less time the minimum runtime for a HPWH of " + str(parallelMinimumRunTime*60)+ "minutes.")
             else:
                 self.offTime_hr       = offTime_hr
                 self.TMRuntime_hr     = TMRuntime_hr
