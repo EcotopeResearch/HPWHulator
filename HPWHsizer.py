@@ -42,11 +42,13 @@ class HPWHsizer:
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass )
 
-    def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
+    def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0, offTime_hr = 10/60, TMRuntime_hr = 0.5 ):
+    #def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
         """
         Initializes the temperature maintanence system after the primary system
-        with either "swingtank" or "paralleltank".
-
+        with either "swingtank" or "paralleltank". Recommend to leave offtime_hr 
+        and TMRuntime_hr as defaulted, since they're setup for a minimum runtime of 
+        10 minutes at the lower end of the design criteria for loop losses.
         """
         if self.primaryInit is None:
             raise Exception("must initialize the primary system first")
@@ -54,7 +56,9 @@ class HPWHsizer:
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
             if TMonTemp_F == 0:
                 TMonTemp_F = self.inputs.supplyT_F + 2;
-            self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
+            #self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
+            self.translate.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
+
 
     def setLoadShiftforPrimary(self, ls_arr):
         """
@@ -375,7 +379,10 @@ class HPWHsizerRead:
 
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
-
+        
+        self.offTime_hr         = 0.
+        self.TMRuntime_hr       = 0.
+        
         self.loadshift      = np.ones(24) # The load shift array
 
         self.singlePass     = True # Single pass or multipass
@@ -425,7 +432,7 @@ class HPWHsizerRead:
         self.__checkInputs()
         self.__calcedVariables()
 
-    def initTempMaint(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
+    def initTempMaintInputs(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
@@ -437,6 +444,9 @@ class HPWHsizerRead:
             if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
                 raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
             else:
+                self.offTime_hr       = offTime_hr
+                self.TMRuntime_hr     = TMRuntime_hr
+                
                 self.setpointTM_F     = setpointTM_F
                 self.TMonTemp_F       = TMonTemp_F
 

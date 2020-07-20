@@ -374,14 +374,16 @@ class ParallelLoopTank:
     TMVol_G
         Volume of parrallel loop tank.
     """
-    minimumRunTime  = 10./60.
-
-    def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F):
+    minimumRunTime  = 20./60.
+    
+    def __init__(self, nApt, Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-
+        
+        self.offTime_hr  = offTime_hr # Hour
+        self.TMRuntime_hr  = TMRuntime_hr # Hour
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
         # Outputs:
@@ -399,10 +401,15 @@ class ParallelLoopTank:
             Calculated temperature maintenance equipment capacity in kBTU/h.
         """
 
-        self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
-        self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
-                        self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
+        # self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
+        # self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
+        #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
 
+        self.TMVol_G_atStorageT =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
+            W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
+
+        self.TMCap_kBTUhr =   TMSafetyFactor * self.Wapt * self.nApt * W_TO_BTUHR * \
+            (1. + self.offTime_hr/self.TMRuntime_hr) / 1000
 
 
     def getSizingResults(self):
