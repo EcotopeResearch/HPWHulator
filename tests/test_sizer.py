@@ -5,7 +5,8 @@ import numpy as np
 
 import os
 import HPWHsizer
-from HPWHComponents import getPeakIndices
+import dataFetch
+from HPWHComponents import getPeakIndices, mixVolume
 
 
 def file_regression(fileRef, fileResults):
@@ -47,21 +48,146 @@ def people_sizer():
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 36, 22.,
-                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+    hpwh.initPrimaryByPeople(100, 36, 22., "stream",
                     120, 50, 150., 16., .9, .9, 0.4,
                     "primary")
     return hpwh
 
-
+@pytest.fixture
+def fetcher():
+    fetch = dataFetch.hpwhDataFetch()
+    return fetch
 # End of fixtures
-##############################################################################
-##############################################################################
-##############################################################################
+###############################################################################
+###############################################################################
 # Start of tests
 
+# Unit Tests
+@pytest.mark.parametrize("arr, expected", [
+    ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
+    ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
+    ([-1, 0, 0, -5, 0, 0, 1, 7, 8, 9, 10, -1], [0,3,11])
+])
+def test_getPeakIndices( arr, expected):
+    assert all(getPeakIndices(arr) == np.array(expected))
+
+@pytest.mark.parametrize("hotT, coldT, outT, expected", [
+   (125, 50, 120, 93.333),
+   (120, 40, 120, 100.0),
+   (150, 40, 120, 72.727),
+   (100, 40, 120, 133.333)
+])
+def test_mixVolume(hotT, coldT, outT, expected):
+    assert round(mixVolume(100, hotT, coldT, outT), 3) == expected
+
+@pytest.mark.parametrize("hrs", [
+    -0.1, 0, 24.1, np.array([ 1, 3, 44]), np.array([-1, 2, 3]), np.array([0,2,4,25])
+])
+def test_checkHeatHours(primary_sizer, hrs):
+    primary_sizer.build_size()
+    with pytest.raises(Exception, match="Heat hours is not within 1 - 24 hours"):
+        primary_sizer.primarySystem.sizePrimaryTankVolume(hrs)
+
+# Check for AF errors
+def test_AF_initialize_error(empty_sizer):
+    with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
+        empty_sizer.initPrimaryByPeople(100, 22., 36,
+                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 111,
+                    "primary")
+    with pytest.raises(Exception): # Get get to match text for some weird reason
+        empty_sizer.initPrimaryByPeople(100, 22.,  36,
+                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                    120, 50, 150., 16., .9, .9, 0.05,
+                    "primary")
+
+def test_AF_sizing_error(empty_sizer):
+    empty_sizer.initPrimaryByPeople(100, 22., 36,
+                  [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
+                    0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
+                    0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
+                120, 50, 150., 16., .9, .9, 0.11,
+                "primary")
+    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
+        empty_sizer.build_size()
+
+# Test the Fetcher
+def test_getLoadshape(fetcher):
+    assert fetcher.getLoadshape() == [0.008915,0.004458,0.001486,0.001486,0.001486,0.014859,
+                    0.069837,0.13373,0.104012,0.077266,0.035067,0.031204,
+                    0.020802,0.022288,0.024071,0.024071,0.020802,0.043388,
+                    0.047251,0.07578,0.092125,0.059435,0.053492,0.032689]
+def test_getGPDPP(fetcher):
+    with pytest.raises(Exception):
+        assert fetcher.getGPDPP("wrong")
+def test_getRPepperBR(fetcher):
+    assert fetcher.getRPepperBR("CA") == [1.374, 1.74, 2.567, 3.109, 4.225, 3.769] 
+    assert fetcher.getRPepperBR("ASHSTD") == [1.49, 1.94, 2.39, 2.84, 3.29, 3.74] 
+    assert fetcher.getRPepperBR("ASHLOW") == [1.69, 2.26, 2.83, 3.4, 3.97, 4.54] 
+    with pytest.raises(Exception):
+        assert fetcher.getRPepperBR("wrong")
+
+@pytest.mark.parametrize("x, s, expected", [ 
+    (1,0, 9.367514819547965e-15),
+    (19,0, 0.40480748655575766),
+    (25,0, 0.9859985113759763),
+    (19,19, 3.3521114861106406e-16),
+    (30,5,.9859985113759763),
+    ])
+def test_getCDF(fetcher, x, s, expected):
+    assert fetcher.getCDF(x, s) == expected
+    
+@pytest.mark.parametrize("x, s, expected", [
+    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
+    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
+    ])    
+def test_getCDF_array(fetcher, x, s, expected):
+    temp = [round(n, 3) for n in fetcher.getCDF(x, s)]
+    assert temp == expected
+
+
+@pytest.mark.parametrize("nSupplyT, nStorageT_F", [
+    (120, 120),
+    (125, 125),
+    (150, 150),
+    (130, 150),
+    (120, 125)
+    ])
+@pytest.mark.parametrize("nPercentUseable, nAF", [
+    (.8, .4),
+    (1., .4),
+    (1., .2),
+    (1., .8),
+    (.5, .55),
+    (.1, .99),
+    ])
+@pytest.mark.parametrize("LS", [
+   ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+   ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+   ([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+])
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, 
+                              nPercentUseable, nAF, LS):
+    # Reset inputs
+    primary_sizer.inputs.supplyT_F = nSupplyT
+    primary_sizer.inputs.storageT_F = nStorageT_F
+    primary_sizer.inputs.percentUseable = nPercentUseable
+    primary_sizer.inputs.aquaFract = nAF
+    # Recheck and recalc inputs
+    primary_sizer.inputs.checkInputs()
+    primary_sizer.inputs.calcedVariables()
+    primary_sizer.setLoadShiftforPrimary(LS)
+    # Size the system
+    primary_sizer.build_size()
+    # Check the simulation plot is all >= 0
+    [ V, G_hw, D_hw, run ] = primary_sizer.primarySystem.runStorage_Load_Sim()
+    assert all(i >= 0 for i in V + G_hw + D_hw + run)
+
+##############################################################################
 # Init Tests
 def test_default_init(empty_sizer):
     assert empty_sizer.validbuild               == False
@@ -107,50 +233,6 @@ def test_trimtank(people_sizer):
         assert people_sizer.build_size()
 
 ##############################################################################
-@pytest.mark.parametrize("arr, expected", [
-    ([1, 2, 1, 1, -3, -4, 7, 8, 9, 10, -2, 1, -3, 5, 6, 7, -10], [4,10,12,16]),
-    ([1.3, 100.2, -500.5, 1e9, -1e-9, -5.5, 1,7,8,9,10, -1], [2,4,11]),
-    ([-1, 0, 0, -5, 0, 0, 1, 7, 8, 9, 10, -1], [0,3,11])
-])
-def test_getPeakIndices( arr, expected):
-    assert all(getPeakIndices(arr) == np.array(expected))
-
-@pytest.mark.parametrize("hrs", [
-    -0.1, 0, 24.1, np.array([ 1, 3, 44]), np.array([-1, 2, 3]), np.array([0,2,4,25])
-])
-def test_checkHeatHours(primary_sizer, hrs):
-    primary_sizer.build_size()
-    with pytest.raises(Exception, match="Heat hours is not within 1 - 24 hours"):
-        primary_sizer.primarySystem.sizePrimaryTankVolume(hrs)
-
-# Check for AF errors
-def test_AF_initialize_error(empty_sizer):
-    with pytest.raises(Exception, match="Invalid input given for aquaFract, it must be between 0 and 1.\n"):
-        empty_sizer.initPrimaryByPeople(100, 22., 36,
-                        [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                       0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                       0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, .9, 111,
-                    "primary")
-    with pytest.raises(Exception): # Get get to match text for some weird reason
-        empty_sizer.initPrimaryByPeople(100, 22.,  36,
-                      [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, .9, 0.05,
-                    "primary")
-
-def test_AF_sizing_error(empty_sizer):
-    empty_sizer.initPrimaryByPeople(100, 22., 36,
-                  [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
-                    0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
-                    0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                120, 50, 150., 16., .9, .9, 0.11,
-                "primary")
-    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
-        empty_sizer.build_size()
-
-##############################################################################
 # Full model and file tests!
 @pytest.mark.parametrize("file1", [
     "tests/test_60UnitSwing.txt",
@@ -164,7 +246,6 @@ def test_hpwh_from_file(empty_sizer, file1):
 
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
-
 
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
@@ -217,7 +298,7 @@ def test_initPrimaryByUnits(units_sizer):
 @pytest.mark.parametrize("file1, LS", [
    ( "test_primaryLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ( "test_primaryLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
+   ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1]),
    ( "test_primaryLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
 def test_size_LS(primary_sizer, file1, LS):
@@ -268,9 +349,8 @@ def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.build_size()
 
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/"+os.path.basename(file1))
+    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
-

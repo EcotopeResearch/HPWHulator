@@ -218,7 +218,7 @@ class PrimarySystem_SP:
             float: Volume at storage temperature.
 
         """
-        return vol * (self.supplyT_F - self.incomingT_F) / (self.storageT_F - self.incomingT_F)
+        return mixVolume(vol, self.storageT_F, self.incomingT_F, self.supplyT_F)
 
     def __STORAGEV_TO_SUPPLYV(self, vol):
         """
@@ -231,7 +231,8 @@ class PrimarySystem_SP:
             float: Volume at supply temperature.
 
         """
-        return vol * (self.storageT_F - self.incomingT_F) /  (self.supplyT_F - self.incomingT_F)
+        return mixVolume(vol, self.supplyT_F,  self.incomingT_F, self.storageT_F)
+
 
     def primaryCurve(self):
         """
@@ -282,7 +283,7 @@ class PrimarySystem_SP:
 
         return [ self.PVol_G_atStorageT,  self.PCap_kBTUhr ]
 
-    def runStorage_Load_Sim(self, capacity = None, volume = None):
+    def runStorage_Load_Sim(self, capacity = None, volume = None, hourly = True):
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
 
@@ -293,11 +294,11 @@ class PrimarySystem_SP:
 
         Returns
         -------
-        list [ V, G_hw, D_hw ]
+        list [ V, G_hw, D_hw, run ]
         V - Volume of HW in the tank with time
         G_hw - The generation of HW with time
         D_hw - The hot water demand with time
-
+        run - The actual output in gallons of the HPWH with time
         """
         if not capacity:
             if self.PCap_kBTUhr:
@@ -314,9 +315,14 @@ class PrimarySystem_SP:
         heathours = (self.totalHWLoad + 24*self.extraLoad_GPH) / capacity * rhoCp * \
             (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000.
 
+
         G_hw = self.totalHWLoad/heathours * np.tile(self.LS_on_off,3)
         D_hw = self.totalHWLoad * np.tile(self.loadShapeNorm,3)
 
+        if not hourly:
+            G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
+            D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
+            
         #Init the "simulation"
         N = len(G_hw)
         V0 = self.__STORAGEV_TO_SUPPLYV(volume) * self.percentUseable
@@ -566,3 +572,40 @@ def roundList(a_list, n=3):
 
     """
     return [round(num, n) for num in a_list]
+
+def HRLIST_to_MINLIST(a_list):
+    """
+    Repeats each element of a_list 60 times to go from hourly to minute. 
+    Still may need other unit conversions to get data from per hour to per minute
+
+    Args:
+        a_list (TYPE): DESCRIPTION.
+
+    Returns:
+        out_list (TYPE): DESCRIPTION.
+
+    """
+    out_list = []
+    for num in a_list:
+        out_list += [num]*60
+    return out_list
+
+
+def mixVolume(vol, hotT, coldT, outT):
+    """
+    Adjusts the volume of water such that the hotT water and outT water have the 
+    same amount of energy, meaning different volumes.
+
+    Args:
+        vol (float): The reference volume to convert.
+        hotT (float): The hot water temperature used for mixing.
+        coldT (float): The cold water tempeature used for mixing.
+        outT (float): The out water temperature from mixing.
+
+    Returns:
+        Temperature adjusted volume.
+
+    """
+    fraction = (outT - coldT) / (hotT - coldT)
+    
+    return vol * fraction
