@@ -261,7 +261,7 @@ class HPWHsizer:
 
     def setLoadShiftforPrimary(self, ls_arr):
         """
-        Sets the load shift to user defined values
+        Sets the load shift to user defined list of 0s of false for force HPWH not to run, and 1s or true for run.
 
 
         Attributes
@@ -446,7 +446,7 @@ class HPWHsizer:
         else:
             return fig
 
-    def plotPrimaryStorageLoadSim(self, return_as_div = True, hourly = True):
+    def plotPrimaryStorageLoadSim(self, return_as_div = True, hourly = False):
         """
         Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the hourly or minute level simulation
 
@@ -466,20 +466,23 @@ class HPWHsizer:
 
         fig = Figure()
 
-        [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim();
+        [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim(hourly = hourly);
 
+        hrind_fromback = 24
         if hourly:
-            run = run[-24:]*60
-            G_hw = G_hw[-24:]*60
-            D_hw = D_hw[-24:]*60
-            V = V[-24:]
+            run = np.array(run[-hrind_fromback:])
+            G_hw = np.array(G_hw[-hrind_fromback:])
+            D_hw = np.array(D_hw[-hrind_fromback:])
+            V = np.array(V[-hrind_fromback:])
         else:
-            run = run[-(60*24):]*60
-            G_hw = G_hw[-(60*24):]*60
-            D_hw = D_hw[-(60*24):]*60
-            V = V[-(60*24):]
+            run = np.array(run[-(60*hrind_fromback):])*60
+            G_hw = np.array(G_hw[-(60*hrind_fromback):])*60
+            D_hw = np.array(D_hw[-(60*hrind_fromback):])*60
+            V = np.array(V[-(60*hrind_fromback):])
         
-        nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % (sum(run[24:])/max(G_hw)/2)
+        runhrs = (sum(run)/max(G_hw)/60) if hourly else (sum(run)/max(G_hw)/60)
+
+        nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % runhrs 
         x_data = list(range(len(V)))
         fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume',
                               mode = 'lines', line_shape='hv',
@@ -494,10 +497,10 @@ class HPWHsizer:
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='grey'))
 
-        fig.update_layout(title="Hot Water Psuedo-Simulation",
-                          xaxis_title="Hour",
-                          yaxis_title="Gallons at Supply Temperature",
-                          legend_orientation="h")
+        fig.update_layout(title="Hot Water Simulation",
+                          xaxis_title= "Hour of Day" if hourly else "Minute of Day",
+                          yaxis_title="Gallons at Supply Temperature")
+                          #legend_orientation="h")
 
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
@@ -587,7 +590,7 @@ class HPWHsizer:
 ##############################################################################
 class HPWHsizerRead:
     """
-    Class for gathering hpwh sizing inputs and checking them. Will gather inputs be manual entry or from a file.
+    Class for gathering hpwh sizing inputs and checking them. Will gather inputs by manual entry or from a file. A pulls data from string inputs.
 
 
     """
@@ -626,34 +629,46 @@ class HPWHsizerRead:
         self.singlePass     = True # Single pass or multipass
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable,  aquastatFract,
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
                     schematic, defrostFactor, singlePass = True):
+        
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
         self.gpdpp_BR       = np.array(gpdpp_BR) # Gallons per day per person by bedrooms
-        self.loadShapeNorm  = np.array(loadShapeNorm) # The normalized load shape
-        self.supplyT_F      = supplyT_F # The supply temperature to the occupants
-        self.incomingT_F    = incomingT_F # The incoming cold water temperature for the city
-        self.storageT_F     = storageT_F # The primary hot water storage temperature
-        self.compRuntime_hr = compRuntime_hr # The runtime?
-        self.percentUseable = percentUseable #The  percent of useable storage
-
-        self.defrostFactor  = defrostFactor # The defrost factor. Derates the output power for defrost cycles.
-        self.aquaFract      = aquastatFract # The aquatstat fractrion
-
-        self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
-        self.singlePass     = singlePass # Single pass or multipass
-
-        self.__loadVariables()
-        self.checkInputs()
-        self.calcedVariables()
-
+        
+        # rBR have been coeerced to np.arrays so check these for string inputs
+        if self.rBR.dtype.type is np.str_: # if the input here is a string get the loadshape.
+            self.rBR = self.hpwhData.getLoadshape()  
+            
+        gpdpp_BR =  self.__loadgpdpp(gpdpp_BR)
+   
+        nApt = sum(self.nBR)        
+        nPeople = sum(self.nBR * self.rBR)
+        gpdpp = sum(self.gpdpp_BR * self.nBR * self.rBR) / nPeople
+        
+        self.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
+                    schematic, defrostFactor, singlePass)
+        
+        
     def initPrimaryByPeople(self, nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable,  aquastatFract,
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
                     schematic, defrostFactor, singlePass = True):
+        
+        loadShapeNorm = np.array(loadShapeNorm)
+        # loadShapeNorm have been coeerced to np.arrays so check these for string inputs
+        if loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
+            loadShapeNorm = self.hpwhData.getLoadshape()    
+        gpdpp =  self.__loadgpdpp(gpdpp)
+        
+        self.checkInputs(gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
+                    schematic, defrostFactor, singlePass)
+        
         self.nPeople        = nPeople
         self.gpdpp          = gpdpp # Gallons per day per person
-        self.loadShapeNorm  = np.array(loadShapeNorm) # The normalized load shape
+        
+        self.loadShapeNorm  = loadShapeNorm # The normalized load shape
         self.supplyT_F        = supplyT_F # The supply temperature to the occupants
         self.incomingT_F      = incomingT_F # The incoming cold water temperature for the city
         self.storageT_F       = storageT_F # The primary hot water storage temperature
@@ -661,15 +676,13 @@ class HPWHsizerRead:
         self.percentUseable = percentUseable #The  percent of useable storage
 
         self.defrostFactor  = defrostFactor # The defrost factor. Derates the output power for defrost cycles.
-        self.aquaFract      = aquastatFract # The aquatstat fractrion
+        self.aquaFract      = aquaFract # The aquatstat fractrion
 
         self.schematic      = schematic # The schematic for sizing maybe just primary maybe with temperature maintenance.
         self.singlePass     = singlePass # Single pass or multipass
 
         self.nApt           = nApt
         
-        self.__loadVariables()
-        self.checkInputs()
         self.calcedVariables()
 
     def initTempMaint(self, Wapt, setpointTM_F, TMonTemp_F):
@@ -700,21 +713,15 @@ class HPWHsizerRead:
                 self.TMonTemp_F       = TMonTemp_F  
                     
 
-    def __loadVariables(self):
+    def __loadgpdpp(self, gpdpp):
         """
-        Loads data for the inputs if they are of string types
+        Loads data for the gpdpp inputs if it is of string types
 		"""
-		
-        # loadShapeNorm and rBR have been coeerced to np.arrays so check these for string inputs
-        if self.loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
-            self.loadShapeNorm = self.hpwhData.getLoadshape()
-        if self.rBR.dtype.type is np.str_: # if the input here is a string get the loadshape.
-            self.rBR = self.hpwhData.getLoadshape()     
         # Check if gpdpp is a string and look up by key
-        if isinstance(self.gpdpp, str): # if the input here is a string get the get the gpdpp.
-            self.gpdpp = self.hpwhData.getGPDPP(self.gpdpp)[0]
-			
-			
+        if isinstance(gpdpp, str): # if the input here is a string get the get the gpdpp.
+            gpdpp = self.hpwhData.getGPDPP(gpdpp)[0]
+        
+        return gpdpp
 
 
     def setLoadShift(self, ls_arr):
@@ -734,43 +741,46 @@ class HPWHsizerRead:
             raise Exception("loadshift is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
         if sum(ls_arr) == 0 :
             raise Exception("When using Load shift the HPWH's must run for at least 1 hour each day.")
-        if sum(ls_arr) == 24 :
-            raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
+       # if sum(ls_arr) == 24 :
+        #    raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
 
 
-    def checkInputs(self):
+    def checkInputs(self, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
+                    schematic, defrostFactor, singlePass):
         """Checks inputs are all valid"""
-
-        if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
-            raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
-        if self.schematic not in self.schematicNames:
-            raise Exception('Invalid input given for the schematic: "'+ self.schematic +'".\n')
-        if self.percentUseable > 1 or self.percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+        if sum(loadShapeNorm) > 1 + 1e3 or sum(loadShapeNorm) < 1 - 1e3:
+            raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(loadShapeNorm))+".")
+        if schematic not in self.schematicNames:
+            raise Exception('Invalid input given for the schematic: "'+ schematic +'".\n')
+        if percentUseable > 1 or percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for percentUseable, must be between 0 and 1.\n')
-        if self.defrostFactor > 1 or self.defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
-            raise Exception('Invalid input given for defrostFactor, it must be between 0 and 1.\n')
-        if self.aquaFract > 1 or self.aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+        if aquaFract > 1 or aquaFract < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be between 0 and 1.\n')
-        if self.aquaFract < (1-self.percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
+        if aquaFract < (1-percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
-        if self.gpdpp > 49: # or self.gpdpp < 20:
+        if gpdpp > 49: # or self.gpdpp < 20:
             raise Exception('\nERROR: Please ensure your gallons per day per person is less than 49, the recommend max volume used per day\n')
                          
         # Check temperature inputs
-        if not self.__checkLiqudWater(self.supplyT_F):
+        if not self.__checkLiqudWater(supplyT_F):
             raise Exception('Invalid input given for supplyT_F, it must be between 32 and 212F.\n')
-        if not self.__checkLiqudWater(self.incomingT_F):
+        if not self.__checkLiqudWater(incomingT_F):
             raise Exception('Invalid input given for incomingT_F, it must be between 32 and 212F.\n')
-        if not self.__checkLiqudWater(self.storageT_F):
+        if not self.__checkLiqudWater(storageT_F):
             raise Exception('Invalid input given for storageT_F, it must be between 32 and 212F.\n')
-        if self.supplyT_F > self.storageT_F:
+        if supplyT_F > storageT_F:
             raise Exception("The hot water supply temperature must be less than or equal to the primary storage temperature")
-        if self.incomingT_F >= self.storageT_F:
+        if incomingT_F >= storageT_F:
             raise Exception("The city cold water temperature must be less than the primary storage temperature")
-        if self.incomingT_F >= self.supplyT_F:
+        if incomingT_F >= supplyT_F:
             raise Exception("The city cold water temperature must be less than the supply hot water temperature")
-    
+        if type(singlePass) != bool: 
+            raise Exception(" The singlePass variable must be of type boolean, True or False.")
+        if defrostFactor > 1 or defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
+            raise Exception('Invalid input given for defrostFactor, it must be between 0 and 1.\n')
+        
 
     def __checkLiqudWater(self,var_F):
         """
@@ -790,16 +800,7 @@ class HPWHsizerRead:
 
     def calcedVariables(self):
         """ Calculate other variables needed."""
-        if sum(self.nBR + self.nApt) == 0:
-            raise Exception("Need input given for number of bedrooms by size or number of apartments")
-        if self.nApt == 0:
-            self.nApt = sum(self.nBR)
-        if self.nPeople == 0:
-            self.nPeople = sum(self.nBR * self.rBR)
-        if self.gpdpp == 0:
-            self.totalHWLoad_G = sum(self.gpdpp_BR * self.nBR * self.rBR)
-        else:
-            self.totalHWLoad_G = self.gpdpp * self.nPeople
+        self.totalHWLoad_G = self.gpdpp * self.nPeople
         # Covert hw load to gallons at the given supply temperature using 120 F and cold water of 40 F 
         self.totalHWLoad_G = mixVolume(self.totalHWLoad_G, self.supplyT_F, 40., 120.)
 
@@ -882,7 +883,9 @@ class HPWHsizerRead:
                 raise Exception('\nERROR: Invalid input given: '+ line +'.\n')
         # End for loop reading file lines.
 
-        self.checkInputs()
+        self.checkInputs(self.gpdpp, self.loadShapeNorm, self.supplyT_F, self.incomingT_F,
+                    self.storageT_F, self.compRuntime_hr,self. percentUseable,  self.aquaFract,
+                    self.schematic, self.defrostFactor, self.singlePass)
         self.calcedVariables()
 
 ##############################################################################
