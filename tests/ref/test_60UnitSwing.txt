@@ -6,23 +6,23 @@ nPeople, 100.000
 incomingT_F, 40.000
 storageT_F, 150.000
 supplyT_F, 120.000
-defrostFactor, 0.900
+defrostFactor, 1.000
 percentUseable, 0.900
 compRuntime_hr, 16.000
-aquaFract, 0.400
+aquaFract, 0.500
 extraLoad_GPH, 11.140
 maxDayRun_hr, 16.000
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False
-PCap_kBTUhr, 157.447
+PCap_kBTUhr, 141.702
 PVol_G_atStorageT, 129.215
-primaryCurve_vol, [129.21,124.67,120.05,115.35,110.58,105.72,100.78, 95.76, 91.08, 87.18, 83.21]
-primaryCurve_heatCap_kBTUhr, [157.45,158.74,160.06,161.39,162.75,164.14,165.55,166.98,168.43,169.92,171.42]
+primaryCurve_vol, [129.21,124.67,120.05,115.35,110.58,105.72,100.78, 95.76, 91.08, 87.18, 83.21, 79.16, 75.05, 70.86, 66.59]
+primaryCurve_heatCap_kBTUhr, [141.7 ,142.87,144.05,145.25,146.48,147.72,148.99,150.28,151.59,152.92,154.28,155.66,157.07,158.5 ,159.96]
 
 temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 60.000
 Wapt, 90.000
 swingLoadToPrimary_W, 3000.000
-TMCap_kBTUhr, 48.367
+TMCap_kBTUhr, 64.489
 TMVol_G, 120 - 300

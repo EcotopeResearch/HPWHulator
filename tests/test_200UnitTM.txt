@@ -11,5 +11,7 @@ TMonTemp_F 122
 nApt 200
 Wapt 90   
 setpointTM_F 130
-defrostFactor 0.9
+offTime_hr .2
+TMRuntime_hr .6
+defrostFactor 1
 aquaFract 0.4

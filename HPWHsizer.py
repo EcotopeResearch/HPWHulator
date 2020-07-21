@@ -3,6 +3,7 @@ import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank, mixVolume # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
+from cfg import compMinimumRunTime
 from dataFetch import hpwhDataFetch
 
 from plotly.graph_objs import Figure, Scatter
@@ -231,11 +232,14 @@ class HPWHsizer:
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
                     schematic, defrostFactor, singlePass )
 
-    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120 ):
+    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 10/60, TMRuntime_hr = 0.5 ):
+    #def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
         """
         
         Initializes the temperature maintanence system after the primary system
-        with either "swingtank" or "paralleltank".
+        with either "swingtank" or "paralleltank". Recommend to leave offtime_hr 
+        and TMRuntime_hr as defaulted, since they're setup for a minimum runtime of 
+        10 minutes at the lower end of the design criteria for loop losses.
 
         Attributes
         ----------
@@ -257,7 +261,9 @@ class HPWHsizer:
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
             if TMonTemp_F == 0:
                 TMonTemp_F = self.inputs.supplyT_F + 2;
-            self.inputs.initTempMaint(Wapt, setpointTM_F, TMonTemp_F)
+            #self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F)
+            self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
+
 
     def setLoadShiftforPrimary(self, ls_arr):
         """
@@ -304,7 +310,9 @@ class HPWHsizer:
             self.tempmaintSystem = ParallelLoopTank(self.inputs.nApt,
                                      self.inputs.Wapt,
                                      self.inputs.setpointTM_F,
-                                     self.inputs.TMonTemp_F)
+                                     self.inputs.TMonTemp_F,
+                                     self.inputs.offTime_hr,
+                                     self.inputs.TMRuntime_hr)
         elif self.inputs.schematic == "swingtank":
             self.tempmaintSystem = SwingTank(self.inputs.nApt,
                                      self.inputs.Wapt)
@@ -532,7 +540,7 @@ class HPWHsizer:
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
 
         [x_data, y_data] = self.tempmaintSystem.tempMaintCurve()
-        [x_data2, y_data2] = self.tempmaintSystem.tempMaintCurve(2 * self.tempmaintSystem.minimumRunTime)
+        [x_data2, y_data2] = self.tempmaintSystem.tempMaintCurve(2 * compMinimumRunTime)
 
         fig.add_trace(Scatter(x=x_data, y=y_data,
                               mode='lines', name='Maximum Capacity',
@@ -553,7 +561,7 @@ class HPWHsizer:
                               opacity=0.8, marker_color='green'))
 
 
-        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (self.tempmaintSystem.minimumRunTime *60) ,
+        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (compMinimumRunTime*60),
                           xaxis_title="Parallel Loop Tank Volume (Gallons)",
                           yaxis_title="Parallel Loop Heating Capacity (kBTU/hr)")
         fig.update_xaxes(range=[0, x_data[-1]])
@@ -623,7 +631,10 @@ class HPWHsizerRead:
 
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
-
+        
+        self.offTime_hr         = 0.
+        self.TMRuntime_hr       = 0.
+        
         self.loadshift      = np.ones(24) # The load shift array
 
         self.singlePass     = True # Single pass or multipass
@@ -685,7 +696,7 @@ class HPWHsizerRead:
         
         self.calcedVariables()
 
-    def initTempMaint(self, Wapt, setpointTM_F, TMonTemp_F):
+    def initTempMaintInputs(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0, offTime_hr = 0, TMRuntime_hr = 0):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
@@ -695,7 +706,9 @@ class HPWHsizerRead:
             pass
         elif self.schematic == "paralleltank":
             if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
-                raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
+                raise Exception("Error in initTempMaintInputs, paralleltank needs inputs != 0")
+            elif TMRuntime_hr < compMinimumRunTime:
+                raise Exception("TMRuntime_hr is less time the minimum runtime for a HPWH of " + str(compMinimumRunTime*60)+ "minutes.")
             else:              
                 # Quick Check the inputs makes sense
                 if not self.__checkLiqudWater(setpointTM_F):
@@ -711,6 +724,8 @@ class HPWHsizerRead:
                     
                 self.setpointTM_F     = setpointTM_F
                 self.TMonTemp_F       = TMonTemp_F  
+                self.offTime_hr       = offTime_hr
+                self.TMRuntime_hr     = TMRuntime_hr
                     
 
     def __loadgpdpp(self, gpdpp):
@@ -877,6 +892,10 @@ class HPWHsizerRead:
                 self.setpointTM_F  = float(temp[1])
             elif temp[0] == "tmontemp_f":
                 self.TMonTemp_F   = float(temp[1])
+            elif temp[0] == "offtime_hr":
+                self.offTime_hr  = float(temp[1])
+            elif temp[0] == "tmruntime_hr":
+                self.TMRuntime_hr   = float(temp[1])
             elif temp[0] == "wapt":
                 self.Wapt      = float(temp[1])
             else:
