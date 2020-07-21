@@ -1,18 +1,17 @@
 
 
 # Functions to gather data from JSON
+import os
 
 import json
 from scipy.stats import lognorm
 
 class hpwhDataFetch():
     
-    with open('hpwhdata.json') as json_file:
-        dataDict = json.load(json_file)
-    
     
     def __init__(self):
-        pass
+        with open(os.path.join(os.path.dirname(__file__), 'hpwhdata.json')) as json_file:
+            self.dataDict = json.load(json_file)
     
     def getLoadshape(self):
         return self.dataDict['loadshapes']['Stream']
