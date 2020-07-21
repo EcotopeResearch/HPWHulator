@@ -28,14 +28,16 @@ class PrimarySystem_SP:
         Storage temperature of the primary hot water storage tanks. [°F]
     supplyT_F : float
         Supply hot water temperature to occupants, typically 120°F. [°F]
-    defrostFactor: float
-        A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
-    percentUsable : float
+     percentUsable : float
         Percent of primary hot water storage that is usable due to sufficient thermal stratification.
     aquaFract: float
         The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
     compRuntime_hr : float
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
+    defrostFactor: float
+        A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
+    swingTankLoad_W : float
+        An addition of extra laod from the distrubution system when using the swing tank. 
     PCap_kBTUhr : float
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT : float
@@ -49,8 +51,8 @@ class PrimarySystem_SP:
 
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
                  incomingT_F, supplyT_F, storageT_F,
-                 defrostFactor, percentUseable,
-                 compRuntime_hr, aquaFract, swingTankLoad_W = 0):
+                 percentUseable, compRuntime_hr, aquaFract,
+                 defrostFactor, swingTankLoad_W = 0):
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad

@@ -30,13 +30,13 @@ class ASHRAEsizer:
         The hot water supply temperature to the occupants.[°F]
     storageT_F : float 
         The hot water storage temperature. [°F]
-    defrostFactor : float 
-        A multipier used to account for defrost in the final heating capacity.
     percentUseable : float
         The fraction of the storage volume that can be filled with hot water.
     compRuntime_hr : float
         The number of hours the compressor will run on the design day. [Hr]
-    peakFlowTable : array_like
+   defrostFactor : float 
+        A multipier used to account for defrost in the final heating capacity. Default equals 1.
+   peakFlowTable : array_like
         A array to describe the peak hot water flow events from 5 minutes to 24 hours, found from interpolating/extrapolating between the ASHRAE Low and Medium tables
     PCap_KBTUHR : float
         The primary heating capacity for the sized system using the ASHRAE "more accurate" method [kBTU/hr]
@@ -69,7 +69,7 @@ class ASHRAEsizer:
     >>> from ashraesizer import ASHRAEsizer
     >>> a = ASHRAEsizer(100, 20, 50, 120, 150, 1, 0.8, 16)
     >>> a.sizeVol_Cap()
-    >>> [73.09343125000001, 25.060605000000002]
+    [73.09343125000001, 25.060605000000002]
     
     """
   
@@ -81,7 +81,7 @@ class ASHRAEsizer:
     ashraeLowLU = np.array([[5, 0.4], [15, 1.0], [30, 1.7], [60, 2.8], \
                                 [120, 4.5], [180, 6.1], [1440, 20.0]])
         
-    def __init__(self, nPeople, gpdpp, incomingT_F, supplyT_F, storageT_F,defrostFactor, percentUseable,compRuntime_hr):
+    def __init__(self, nPeople, gpdpp, incomingT_F, supplyT_F, storageT_F,percentUseable,compRuntime_hr,defrostFactor = 1 ):
         """
         Initialize the ASHRAE sizer object. An object to handle the sizing of \
         heat pump water heaters using the "more accurate" method in the ASHRAE handbook

@@ -14,13 +14,7 @@ class HPWHsizer:
     """
     The main class to organize a primary and temperature maintenance HPWH system and size it using the Ecotope Modified ASHRAE Metho.
     
-    The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to \
-        pass the variables to a HPWHsizerRead class. The HPWHsizerRead object proccesses \ 
-        the inputs by checking the variables and calculates extra variables. \
-        The loadshift array is also defined and check with setLoadShiftforPrimary(). 
-        The system is sized with the function build_size(), and further information is \
-        availalbe by pulling the size following the ASHRAE "more accurate" method with getASHRAEResult(). \
-        Plots for the sizing curves can be pulled from the sized system with plotSizingCurve,  plotPrimaryStorageLoadSim. 
+    The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to pass the variables to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs by checking the variables and calculates extra variables. The loadshift array is also defined and check with setLoadShiftforPrimary(). The system is sized with the function build_size(), and further information is availalbe by pulling the size following the ASHRAE "more accurate" method with getASHRAEResult(). Plots for the sizing curves can be pulled from the sized system with plotSizingCurve,  plotPrimaryStorageLoadSim. 
 
     Attributes
     ----------
@@ -54,13 +48,13 @@ class HPWHsizer:
         Function to initialize a HPWHsystem from a file.    
         
     initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass=True)
+                    storageT_F, compRuntime_hr, percentUseable, aquaFract,
+                    schematic, defrostFactor=1, singlePass=True)
         Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment. 
 
     initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass=True)
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
+                    schematic, defrostFactor = 1, singlePass=True)
         Function to initialize the primary component of a HPWH system from the list of inputs using the full number of people and apartments.
 
     initTempMaint( Wapt, setpointTM_F = 135, TMonTemp_F = 0 )
@@ -92,16 +86,41 @@ class HPWHsizer:
     
     Examples
     --------
-    An example usage to find the recommended size following the ASHRAE method is:
-
-    >>> from ashraesizer import ASHRAEsizer
-    >>> a = ASHRAEsizer(100, 20, 50, 120, 150, 1, 0.8, 16)
-    >>> a.sizeVol_Cap()
-    >>> [73.09343125000001, 25.060605000000002]
+    An example usage to find the recommended size is:
     
+    To inialize the system:
+    >>> from HPWHsizer import HPWHsizer
+    >>> hpwh = HPWHsizer()
+    >>> hpwh.initPrimaryByPeople(nPeople = 100, 
+                                 nApt = 36,
+                                 gpdpp = 22., 
+                                 loadShapeNorm = "stream",
+                                 supplyT_F = 120,
+                                 incomingT_F = 50, 
+                                 storageT_F = 150., 
+                                 compRuntime_hr = 16.,
+                                 percentUseable = .9, 
+                                 aquaFract = 0.4,
+                                 schematic = "paralleltank")
+    >>> hpwh.initTempMaint(Wapt = 100, 
+                           setpointTM_F = 135,
+                           TMonTemp_F = 125)
+    
+    And then in order to find proper for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:
+    >>> hpwh.build_size()
+    [346.1021666666667, 114.86110625, 48.15823981105004, 32.244741899999994] 
+    
+    To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:
+    >>> fig = primary_sizer.plotSizingCurve(return_as_div=False)
+    >>> fig.show()
+
+    And to see the how the system performs in a simple simulation:
+    >>> fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    >>> fig.show()
+    Plotly figures can also be saved as html with write_html():
+    >>> fig.write_html("output.html")
     
     """
-    
     def __init__(self):
         self.validbuild     = False
         self.systemSized    = False
@@ -128,8 +147,8 @@ class HPWHsizer:
         self.inputs.initializeFromFile(fileName)
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass=True):
+                    storageT_F, compRuntime_hr, percentUseable, aquaFract,
+                    schematic, defrostFactor = 1, singlePass=True):
         """
         Initializes the primary system by the number of units by number of bedrooms and number of people per unit.
 
@@ -149,31 +168,29 @@ class HPWHsizer:
             Storage temperature of the primary hot water storage tanks. [°F]
         supplyT_F : float
             Supply hot water temperature to occupants, typically 120°F. [°F]
-        defrostFactor: float
-            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
         percentUsable : float
             Percent of primary hot water storage that is usable due to sufficient thermal stratification.
         compRuntime_hr : float
             Hour per day central heat pump equipment can run, duty cycle [hrs/day]
         percentUseable : float 
             Percent of primary hot water storage that is usable due to sufficient thermal stratification.
-        defrostFactor : float
-            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
         aquaFract  : float
             The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
         schematic  : float
             The schemaitc used, options are "primary", "paralleltank", or "swingtank"
+        defrostFactor: float
+            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.
         singlePass  : float
             Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.
 
         """
         self.inputs.initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass)
+                    storageT_F, compRuntime_hr, percentUseable, aquaFract,
+                     schematic, defrostFactor, singlePass)
 
     def initPrimaryByPeople(self,  nPeople, nApt,  gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass=True):
+                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
+                    schematic, defrostFactor = 1, singlePass=True):
         """
         Initializes the primary system by the number of total units and number of total people
 
@@ -193,8 +210,6 @@ class HPWHsizer:
             Storage temperature of the primary hot water storage tanks. [°F]
         supplyT_F : float
             Supply hot water temperature to occupants, typically 120°F. [°F]
-        defrostFactor: float
-            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
         percentUsable : float
             Percent of primary hot water storage that is usable due to sufficient thermal stratification.
         compRuntime_hr : float
@@ -207,20 +222,36 @@ class HPWHsizer:
             The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
         schematic  : float
             The schemaitc used, options are "primary", "paralleltank", or "swingtank"
+        defrostFactor: float
+            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.
         singlePass  : float
             Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.
         """
         self.inputs.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
-                    schematic, singlePass )
+                    storageT_F, compRuntime_hr, percentUseable, aquaFract,
+                    schematic, defrostFactor, singlePass )
 
-    def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
+    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120 ):
         """
+        
         Initializes the temperature maintanence system after the primary system
         with either "swingtank" or "paralleltank".
 
+        Attributes
+        ----------
+            Wapt : float
+                The recicuplation loop losses in terms of Watts per apartment.
+            setpointTM_F : float 
+                The setpoint of the temprature maintence tank. Defaults to 130 °F.
+            TMonTemp_F :float 
+                The temperature where parallel loop tank will turn on. Defaults to 120 °F.
+
+        Raises
+        ----------
+            Exception: Error if primary system hasn't been sized yet.
+
         """
-        if self.primarySystem is None:
+        if self.inputs.totalHWLoad_G is None or self.inputs.totalHWLoad_G == 0:
             raise Exception("must initialize the primary system first")
 
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
@@ -230,20 +261,31 @@ class HPWHsizer:
 
     def setLoadShiftforPrimary(self, ls_arr):
         """
-        Resets the load shift to user defined values
+        Sets the load shift to user defined values
 
-        Args:
-            ls_arr (array): Array of zeros and ones to define when HPWH's are allowed to run for load shift.
 
-        Returns:
-            None.
+        Attributes
+        ----------
+        ls_arr : array_like
+            Array of zeros and ones of length 24 for each hour of the day to define when HPWH's are allowed to run during a day for load shift.
 
         """
         self.inputs.setLoadShift(ls_arr)
         self.doLoadShift    = True
 
     def buildSystem(self):
-        """Builds a single pass or multi pass centralized HPWH plant"""
+        """
+        Builds a single pass centralized HPWH plant. Organizes the inputs to the relevant classes and passes important constants between the classes.
+         
+        Raises
+        ----------
+            Exception: If schematic is trim tank throws erros 
+            Exception: If am invalid schematic string is passed here throws error
+            Exception: If trying to use multipass heat pumps for the primary system throws erros 
+            Exception: If the system does not build correctly. 
+
+        
+        """
         
         self.validbuild = False
 
@@ -252,9 +294,9 @@ class HPWHsizer:
                                         self.inputs.incomingT_F,
                                         self.inputs.supplyT_F,
                                         self.inputs.storageT_F,
-                                        self.inputs.defrostFactor,
                                         self.inputs.percentUseable,
-                                        self.inputs.compRuntime_hr)
+                                        self.inputs.compRuntime_hr,
+                                        self.inputs.defrostFactor)
 
         if self.inputs.schematic == "primary":
             pass
@@ -282,10 +324,10 @@ class HPWHsizer:
                                                  self.inputs.incomingT_F,
                                                  self.inputs.supplyT_F,
                                                  self.inputs.storageT_F,
-                                                 self.inputs.defrostFactor,
                                                  self.inputs.percentUseable,
                                                  self.inputs.compRuntime_hr,
                                                  self.inputs.aquaFract,
+                                                 self.inputs.defrostFactor,
                                                  self.swingTankLoad_W)
             if self.doLoadShift:
                 self.primarySystem.setLoadShift(self.inputs.loadshift)
@@ -302,7 +344,7 @@ class HPWHsizer:
 
     def sizeSystem(self):
         """
-        Sizes the built system
+        Sizes the system after building with buildSystem()
 
         Returns
         -------
@@ -334,6 +376,15 @@ class HPWHsizer:
         return self.sizeSystem()
 
     def getASHRAEResult(self):
+        """
+        Gets the results from the system using the "more accurate method" from ASHRAE after building the system.
+
+        Returns
+        -------
+        list
+            [PVol_G_atStorageT, PCap_kBTUhr]
+        """
+            
         if self.validbuild:
             return self.ashraeSize.sizeVol_Cap()
         else:
@@ -342,7 +393,7 @@ class HPWHsizer:
 
     def plotSizingCurve(self, return_as_div = True):
         """
-        Returns a plot of the sizing curve as a div
+        Returns a plot of the sizing curve as a div or as a plotly fig
 
         Parameters
         ----------
@@ -397,7 +448,7 @@ class HPWHsizer:
 
     def plotPrimaryStorageLoadSim(self, return_as_div = True, hourly = True):
         """
-        Returns a plot of the of the simulation for the minimum sized primary system
+        Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the hourly or minute level simulation
 
         Parameters
         ----------
@@ -458,7 +509,7 @@ class HPWHsizer:
 
     def plotParallelTankCurve(self, return_as_div = True):
         """
-        Returns a plot of the sizing curve as a div
+        Returns a plot of the sizing curve as a div or a plotly figure
 
         Parameters
         ----------
@@ -575,8 +626,8 @@ class HPWHsizerRead:
         self.singlePass     = True # Single pass or multipass
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
-                    schematic, singlePass = True):
+                    storageT_F, compRuntime_hr, percentUseable,  aquastatFract,
+                    schematic, defrostFactor, singlePass = True):
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
         self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
         self.gpdpp_BR       = np.array(gpdpp_BR) # Gallons per day per person by bedrooms
@@ -598,8 +649,8 @@ class HPWHsizerRead:
         self.calcedVariables()
 
     def initPrimaryByPeople(self, nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquastatFract,
-                    schematic,  singlePass = True):
+                    storageT_F, compRuntime_hr, percentUseable,  aquastatFract,
+                    schematic, defrostFactor, singlePass = True):
         self.nPeople        = nPeople
         self.gpdpp          = gpdpp # Gallons per day per person
         self.loadShapeNorm  = np.array(loadShapeNorm) # The normalized load shape
@@ -621,7 +672,7 @@ class HPWHsizerRead:
         self.checkInputs()
         self.calcedVariables()
 
-    def initTempMaint(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0):
+    def initTempMaint(self, Wapt, setpointTM_F, TMonTemp_F):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
@@ -632,16 +683,22 @@ class HPWHsizerRead:
         elif self.schematic == "paralleltank":
             if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
                 raise Exception("Error in initTempMaint, paralleltank needs inputs != 0")
-            else:
+            else:              
+                # Quick Check the inputs makes sense
+                if not self.__checkLiqudWater(setpointTM_F):
+                    raise Exception('Invalid input given for setpointTM_F, it must be between 32 and 212F.\n')
+                if not self.__checkLiqudWater(TMonTemp_F):
+                    raise Exception('Invalid input given for TMonTemp_F, it must be between 32 and 212F.\n')
+                if setpointTM_F <= TMonTemp_F:
+                    raise Exception("The temperature maintenance setpoint temperature must be greater than the turn on temperature")
+                if setpointTM_F <= self.incomingT_F:
+                    raise Exception("The temperature maintenance setpoint temperature must be greater than the city cold water temperature ")
+                if TMonTemp_F <= self.incomingT_F:
+                    raise Exception("The temperature maintenance turn on temperature must be greater than the city cold water temperature ")
+                    
                 self.setpointTM_F     = setpointTM_F
-                self.TMonTemp_F       = TMonTemp_F                
-            # Quick Check the inputs makes sense
-            if self.setpointTM_F <= self.TMonTemp_F:
-                raise Exception("The temperature maintenance setpoint temperature must be greater than the turn on temperature")
-            if self.setpointTM_F <= self.incomingT_F:
-                raise Exception("The temperature maintenance setpoint temperature must be greater than the city cold water temperature ")
-            if self.TMonTemp_F <= self.incomingT_F:
-                raise Exception("The temperature maintenance turn on temperature must be greater than the city cold water temperature ")
+                self.TMonTemp_F       = TMonTemp_F  
+                    
 
     def __loadVariables(self):
         """
@@ -684,6 +741,7 @@ class HPWHsizerRead:
 
     def checkInputs(self):
         """Checks inputs are all valid"""
+
         if sum(self.loadShapeNorm) > 1 + 1e3 or sum(self.loadShapeNorm) < 1 - 1e3:
             raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(self.loadShapeNorm))+".")
         if self.schematic not in self.schematicNames:
