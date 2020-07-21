@@ -9,10 +9,99 @@ from plotly.offline import plot
 
 ##############################################################################
 class HPWHsizer:
-    """ Organizes a primary and temperature maintenance system and sizes it"""
+    """
+    The main class to organize a primary and temperature maintenance HPWH system and size it using the Ecotope Modified ASHRAE Metho.
+    
+    The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to \
+        pass the variables to a HPWHsizerRead class. The HPWHsizerRead object proccesses \ 
+        the inputs by checking the variables and calculates extra variables. \
+        The loadshift array is also defined and check with setLoadShiftforPrimary(). 
+        The system is sized with the function build_size(), and further information is \
+        availalbe by pulling the size following the ASHRAE "more accurate" method with getASHRAEResult(). \
+        Plots for the sizing curves can be pulled from the sized system with plotSizingCurve,  plotPrimaryStorageLoadSim. 
+
+    Attributes
+    ----------
+    validbuild : boolean
+        Initialized as false, is true if the system is created susccesfully on a call to buildSystem()
+            
+    systemSized : boolean
+        Initialized as false, is true if the system is successfully sized.
+        
+    doLoadShift : boolean
+        Set to true if doing loadshift with a call to setLoadShiftforPrimary()
+        
+    inputs : HPWHsizerRead()
+        The input handler that checks for valid inputs
+
+    primarySystem : PrimarySystem_SP
+        The primary component of the HPWH system of class PrimarySystem_SP
+    
+    tempmaintSystem : ParallelLoopTank/SwingTank
+        The temperature maintenance component of the HPWH system of class ParallelLoopTank or SwingTank
+
+    ashraeSize : ASHRAEsizer
+        The primary component of the HPWH system, which is sized using the ASHRAE method of class ASHRAEsizer
+
+    swingTankLoad_W : float
+        The fraction of the distrubution losses that the primary HPWH has to cover when using a swing tank schematic. 
+    
+    Methods
+    -------
+    initializeFromFile(fileName) 
+        Function to initialize a HPWHsystem from a file.    
+        
+    initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
+                    schematic, singlePass=True)
+        Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment. 
+
+    initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
+                    storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
+                    schematic, singlePass=True)
+        Function to initialize the primary component of a HPWH system from the list of inputs using the full number of people and apartments.
+
+    initTempMaint( Wapt, setpointTM_F = 135, TMonTemp_F = 0 )
+        Function to initialize the temperature maintenence component of a HPWH system from the list of inputs.
+
+    setLoadShiftforPrimary(ls_arr)
+        Adds a specified load shifting scenario to the HPWH system.
+
+    buildSystem()
+        Organizes the HPWH system inputs around the schematic to put together the primary and temperature maintenance system
+    
+    sizeSystem()
+        Sizes the built HPWH system and returns the minimum sizing results, volume and capacity for the primary and temperature maintence systems
+
+    build_size()
+         Builds and sizes the system.
+         
+    getASHRAEResult()
+         Returns just the minimum result for the primary component of the HPWH system from the sized system following the "more accurate" method from ASHRAE
+         
+    plotSizingCurve( return_as_div = True)
+         Returns the primary sizing curve, storage volume vs. heating capacity for the 
+         
+    plotPrimaryStorageLoadSim(return_as_div = True, hourly = True)
+         Runs and returns a plot for the primary system simulating storage volume with HPWH heating agains the design load shape
+         
+    writeToFile(fileName) 
+        Writes the results of sizing the primary and temperature maintenance systems to a file.
+    
+    Examples
+    --------
+    An example usage to find the recommended size following the ASHRAE method is:
+
+    >>> from ashraesizer import ASHRAEsizer
+    >>> a = ASHRAEsizer(100, 20, 50, 120, 150, 1, 0.8, 16)
+    >>> a.sizeVol_Cap()
+    >>> [73.09343125000001, 25.060605000000002]
+    
+    
+    """
+    
     def __init__(self):
         self.validbuild     = False
-        self.primaryInit    = False
         self.systemSized    = False
         self.doLoadShift    = False
         self.inputs = HPWHsizerRead()
@@ -25,19 +114,100 @@ class HPWHsizer:
 
 
     def initializeFromFile(self, fileName):
+        """
+        Initilizes a system from a file
+
+        Attributes
+        ----------           
+        fileName : str 
+            Name of file to open. File should have lines for each variable with format: \
+                <name of variable> <value> i.e. compRuntime_hr 16, or for list: nBR 10 10 10 0 0
+        """
         self.inputs.initializeFromFile(fileName)
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
+        """
+        Initializes the primary system by the number of units by number of bedrooms and number of people per unit.
+
+        Attributes
+        ----------
+        nBR : array_like 
+            A list of the number of units by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units.
+        rBR : array_like 
+            A list of the average number people in each unit by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units.
+        gpdpp_BR : array_like 
+            A list of the design gallons used per unit by each unit by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units. .
+        loadShapeNorm : array_like or str
+            A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load. If string will lookup the loadshape data 
+        incomingT_F : float
+            Incoming city water temperature (design temperature in winter). [°F]
+        storageT_F: float
+            Storage temperature of the primary hot water storage tanks. [°F]
+        supplyT_F : float
+            Supply hot water temperature to occupants, typically 120°F. [°F]
+        defrostFactor: float
+            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
+        percentUsable : float
+            Percent of primary hot water storage that is usable due to sufficient thermal stratification.
+        compRuntime_hr : float
+            Hour per day central heat pump equipment can run, duty cycle [hrs/day]
+        percentUseable : float 
+            Percent of primary hot water storage that is usable due to sufficient thermal stratification.
+        defrostFactor : float
+            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
+        aquaFract  : float
+            The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
+        schematic  : float
+            The schemaitc used, options are "primary", "paralleltank", or "swingtank"
+        singlePass  : float
+            Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.
+
+        """
         self.inputs.initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass)
-        self.primaryInit = True
 
     def initPrimaryByPeople(self,  nPeople, nApt,  gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass=True):
+        """
+        Initializes the primary system by the number of total units and number of total people
+
+        Attributes
+        ----------
+        nPeople : flaot 
+            The estimated total number of people that will occupy the building
+        nApt : flaot 
+            The total number of apartment units in the project
+        gpdpp : flaot 
+            The design gallons per day per person at  120°F, or can be given as a string key to lookup values from ASHRAE low or medium or Ecotope design value
+        loadShapeNorm : array_like or str
+            A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load. If string will lookup the loadshape data 
+        incomingT_F : float
+            Incoming city water temperature (design temperature in winter). [°F]
+        storageT_F: float
+            Storage temperature of the primary hot water storage tanks. [°F]
+        supplyT_F : float
+            Supply hot water temperature to occupants, typically 120°F. [°F]
+        defrostFactor: float
+            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
+        percentUsable : float
+            Percent of primary hot water storage that is usable due to sufficient thermal stratification.
+        compRuntime_hr : float
+            Hour per day central heat pump equipment can run, duty cycle [hrs/day]
+        percentUseable : float 
+            Percent of primary hot water storage that is usable due to sufficient thermal stratification.
+        defrostFactor : float
+            A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
+        aquaFract  : float
+            The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
+        schematic  : float
+            The schemaitc used, options are "primary", "paralleltank", or "swingtank"
+        singlePass  : float
+            Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.
+        """
         self.inputs.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, defrostFactor, aquaFract,
                     schematic, singlePass )
@@ -48,7 +218,7 @@ class HPWHsizer:
         with either "swingtank" or "paralleltank".
 
         """
-        if self.primaryInit is None:
+        if self.primarySystem is None:
             raise Exception("must initialize the primary system first")
 
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
@@ -72,6 +242,9 @@ class HPWHsizer:
 
     def buildSystem(self):
         """Builds a single pass or multi pass centralized HPWH plant"""
+        
+        self.validbuild = False
+
         self.ashraeSize = ASHRAEsizer(self.inputs.nPeople,
                                         self.inputs.gpdpp,
                                         self.inputs.incomingT_F,

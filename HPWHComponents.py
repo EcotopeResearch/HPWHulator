@@ -24,26 +24,27 @@ class PrimarySystem_SP:
         Number of residents.
     incomingT_F : float
         Incoming city water temperature (design temperature in winter). [°F]
-    T_supply: float
-        Supply hot water temperature, typically 120°F. [°F]
     storageT_F: float
         Storage temperature of the primary hot water storage tanks. [°F]
     supplyT_F : float
-        Hot water supply temperature. [°F]
+        Supply hot water temperature to occupants, typically 120°F. [°F]
     defrostFactor: float
         A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
-    percentUsable: integer
+    percentUsable : float
         Percent of primary hot water storage that is usable due to sufficient thermal stratification.
     aquaFract: float
         The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
-    compRuntime_hr: float
+    compRuntime_hr : float
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
-    PCap_kBTUhr
+    PCap_kBTUhr : float
         Primary heat pump water heater capacity [kBtu]
-    PVol_G_atStorageT
+    PVol_G_atStorageT : float
         Primary storage tank volume [gals]
-    aquaFract
+    aquaFract : float
         Fractional hieght of the aquastat in the tank.
+    swingTankLoad_W : float
+        Extra load in Watts that is added to the primary system.
+        
     """
 
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
@@ -84,11 +85,10 @@ class PrimarySystem_SP:
         """
         Sets the load shifting schedule from input schedule
 
-        Args:
-            schedule (list): List or array of 0's and 1's for don't run and run.
-
-        Returns:
-            None.
+        Parameters
+        ----------            
+        schedule : array_like
+            List or array of 0's and 1's for don't run and run.
 
         """
         # Coerce to 0s and 1s
@@ -134,17 +134,17 @@ class PrimarySystem_SP:
 
     def sizePrimaryTankVolume(self, heatHrs):
         """
-        Sizes primary storage using the Ecotope sizing methodology
+        Calculates the primary storage using the Ecotope sizing methodology
 
         Parameters
         ----------
-        heatHrs
+        heatHrs : float
             The number of hours primary heating equipment can run in a day.
 
         Returns
         -------
-        volume
-            A total volume adjusted to the storage tempreature
+        totalVolMax : float
+            The total storage volume in gallons adjusted to the storage tempreature
         """
         self._checkHeatHours(heatHrs)
 
@@ -181,15 +181,19 @@ class PrimarySystem_SP:
         is needed for calculating the total volume for primary sizing and in the event of load shift sizing
         represents the entire volume.
 
-        Args:
+        Parameters
+        ----------
             heatHrs (float): The number of hours primary heating equipment can run in a day.
             onOffArr (np.array): array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
 
-        Raises:
+        Raises
+        ------
             Exception: Error if oversizeing system.
 
-        Returns:
-            runV_G (float): the running volume in gallons
+        Returns
+        -------
+            runV_G : float 
+            The running volume in gallons
 
         """
         diffN   = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs - np.tile(self.loadShapeNorm,2)
@@ -211,11 +215,15 @@ class PrimarySystem_SP:
         """
         Converts the volume of water at the supply temperature to an equivalent volume at the storage temperature
 
-        Args:
-            vol (float): vol at the supply temperature.
+        Parameters
+        ----------
+        vol : float
+            Volume at the supply temperature.
 
-        Returns:
-            float: Volume at storage temperature.
+        Returns
+        -------
+        float
+            Volume at storage temperature.
 
         """
         return mixVolume(vol, self.storageT_F, self.incomingT_F, self.supplyT_F)
@@ -224,11 +232,15 @@ class PrimarySystem_SP:
         """
         Converts the volume of water at the storage temperature to an equivalent volume at the supply temperature
 
-        Args:
-            vol (float): vol at the storage temperature.
+        Parameters
+        ----------
+        vol : float
+            Volume at the storage temperature.
 
-        Returns:
-            float: Volume at supply temperature.
+        Returns
+        -------
+        float
+            Volume at supply temperature.
 
         """
         return mixVolume(vol, self.supplyT_F,  self.incomingT_F, self.storageT_F)
@@ -264,14 +276,14 @@ class PrimarySystem_SP:
 
     def sizeVol_Cap(self):
         """
-        Calculates PVol_G_atStorageT and PCap_kBTUhr
+        Calculates the minimum primary volume and heating capacity for the primary system: PVol_G_atStorageT and PCap_kBTUhr
         """
         self.PVol_G_atStorageT = self.sizePrimaryTankVolume(self.maxDayRun_hr)
         self.PCap_kBTUhr = self.primaryHeatHrs2kBTUHR(self.maxDayRun_hr)
 
     def getSizingResults(self):
         """
-        Returns sizing results as array
+        Returns the minimum primary volume and heating capacity sizing results 
 
         Returns
         -------
@@ -287,8 +299,8 @@ class PrimarySystem_SP:
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
 
-        Args:
-        -------
+        Parameters
+        ----------
         capacity (float) : The primary heating capacity in kBTUhr to use for the simulation, default is the sized system
         volume (float) : The primary storage volume in gallons to  to use for the simulation, default is the sized system
 
@@ -453,13 +465,13 @@ class SwingTank:
 
     Attributes
     ----------
-    nApt: integer
+    nApt : integer
         The number of apartments. Use with Qdot_apt to determine total recirculation losses.
-    Wapt:  float
+    Wapt :  float
         Watts of heat lost in through recirculation piping system. Used with N_apt to determine total recirculation losses.
-    TMCap_kBTUhr
+    TMCap_kBTUhr :  float
         The required capacity of temperature maintenance equipment.
-    TMVol_G
+    TMVol_G :  float
         The volume of the swing tank required to ride out the low use period.
     """
     Table_Napts = [0, 12, 24, 48, 96]
@@ -540,13 +552,13 @@ def getPeakIndices(diff1):
 
     Parameters
     ----------
-    diff1
-    Any 1 dimensional array
+    diff1 : array_like
+        A 1 dimensional array.
 
     Returns
     -------
-    array
-    Array of indices in which input array changes from positive to negative
+    ndarray
+        Array of indices in which input array changes from positive to negative
     """
     if not isinstance(diff1, np.ndarray):
         diff1 = np.array(diff1)
@@ -557,12 +569,17 @@ def roundList(a_list, n=3):
     """
     Rounds elements in a python list
 
-    Args:
-        a_list (float): list to round values of.
-        n (int, optional): number of digits to round too. Defaults to 2.
+    Parameters
+    ----------
+    a_list : float 
+        list to round values of.
+    n : int
+        optional, default = 3. Number of digits to round elements to.
 
-    Returns:
-        list: rounded values.
+    Returns
+    -------
+    list
+        rounded values.
 
     """
     return [round(num, n) for num in a_list]
@@ -572,11 +589,15 @@ def HRLIST_to_MINLIST(a_list):
     Repeats each element of a_list 60 times to go from hourly to minute. 
     Still may need other unit conversions to get data from per hour to per minute
 
-    Args:
-        a_list (TYPE): DESCRIPTION.
+    Parameters
+    ----------
+    a_list : list
+        A list in of values per hour.
 
-    Returns:
-        out_list (TYPE): DESCRIPTION.
+    Returns
+    -------
+    out_list : list 
+        A list in of values per minute created by repeating values per hour 60 times.
 
     """
     out_list = []
@@ -590,13 +611,20 @@ def mixVolume(vol, hotT, coldT, outT):
     Adjusts the volume of water such that the hotT water and outT water have the 
     same amount of energy, meaning different volumes.
 
-    Args:
-        vol (float): The reference volume to convert.
-        hotT (float): The hot water temperature used for mixing.
-        coldT (float): The cold water tempeature used for mixing.
-        outT (float): The out water temperature from mixing.
+    Parameters
+    ----------
+    vol : float
+        The reference volume to convert.
+    hotT : float
+        The hot water temperature used for mixing.
+    coldT : float 
+        The cold water tempeature used for mixing.
+    outT : float 
+        The out water temperature from mixing.
 
-    Returns:
+    Returns
+    -------
+    float
         Temperature adjusted volume.
 
     """

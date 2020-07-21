@@ -120,17 +120,16 @@ def test_AF_sizing_error(empty_sizer):
     (120, 120),
     (125, 125),
     (150, 150),
-    (130, 150),
+    (120, 150),
     (120, 125)
     ])
 @pytest.mark.parametrize("nPercentUseable, nAF", [
     (.8, .4),
-    (1., .2),
     (1., .8),
     (.5, .55),
-    (.1, .99),
+    (.02, .99),
     ])
-@pytest.mark.parametrize('ngpdpp',[(5.),(20.),(40.)])
+@pytest.mark.parametrize('ngpdpp',[(10.),(20.),(40.)])
 @pytest.mark.parametrize("LS", [
    ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
