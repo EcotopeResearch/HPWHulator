@@ -166,28 +166,26 @@ def test_getCDF_array(fetcher, x, s, expected):
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 120),
-    (105, 160),
+    (120, 160),
     (150, 150),
     ])
 @pytest.mark.parametrize("nPercentUseable, nAF", [
     (1., .8),
-    (.5, .8),
+    (.4, .9),
     (.05, .99),
     ])
-@pytest.mark.parametrize('ngpdpp',[(10.),(40.5)])
 @pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
 @pytest.mark.parametrize("LS", [
     ([1]*24),
     ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
 ])
-def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp, ncompRuntime_hr,
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime_hr,
                               nPercentUseable, nAF, LS):
     # Reset inputs
     primary_sizer.inputs.supplyT_F = nSupplyT
     primary_sizer.inputs.storageT_F = nStorageT_F
     primary_sizer.inputs.percentUseable = nPercentUseable
     primary_sizer.inputs.aquaFract = nAF
-    primary_sizer.inputs.gpdpp = ngpdpp
     primary_sizer.inputs.compRuntime_hr = ncompRuntime_hr
     # Recalc inputs
     primary_sizer.inputs.calcedVariables()

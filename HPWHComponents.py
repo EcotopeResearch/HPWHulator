@@ -4,7 +4,7 @@ HPWHComponents
 @author: paul
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor
+from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, compMinimumRunTime
 
 
 ##############################################################################
@@ -167,8 +167,7 @@ class PrimarySystem_SP:
 
         # Check the Cycling Volume ##############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
-        min_runtime_hr  = 10/60. # Hard coded minimum run time for water heater in hours
-        minRunVol_G     = min_runtime_hr * (self.totalHWLoad / heatHrs) # (generation rate - no usage)
+        minRunVol_G     = compMinimumRunTime * (self.totalHWLoad / heatHrs) # (generation rate - no usage)
 
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
@@ -399,16 +398,16 @@ class ParallelLoopTank:
         Volume of parrallel loop tank.
     """
     
-    def __init__(self, nApt, Wapt, offTime_hr, TMRuntime_hr, setpointTM_F, TMonTemp_F):
+    def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
         
-        self.offTime_hr  = offTime_hr # Hour
-        self.TMRuntime_hr  = TMRuntime_hr # Hour
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
+        self.offTime_hr  = offTime_hr # Hour
+        self.TMRuntime_hr  = TMRuntime_hr # Hour
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
         self.TMVol_G = 0 # Gallons
@@ -446,7 +445,7 @@ class ParallelLoopTank:
         """
         return [ self.TMVol_G, self.TMCap_kBTUhr ]
 
-    def tempMaintCurve(self, runtime = None):
+    def tempMaintCurve(self, runtime = compMinimumRunTime):
         """
         Returns the sizing curve for a parallel loop tank
 
@@ -455,10 +454,8 @@ class ParallelLoopTank:
         list
             volN_G, capacity
         """
-        if runtime is None:
-            runtime = self.minimumRunTime
 
-        volN_G = np.linspace(self.TMVol_G , 1000, 30)
+        volN_G = np.linspace(self.TMVol_G , 1000, 50)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
                     self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR
         capacity /= 1000.

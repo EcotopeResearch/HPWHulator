@@ -10,5 +10,5 @@ schematic swingtank
 TMonTemp_F 122
 nApt 60
 Wapt 90
-defrostFactor 0.9
-aquaFract 0.4
+defrostFactor 1
+aquaFract 0.5
