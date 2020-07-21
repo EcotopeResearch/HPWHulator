@@ -25,8 +25,8 @@ def units_sizer():
                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                     120, 50, 150, 16, 0.8, .9, 0.4,
-                     'paralleltank' )
+                     120, 50, 150, 16, 0.8,  0.4,
+                     'paralleltank', .9 )
     hpwh.initTempMaint(100)
     return hpwh
 
@@ -38,8 +38,8 @@ def people_sizer():
                       [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
                        0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
                        0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                    120, 50, 150., 18., 0.9, 0.9, 0.4,
-                    "swingtank" )
+                    120, 50, 150., 18., 0.9, 0.4,
+                    "swingtank", 0.9 )
     hpwh.initTempMaint(100)
 
     return hpwh
@@ -49,8 +49,8 @@ def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 36, 22., "stream",
-                    120, 50, 150., 16., .9, .9, 0.4,
-                    "primary")
+                    120, 50, 150., 16., .9, 0.4,
+                    "primary", .9 )
     return hpwh
 
 @pytest.fixture
@@ -95,25 +95,39 @@ def test_AF_initialize_error(empty_sizer):
                         [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, .9, 111,
-                    "primary")
+                    120, 50, 150., 16., .9, 111, "primary", .9)
+        
     with pytest.raises(Exception): # Get get to match text for some weird reason
         empty_sizer.initPrimaryByPeople(100, 22.,  36,
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                         0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                         0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, .9, 0.05,
-                    "primary")
+                    120, 50, 150., 16., .9, 0.05,
+                    "primary", .9)
 
 def test_AF_sizing_error(empty_sizer):
     empty_sizer.initPrimaryByPeople(100, 22., 36,
                   [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                     0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                120, 50, 150., 16., .9, .9, 0.11,
-                "primary")
-    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
+                120, 50, 150., 16., .9, 0.11,
+                "primary", .9)
+    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.209"):
         empty_sizer.build_size()
+
+def test_primary_AF_over_1_Error(primary_sizer):
+    # Reset inputs
+    primary_sizer.inputs.supplyT_F = 105
+    primary_sizer.inputs.storageT_F = 160
+    primary_sizer.inputs.percentUseable = .5
+    primary_sizer.inputs.aquaFract = .56
+    primary_sizer.inputs.compRuntime_hr = 9.
+    # Recalc inputs
+    primary_sizer.inputs.calcedVariables()
+    # Size the system
+    with pytest.raises(Exception, match="The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low"):
+        primary_sizer.build_size()
+    
 
 # Test the Fetcher
 def test_getLoadshape(fetcher):
@@ -152,33 +166,30 @@ def test_getCDF_array(fetcher, x, s, expected):
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 120),
-    (125, 125),
+    (105, 160),
     (150, 150),
-    (130, 150),
-    (120, 125)
     ])
 @pytest.mark.parametrize("nPercentUseable, nAF", [
-    (.8, .4),
-    (1., .4),
-    (1., .2),
     (1., .8),
-    (.5, .55),
-    (.1, .99),
+    (.5, .8),
+    (.05, .99),
     ])
+@pytest.mark.parametrize('ngpdpp',[(10.),(40.5)])
+@pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
 @pytest.mark.parametrize("LS", [
-   ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+    ([1]*24),
+    ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
 ])
-def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, 
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp, ncompRuntime_hr,
                               nPercentUseable, nAF, LS):
     # Reset inputs
     primary_sizer.inputs.supplyT_F = nSupplyT
     primary_sizer.inputs.storageT_F = nStorageT_F
     primary_sizer.inputs.percentUseable = nPercentUseable
     primary_sizer.inputs.aquaFract = nAF
-    # Recheck and recalc inputs
-    primary_sizer.inputs.checkInputs()
+    primary_sizer.inputs.gpdpp = ngpdpp
+    primary_sizer.inputs.compRuntime_hr = ncompRuntime_hr
+    # Recalc inputs
     primary_sizer.inputs.calcedVariables()
     primary_sizer.setLoadShiftforPrimary(LS)
     # Size the system
