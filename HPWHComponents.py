@@ -172,12 +172,12 @@ class PrimarySystem_SP:
 
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
-            print("min_AF "+ str(min_AF))
-            print("minRunVol_G "+ str(minRunVol_G))
-            print("totalVolMax "+ str(minRunVol_G))
-            print("(1 - self.percentUseable) "+ str((1 - self.percentUseable)))
-            raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.3f or increasing the maximum run hours of the day" % round(min_AF,3))
+            if min_AF < 1:
+                raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.3f or increasing the maximum run hours in the day" % round(min_AF,3))
+            else:
+                raise ValueError ("The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
+            
         # Return the temperature adjusted total volume ########################
         return totalVolMax
 

@@ -115,6 +115,20 @@ def test_AF_sizing_error(empty_sizer):
     with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.209"):
         empty_sizer.build_size()
 
+def test_primary_AF_over_1_Error(primary_sizer):
+    # Reset inputs
+    primary_sizer.inputs.supplyT_F = 105
+    primary_sizer.inputs.storageT_F = 160
+    primary_sizer.inputs.percentUseable = .5
+    primary_sizer.inputs.aquaFract = .56
+    primary_sizer.inputs.compRuntime_hr = 9.
+    # Recalc inputs
+    primary_sizer.inputs.calcedVariables()
+    # Size the system
+    with pytest.raises(Exception, match="The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low"):
+        primary_sizer.build_size()
+    
+
 # Test the Fetcher
 def test_getLoadshape(fetcher):
     assert fetcher.getLoadshape() == [0.008915,0.004458,0.001486,0.001486,0.001486,0.014859,
@@ -157,8 +171,8 @@ def test_getCDF_array(fetcher, x, s, expected):
     ])
 @pytest.mark.parametrize("nPercentUseable, nAF", [
     (1., .8),
-    (.5, .56),
-    (.02, .99),
+    (.5, .8),
+    (.05, .99),
     ])
 @pytest.mark.parametrize('ngpdpp',[(10.),(40.5)])
 @pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
@@ -184,8 +198,6 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp, ncom
     [ V, G_hw, D_hw, run ] = primary_sizer.primarySystem.runStorage_Load_Sim()
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
 
-    
-    
 ##############################################################################
 # Init Tests
 def test_default_init(empty_sizer):
