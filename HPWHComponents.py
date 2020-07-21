@@ -394,7 +394,7 @@ class ParallelLoopTank:
         Temperature at which temperature maintenance equipment will engauge.
     TMCap_kBTUhr
         Temperature maintenance equipment capacity.
-    TMVol_G
+    TMVol_G_atStorageT
         Volume of parrallel loop tank.
     """
     
@@ -410,7 +410,7 @@ class ParallelLoopTank:
         self.TMRuntime_hr  = TMRuntime_hr # Hour
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
-        self.TMVol_G = 0 # Gallons
+        self.TMVol_G_atStorageT = 0 # Gallons
 
     def sizeVol_Cap(self):
         """
@@ -424,7 +424,7 @@ class ParallelLoopTank:
         """
 
         # self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
-        # self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
+        # self.TMVol_G_atStorageT = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
         #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
 
         self.TMVol_G_atStorageT =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
@@ -443,7 +443,7 @@ class ParallelLoopTank:
         list
             self.TMVol_G, self.TMCap_kBTUhr
         """
-        return [ self.TMVol_G, self.TMCap_kBTUhr ]
+        return [ self.TMVol_G_atStorageT, self.TMCap_kBTUhr ]
 
     def tempMaintCurve(self, runtime = compMinimumRunTime):
         """
@@ -455,7 +455,7 @@ class ParallelLoopTank:
             volN_G, capacity
         """
 
-        volN_G = np.linspace(self.TMVol_G , 1000, 50)
+        volN_G = np.linspace(self.TMVol_G_atStorageT , 1000, 50)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
                     self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR
         capacity /= 1000.
