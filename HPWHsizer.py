@@ -60,7 +60,7 @@ class HPWHsizer:
             if TMonTemp_F == 0:
                 TMonTemp_F = self.inputs.supplyT_F + 2;
             #self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F)
-            self.translate.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
+            self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
 
 
     def setLoadShiftforPrimary(self, ls_arr):
