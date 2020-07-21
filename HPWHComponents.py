@@ -69,7 +69,7 @@ class PrimarySystem_SP:
         self.defrostFactor      = defrostFactor
         self.percentUseable     = percentUseable
         self.compRuntime_hr     = compRuntime_hr
-        self.aquaFract          = aquaFract#Fraction
+        self.aquaFract          = aquaFract #Fraction
 
         self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
             (self.storageT_F - self.incomingT_F)
@@ -172,8 +172,12 @@ class PrimarySystem_SP:
 
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
-            raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.2f" % min_AF)
+            if min_AF < 1:
+                raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.3f or increasing the maximum run hours in the day" % round(min_AF,3))
+            else:
+                raise ValueError ("The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
+            
         # Return the temperature adjusted total volume ########################
         return totalVolMax
 
@@ -297,7 +301,7 @@ class PrimarySystem_SP:
 
         return [ self.PVol_G_atStorageT,  self.PCap_kBTUhr ]
 
-    def runStorage_Load_Sim(self, capacity = None, volume = None, hourly = True):
+    def runStorage_Load_Sim(self, capacity = None, volume = None, hourly = False):
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
 

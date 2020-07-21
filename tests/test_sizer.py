@@ -112,8 +112,22 @@ def test_AF_sizing_error(empty_sizer):
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                 120, 50, 150., 16., .9, 0.11,
                 "primary", .9)
-    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.21"):
+    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.209"):
         empty_sizer.build_size()
+
+def test_primary_AF_over_1_Error(primary_sizer):
+    # Reset inputs
+    primary_sizer.inputs.supplyT_F = 105
+    primary_sizer.inputs.storageT_F = 160
+    primary_sizer.inputs.percentUseable = .5
+    primary_sizer.inputs.aquaFract = .56
+    primary_sizer.inputs.compRuntime_hr = 9.
+    # Recalc inputs
+    primary_sizer.inputs.calcedVariables()
+    # Size the system
+    with pytest.raises(Exception, match="The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low"):
+        primary_sizer.build_size()
+    
 
 # Test the Fetcher
 def test_getLoadshape(fetcher):
@@ -152,23 +166,21 @@ def test_getCDF_array(fetcher, x, s, expected):
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 120),
-    (125, 125),
+    (105, 160),
     (150, 150),
-    (120, 150),
-    (120, 125)
     ])
 @pytest.mark.parametrize("nPercentUseable, nAF", [
-    (.8, .4),
     (1., .8),
-    (.5, .55),
-    (.02, .99),
+    (.5, .8),
+    (.05, .99),
     ])
-@pytest.mark.parametrize('ngpdpp',[(10.),(20.),(40.)])
+@pytest.mark.parametrize('ngpdpp',[(10.),(40.5)])
+@pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
 @pytest.mark.parametrize("LS", [
-   ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ([0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+    ([1]*24),
+    ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
 ])
-def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp,
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp, ncompRuntime_hr,
                               nPercentUseable, nAF, LS):
     # Reset inputs
     primary_sizer.inputs.supplyT_F = nSupplyT
@@ -176,8 +188,8 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ngpdpp,
     primary_sizer.inputs.percentUseable = nPercentUseable
     primary_sizer.inputs.aquaFract = nAF
     primary_sizer.inputs.gpdpp = ngpdpp
-    # Recheck and recalc inputs
-    primary_sizer.inputs.checkInputs()
+    primary_sizer.inputs.compRuntime_hr = ncompRuntime_hr
+    # Recalc inputs
     primary_sizer.inputs.calcedVariables()
     primary_sizer.setLoadShiftforPrimary(LS)
     # Size the system
