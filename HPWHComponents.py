@@ -155,6 +155,7 @@ class PrimarySystem_SP:
 
         # If doing load shift, solve for the runningVol_G and take the larger volume
         LSrunningVol_G = 0
+        
         if self.loadShift:
             LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off)
 
@@ -201,6 +202,9 @@ class PrimarySystem_SP:
             The running volume in gallons
 
         """
+        
+        
+        
         diffN   = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs - np.tile(self.loadShapeNorm,2)
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
@@ -213,7 +217,19 @@ class PrimarySystem_SP:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
         runV_G = runVolTemp * self.totalHWLoad
+        
+        ## load shift CDF adjustment ##
+        import scipy.stats as st
+        
+        # create dataset using mean and std from normalized stream data
+        mean = 0.7052988591269841
+        std = 0.08236427664525116
+        
+        # use z value for exact calculation based on days covered
+        percent_total_vol = mean + std*st.norm.ppf(1-cdf_shift)
 
+        runV_G = runV_G*percent_total_vol
+        
         return runV_G
 
     def __SUPPLYV_TO_STORAGEV(self, vol):
