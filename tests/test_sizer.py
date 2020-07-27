@@ -96,7 +96,7 @@ def test_AF_initialize_error(empty_sizer):
                        0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                        0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                     120, 50, 150., 16., .9, 111, "primary", .9)
-        
+
     with pytest.raises(Exception): # Get get to match text for some weird reason
         empty_sizer.initPrimaryByPeople(100, 22.,  36,
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
@@ -127,7 +127,7 @@ def test_primary_AF_over_1_Error(primary_sizer):
     # Size the system
     with pytest.raises(Exception, match="The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low"):
         primary_sizer.build_size()
-    
+
 
 # Test the Fetcher
 def test_getLoadshape(fetcher):
@@ -139,29 +139,28 @@ def test_getGPDPP(fetcher):
     with pytest.raises(Exception):
         assert fetcher.getGPDPP("wrong")
 def test_getRPepperBR(fetcher):
-    assert fetcher.getRPepperBR("CA") == [1.374, 1.74, 2.567, 3.109, 4.225, 3.769] 
-    assert fetcher.getRPepperBR("ASHSTD") == [1.49, 1.94, 2.39, 2.84, 3.29, 3.74] 
-    assert fetcher.getRPepperBR("ASHLOW") == [1.69, 2.26, 2.83, 3.4, 3.97, 4.54] 
+    assert fetcher.getRPepperBR("CA") == [1.374, 1.74, 2.567, 3.109, 4.225, 3.769]
+    assert fetcher.getRPepperBR("ASHSTD") == [1.49, 1.94, 2.39, 2.84, 3.29, 3.74]
+    assert fetcher.getRPepperBR("ASHLOW") == [1.69, 2.26, 2.83, 3.4, 3.97, 4.54]
     with pytest.raises(Exception):
         assert fetcher.getRPepperBR("wrong")
 
-@pytest.mark.parametrize("x, s, expected", [ 
-    (1,0, 9.367514819547965e-15),
-    (19,0, 0.40480748655575766),
-    (25,0, 0.9859985113759763),
-    (19,19, 3.3521114861106406e-16),
-    (30,5,.9859985113759763),
+@pytest.mark.parametrize("x, expected", [
+    (0.25, 0.6497449987474476),
+    (0.5, 0.7052988591269841),
+    (0.75, 0.7608527195065206),
+    (0.9, 0.8108529268066542),
     ])
-def test_getCDF(fetcher, x, s, expected):
-    assert fetcher.getCDF(x, s) == expected
-    
-@pytest.mark.parametrize("x, s, expected", [
-    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
-    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
-    ])    
-def test_getCDF_array(fetcher, x, s, expected):
-    temp = [round(n, 3) for n in fetcher.getCDF(x, s)]
-    assert temp == expected
+def test_getCDF(fetcher, x, expected):
+    assert fetcher.getCDF(x) == expected
+
+#@pytest.mark.parametrize("x, s, expected", [
+#    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
+#    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
+#    ])
+#def test_getCDF_array(fetcher, x, s, expected):
+#    temp = [round(n, 3) for n in fetcher.getCDF(x, s)]
+#    assert temp == expected
 
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
