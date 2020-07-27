@@ -37,7 +37,7 @@ class PrimarySystem_SP:
     defrostFactor: float
         A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
     swingTankLoad_W : float
-        An addition of extra laod from the distrubution system when using the swing tank. 
+        An addition of extra laod from the distrubution system when using the swing tank.
     PCap_kBTUhr : float
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT : float
@@ -46,7 +46,7 @@ class PrimarySystem_SP:
         Fractional hieght of the aquastat in the tank.
     swingTankLoad_W : float
         Extra load in Watts that is added to the primary system.
-        
+
     """
 
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
@@ -88,7 +88,7 @@ class PrimarySystem_SP:
         Sets the load shifting schedule from input schedule
 
         Parameters
-        ----------            
+        ----------
         schedule : array_like
             List or array of 0's and 1's for don't run and run.
 
@@ -155,7 +155,7 @@ class PrimarySystem_SP:
 
         # If doing load shift, solve for the runningVol_G and take the larger volume
         LSrunningVol_G = 0
-        
+
         if self.loadShift:
             LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off)
 
@@ -177,11 +177,11 @@ class PrimarySystem_SP:
             else:
                 raise ValueError ("The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
-            
+
         # Return the temperature adjusted total volume ########################
         return totalVolMax
 
-    def __calcRunningVol(self, heatHrs, onOffArr):
+    def __calcRunningVol(self, heatHrs, onOffArr, cdf_shift=1):
         """
         Function to find the running volume for the hot water storage tank, which
         is needed for calculating the total volume for primary sizing and in the event of load shift sizing
@@ -198,13 +198,13 @@ class PrimarySystem_SP:
 
         Returns
         -------
-            runV_G : float 
+            runV_G : float
             The running volume in gallons
 
         """
-        
-        
-        
+
+
+
         diffN   = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs - np.tile(self.loadShapeNorm,2)
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
@@ -217,19 +217,17 @@ class PrimarySystem_SP:
                 diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
                 runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
         runV_G = runVolTemp * self.totalHWLoad
-        
-        ## load shift CDF adjustment ##
-        import scipy.stats as st
-        
-        # create dataset using mean and std from normalized stream data
-        mean = 0.7052988591269841
-        std = 0.08236427664525116
-        
-        # use z value for exact calculation based on days covered
-        percent_total_vol = mean + std*st.norm.ppf(1-cdf_shift)
+
+        # adjust for cdf_shift
+        if cdf_shift == 1: # meaing 100% of days covered by load shift
+            percent_total_vol = 1
+        elif cdf_shift == 0: # meaning no days covered by load shift
+            raise Exception("0 percent load shift indicated")
+        else:
+            percent_total_vol = getCDF(cdf_shift)
 
         runV_G = runV_G*percent_total_vol
-        
+
         return runV_G
 
     def __SUPPLYV_TO_STORAGEV(self, vol):
@@ -304,7 +302,7 @@ class PrimarySystem_SP:
 
     def getSizingResults(self):
         """
-        Returns the minimum primary volume and heating capacity sizing results 
+        Returns the minimum primary volume and heating capacity sizing results
 
         Returns
         -------
@@ -355,7 +353,7 @@ class PrimarySystem_SP:
         if not hourly:
             G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
             D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
-            
+
         #Init the "simulation"
         N = len(G_hw)
         V0 = self.__STORAGEV_TO_SUPPLYV(volume) * self.percentUseable
@@ -413,13 +411,13 @@ class ParallelLoopTank:
     TMVol_G_atStorageT
         Volume of parrallel loop tank.
     """
-    
+
     def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
-        
+
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
         self.offTime_hr  = offTime_hr # Hour
@@ -596,7 +594,7 @@ def roundList(a_list, n=3):
 
     Parameters
     ----------
-    a_list : float 
+    a_list : float
         list to round values of.
     n : int
         optional, default = 3. Number of digits to round elements to.
@@ -611,7 +609,7 @@ def roundList(a_list, n=3):
 
 def HRLIST_to_MINLIST(a_list):
     """
-    Repeats each element of a_list 60 times to go from hourly to minute. 
+    Repeats each element of a_list 60 times to go from hourly to minute.
     Still may need other unit conversions to get data from per hour to per minute
 
     Parameters
@@ -621,7 +619,7 @@ def HRLIST_to_MINLIST(a_list):
 
     Returns
     -------
-    out_list : list 
+    out_list : list
         A list in of values per minute created by repeating values per hour 60 times.
 
     """
@@ -633,7 +631,7 @@ def HRLIST_to_MINLIST(a_list):
 
 def mixVolume(vol, hotT, coldT, outT):
     """
-    Adjusts the volume of water such that the hotT water and outT water have the 
+    Adjusts the volume of water such that the hotT water and outT water have the
     same amount of energy, meaning different volumes.
 
     Parameters
@@ -642,9 +640,9 @@ def mixVolume(vol, hotT, coldT, outT):
         The reference volume to convert.
     hotT : float
         The hot water temperature used for mixing.
-    coldT : float 
+    coldT : float
         The cold water tempeature used for mixing.
-    outT : float 
+    outT : float
         The out water temperature from mixing.
 
     Returns
@@ -654,5 +652,5 @@ def mixVolume(vol, hotT, coldT, outT):
 
     """
     fraction = (outT - coldT) / (hotT - coldT)
-    
+
     return vol * fraction
