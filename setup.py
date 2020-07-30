@@ -13,7 +13,7 @@ setup(
     url="https://github.com/EcotopeResearch/HPWHulator",
     description="A public Heat Pump Water Heater (HPWH) sizing calculator that uses the Ecotope Modiefied ASHRAE method and the ASHRAE method.",
 
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=requirements,
 
 )
