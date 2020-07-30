@@ -232,7 +232,7 @@ class HPWHsizer:
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
                     schematic, defrostFactor, singlePass )
 
-    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 10/60, TMRuntime_hr = 0.5 ):
+    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 0.2, TMRuntime_hr = 0.2 ):
     #def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
         """
 
