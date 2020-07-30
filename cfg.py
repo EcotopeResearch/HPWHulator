@@ -9,7 +9,7 @@ W_TO_TONS = 0.000284345
 TONS_TO_KBTUHR = 12.
 
 
-Wapt75 = 1.75
+Wapt75 = 1.75 # Real saftey factor used
 Wapt25 = 0.66
-TMSafetyFactor = 2
+TMSafetyFactor = 1
 compMinimumRunTime = 10./60.

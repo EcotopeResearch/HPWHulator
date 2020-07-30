@@ -72,7 +72,7 @@ class PrimarySystem_SP:
         self.aquaFract          = aquaFract #Fraction
 
         self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
-            (self.storageT_F - self.incomingT_F)
+            (self.storageT_F - self.incomingT_F) # Converts the extra load from the swing tank in Watts to GPH
 
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
@@ -417,23 +417,34 @@ class ParallelLoopTank:
         Sizes the volume in gallons and heat capactiy in kBTU/h
 
         Calculates:
-        TMVol_G
+        ----------
+        TMVol_G : float
             Dedicated loop tank volume.
-        TMCap_kBTUhr
+        TMCap_kBTUhr : float
             Calculated temperature maintenance equipment capacity in kBTU/h.
+        Raises:
+        -------
+        Exceptions : If the system is sized too small and 
         """
 
         # self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
         # self.TMVol_G_atStorageT = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
         #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
 
-        self.TMVol_G_atStorageT =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
+        tempVol_G_atStorageT =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
-        self.TMCap_kBTUhr =   TMSafetyFactor * self.Wapt * self.nApt * W_TO_BTUHR * \
+        tempCap_kBTUhr =   TMSafetyFactor * self.Wapt * self.nApt * W_TO_BTUHR * \
             (1. + self.offTime_hr/self.TMRuntime_hr) / 1000
 
-
+        # Check if the heating capacity is greater than the upper bound of recirc losses.
+        if tempCap_kBTUhr*1000/W_TO_BTUHR > self.Wapt * Wapt75 * self.nApt :
+            self.TMCap_kBTUhr = tempCap_kBTUhr
+            self.TMVol_G_atStorageT = tempVol_G_atStorageT
+        else:
+            raise Exception("The parallel loop tank run time is long relative to the off time and does not meet the safety factor of 1.75."+\
+                            "The run time should be less or equal to: 1.3 x off time.")       
+                            
     def getSizingResults(self):
         """
         Returns sizing results as array
