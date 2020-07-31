@@ -4,8 +4,8 @@
 import os
 
 import json
-#from scipy.stats import lognorm
-import scipy.stats as st
+from scipy.stats import norm #lognorm
+#import scipy.stats as st
 
 class hpwhDataFetch():
 
@@ -31,6 +31,9 @@ class hpwhDataFetch():
     getCDF()
         Calculate fraction of strorage required percentage of load shift days.
 
+    getCAGPDPPDaily()
+        Returns the expected daily gpdpp for every day of the year by bedroom size: studio, 1 bedroom, 2 bedroom, ...
+
     '''
 
     def __init__(self):
@@ -44,11 +47,11 @@ class hpwhDataFetch():
         try:
             return self.dataDict['gpdpp'][key]
         except KeyError:
-            raise KeyError("Mapping key not found for gpdpp, valid keys are ashLow, ashMed, ecoMark, CA")
+            raise KeyError("Mapping key not found for gpdpp, valid keys are: 'ashLow', 'ashMed', or 'ecoMark', for California data see the function getCAGPDPPYearly()")
 
     def getRPepperBR(self, key):
         try:
-            return self.dataDict['rpeople'][key]
+            return self.dataDict['rpeople'][key.upper()]
         except KeyError:
             raise KeyError("Mapping key not found for ratio of people per bedroom, valid keys are CA, ASHSTD, ASHLOW")
 
@@ -59,6 +62,13 @@ class hpwhDataFetch():
         norm_std = params[1] # standard deviation of normalized stream data
 
         # calculate fraction of strorage required to meet load shift days
-        storage_fract = norm_mean + norm_std*st.norm.ppf(cdf_shift)
+        storage_fract = norm_mean + norm_std*norm.ppf(cdf_shift)
 
         return(storage_fract)
+
+    def getCAGPDPPYearly(self, nBR_key):
+        try:
+            return self.dataDict['ca_gpdpp'][nBR_key.lower()]
+        except KeyError:
+            err_msg = "Mapping key " + nBR_key +" not found for CA gpdpp, valid keys are '0br', '1br', '2br','3br','4br','5br'"
+            raise KeyError(err_msg)

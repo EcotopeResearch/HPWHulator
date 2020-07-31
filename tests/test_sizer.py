@@ -162,6 +162,27 @@ def test_getCDF(fetcher, x, expected):
 #    temp = [round(n, 3) for n in fetcher.getCDF(x, s)]
 #    assert temp == expected
 
+# Test on the loadgpdpp function utilizing fetcher check it throws errors
+def test_loadgpdpp_errs():
+    with pytest.raises(Exception):
+        assert HPWHsizer.loadgpdpp('CA')
+    with pytest.raises(Exception):
+        assert HPWHsizer.loadgpdpp('CA',1)
+    with pytest.raises(Exception):
+        assert HPWHsizer.loadgpdpp('CA',[12,12,12,12])
+        
+# Test on the loadgpdpp function utilizing fetcher it operates as expected        
+@pytest.mark.parametrize("x, nBR, expected", [
+    (30 , 0, 30),
+    ("ashLow", 0, 20),
+    ("CA", [50, 50, 0, 0, 0, 0], 31),
+    ("CA", [6, 12, 12, 6, 0, 0], 26),
+    ("CA", [10, 10, 10, 10, 10, 10], 24),
+    ])
+def test_loadgpdpp(x, nBR, expected):
+    assert HPWHsizer.loadgpdpp(x,nBR) == expected
+    
+
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 120),

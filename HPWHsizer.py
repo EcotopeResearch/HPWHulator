@@ -644,18 +644,27 @@ class HPWHsizerRead:
                     schematic, defrostFactor, singlePass = True):
 
         self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
-        self.rBR            = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
-        self.gpdpp_BR       = np.array(gpdpp_BR) # Gallons per day per person by bedrooms
-
-        # rBR have been coeerced to np.arrays so check these for string inputs
-        if self.rBR.dtype.type is np.str_: # if the input here is a string get the loadshape.
-            self.rBR = self.hpwhData.getLoadshape()
-
-        gpdpp_BR =  self.__loadgpdpp(gpdpp_BR)
-
+        # Calc the number of apartments
         nApt = sum(self.nBR)
-        nPeople = sum(self.nBR * self.rBR)
-        gpdpp = sum(self.gpdpp_BR * self.nBR * self.rBR) / nPeople
+
+
+        # Check if rBR is a string input
+        if type(rBR) is str: # if the input here is a string get the loadshape.
+            self.rBR = self.hpwhData.getRPepperBR(rBR)
+        else:
+            self.rBR = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
+        #Now get the number of people
+        nPeople = sum(self.nBR * self.rBR) 
+
+
+        # Check if gpdpp_BR is a string input and get the gpdpp 
+        if type(gpdpp_BR) is str: # if the input here is a string get the loadshape.
+            self.gpdpp_BR = loadgpdpp(gpdpp_BR, self.nBR)
+            gpdpp = self.gpdpp_BR
+        else:
+           self.gpdpp_BR = np.array(gpdpp_BR) # Gallons per day per person by bedrooms
+           gpdpp = sum(self.gpdpp_BR * self.nBR * self.rBR) / nPeople
+
 
         self.initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable,  aquaFract,
@@ -670,7 +679,8 @@ class HPWHsizerRead:
         # loadShapeNorm have been coeerced to np.arrays so check these for string inputs
         if loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
             loadShapeNorm = self.hpwhData.getLoadshape()
-        gpdpp =  self.__loadgpdpp(gpdpp)
+            
+        gpdpp =  loadgpdpp(gpdpp)
 
         self.checkInputs(gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable,  aquaFract,
@@ -726,17 +736,6 @@ class HPWHsizerRead:
                 self.TMonTemp_F       = TMonTemp_F
                 self.offTime_hr       = offTime_hr
                 self.TMRuntime_hr     = TMRuntime_hr
-
-
-    def __loadgpdpp(self, gpdpp):
-        """
-        Loads data for the gpdpp inputs if it is of string types
-		"""
-        # Check if gpdpp is a string and look up by key
-        if isinstance(gpdpp, str): # if the input here is a string get the get the gpdpp.
-            gpdpp = self.hpwhData.getGPDPP(gpdpp)[0]
-
-        return gpdpp
 
 
     def setLoadShift(self, ls_arr, cdf_shift):
@@ -940,3 +939,51 @@ class writeClassAtts:
     def writeLine(self, text):
         with open(self.fileName, 'a') as file1:
              file1.write(text + '\n')
+
+
+
+##############################################################################
+
+def loadgpdpp( gpdpp, nBR = None):
+    """
+    Loads data for the gpdpp inputs if it is of string type, but passes gpdpp thorugh if it's not string and is just a number. 
+    Valid string keys are 'ashLow', 'ashMed', or 'ecoMark', and for the advanced processing of the California data 
+    use "CA". If using the "CA" option the number of units by bedrooms (nBR) is needed. The CA data has assumtions about the ratio of people per unit size.
+	        
+    Attributes
+    ----------
+        gpdpp : float/ string
+            The gallons per day per person value or a string key to lookup, valid keys are: 'ashLow', 'ashMed', or 'ecoMark', and "CA"
+        nBR : list
+            List of the number of units by bedroom size for 0 bedroom units (studios) to 5+ bedroom units, for example: [ 0, 12, 12, 12, 0, 0]
+
+    Raises
+    ----------
+    Exception : 
+        If asking for the "CA" option and the number of units by bedroom size and number of people aren't defined 
+
+    """
+    # Check if gpdpp is a string and look up by key
+    if isinstance(gpdpp, str): # if the input here is a string get the get the gpdpp
+        hpwhData = hpwhDataFetch()
+
+        if gpdpp.lower() == "ca" :
+            if nBR is None or sum(nBR) == 0 or not isinstance(nBR,list):
+                raise Exception("Cannot get the gpdpp for the CA data set without knowning the number of units by bedroom size for 0 BR (studios) through 5+ BR, the list must be of length 6 in that order.")
+            if len(nBR) != 6:
+                raise Exception("Cannot get the gpdpp for the CA data set without knowning the number of units by bedroom size for 0 BR (studios) through 5+ BR, the list must be of length 6 in that order.")
+
+            # Count up the gpdpp for each bedroom type 
+            daily_totals = np.zeros(365)
+            for ii in range(0,6):
+                daily_totals += nBR[ii] * np.array(hpwhData.getCAGPDPPYearly(str(ii) + "br")) # daily totals is gpdpp * bedroom
+                
+            # Get the 98th percentile day divide by the number of people rounded up to an integer. 
+            gpdpp = np.ceil(np.percentile(daily_totals,98)/ sum(nBR))
+            
+        # Else look up by normal key function
+        else:
+            gpdpp = hpwhData.getGPDPP(gpdpp)[0]
+
+    return gpdpp
+
