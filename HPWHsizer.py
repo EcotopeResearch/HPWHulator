@@ -232,7 +232,7 @@ class HPWHsizer:
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
                     schematic, defrostFactor, singlePass )
 
-    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 0.2, TMRuntime_hr = 0.2 ):
+    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 0.333, TMRuntime_hr = 0.333 ):
     #def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
         """
 
@@ -378,7 +378,7 @@ class HPWHsizer:
         Returns
         -------
         list
-            [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G_atStorageT, TMCap_kBTUhr]
+            [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G, TMCap_kBTUhr]
         """
         self.buildSystem()
         return self.sizeSystem()
@@ -419,12 +419,6 @@ class HPWHsizer:
 
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
 
-        [x_data, y_data] = self.primarySystem.primaryCurve()
-        fig.add_trace(Scatter(x=x_data, y=y_data,
-                              mode='lines', name='Primary Sizing Curve',
-                              hovertemplate = hovertext,
-                              opacity=0.8, marker_color='green'))
-
         [x_ash, y_ash] = self.ashraeSize.primaryCurve()
         fig.add_trace(Scatter(x=x_ash[:-1], y=y_ash[:-1], #Drops the last point
                               mode='lines', name='ASHRAE Sizing Curve',
@@ -437,14 +431,25 @@ class HPWHsizer:
         #               hovertemplate = hovertext,
         #               name='ASHRAE Low Curve' ))
 
+        [x_data, y_data] = self.primarySystem.primaryCurve()
+        fig.add_trace(Scatter(x=x_data, y=y_data,
+                              mode='lines', name='Primary Sizing Curve',
+                              hovertemplate = hovertext,
+                              opacity=0.8, marker_color='green'))
 
-        fig.add_trace(Scatter(x=(0,max(x_data[-1],x_ash[-2])),
+        fig.add_trace(Scatter(x=(0,max(x_data[-1],x_ash[-2], x_data[0])),
                               y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
                               mode='lines', name='Minimum Size',
                               opacity=0.8, marker_color='grey'))
 
+        fig.add_trace(Scatter(x=[self.primarySystem.PVol_G_atStorageT],
+                              y=[self.primarySystem.PCap_kBTUhr],
+                              mode='markers', marker_symbol="diamond",marker_size=10,
+                              name='System Size',
+                              opacity=0.8, marker_color='blue'))
+
         fig.update_layout(title="Primary Sizing Curve",
-                          xaxis_title="Primary Tank Volume (Gallons)",
+                          xaxis_title="Primary Tank Volume (Gallons) at Storage Temperature",
                           yaxis_title="Primary Heating Capacity (kBTU/hr)")
 
         if return_as_div:
@@ -540,7 +545,6 @@ class HPWHsizer:
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
 
         [x_data, y_data] = self.tempmaintSystem.tempMaintCurve()
-        [x_data2, y_data2] = self.tempmaintSystem.tempMaintCurve(2 * compMinimumRunTime)
 
         fig.add_trace(Scatter(x=x_data, y=y_data,
                               mode='lines', name='Maximum Capacity',
@@ -555,11 +559,11 @@ class HPWHsizer:
                               fill='tonexty' # fill area between trace0 and trace1
                               ))
 
-        fig.add_trace(Scatter(x=x_data2, y=y_data2,
-                              mode='lines', name='Recommended Curve',
-                              hovertemplate = hovertext,
-                              opacity=0.8, marker_color='green'))
-
+        fig.add_trace(Scatter(x=[self.tempmaintSystem.TMVol_G],
+                              y=[self.tempmaintSystem.TMCap_kBTUhr],
+                              mode='markers', marker_symbol="diamond",marker_size=10,
+                              name='System Size',
+                              opacity=0.8, marker_color='blue'))
 
         fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (compMinimumRunTime*60),
                           xaxis_title="Parallel Loop Tank Volume (Gallons)",
