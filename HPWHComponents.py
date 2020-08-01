@@ -5,7 +5,7 @@ HPWHComponents
 """
 import numpy as np
 from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, compMinimumRunTime
-
+from dataFetch import hpwhDataFetch
 
 ##############################################################################
 ## Components of a HPWH system given below:
@@ -224,7 +224,7 @@ class PrimarySystem_SP:
         elif cdf_shift == 0: # meaning no days covered by load shift
             raise Exception("0 percent load shift indicated")
         else:
-            percent_total_vol = getCDF(cdf_shift)
+            percent_total_vol = hpwhDataFetch.getCDF(cdf_shift)
 
         runV_G = runV_G*percent_total_vol
 
@@ -280,7 +280,7 @@ class PrimarySystem_SP:
         """
 
         maxHeatHours = 1/(max(self.loadShapeNorm) - self.extraLoad_GPH/self.totalHWLoad)*1.001
-        heatHours = np.linspace(self.compRuntime_hr, maxHeatHours,30)
+        heatHours = np.linspace(24, maxHeatHours,30)
         volN = np.zeros(len(heatHours))
         for ii in range(0,len(heatHours)):
             try:
@@ -354,7 +354,7 @@ class PrimarySystem_SP:
             G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
             D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
 
-        #Init the "simulation"
+        # Init the "simulation"
         N = len(G_hw)
         V0 = self.__STORAGEV_TO_SUPPLYV(volume) * self.percentUseable
         Vtrig = self.__STORAGEV_TO_SUPPLYV(volume) * (1 - self.aquaFract)
@@ -362,7 +362,7 @@ class PrimarySystem_SP:
         V = [V0] + [0] * (N - 1)
         heating = False
 
-        #Run the "simulation"
+        # Run the "simulation"
         for ii in range(1,N):
 
             if heating:
@@ -424,7 +424,7 @@ class ParallelLoopTank:
         self.TMRuntime_hr  = TMRuntime_hr # Hour
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
-        self.TMVol_G_atStorageT = 0 # Gallons
+        self.TMVol_G = 0 # Gallons
 
     def sizeVol_Cap(self):
         """
@@ -442,10 +442,10 @@ class ParallelLoopTank:
         """
 
         # self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
-        # self.TMVol_G_atStorageT = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
+        # self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
         #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
 
-        tempVol_G_atStorageT =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
+        TMVol_G =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
         tempCap_kBTUhr =   TMSafetyFactor * self.Wapt * self.nApt * W_TO_BTUHR * \
@@ -454,7 +454,7 @@ class ParallelLoopTank:
         # Check if the heating capacity is greater than the upper bound of recirc losses.
         if tempCap_kBTUhr*1000/W_TO_BTUHR > self.Wapt * Wapt75 * self.nApt :
             self.TMCap_kBTUhr = tempCap_kBTUhr
-            self.TMVol_G_atStorageT = tempVol_G_atStorageT
+            self.TMVol_G = TMVol_G
         else:
             raise Exception("The parallel loop tank run time is long relative to the off time and does not meet the safety factor of 1.75."+\
                             "The run time should be less or equal to: 1.3 x off time.")       
@@ -468,7 +468,7 @@ class ParallelLoopTank:
         list
             self.TMVol_G, self.TMCap_kBTUhr
         """
-        return [ self.TMVol_G_atStorageT, self.TMCap_kBTUhr ]
+        return [ self.TMVol_G, self.TMCap_kBTUhr ]
 
     def tempMaintCurve(self, runtime = compMinimumRunTime):
         """
@@ -480,7 +480,7 @@ class ParallelLoopTank:
             volN_G, capacity
         """
 
-        volN_G = np.linspace(self.TMVol_G_atStorageT , 1000, 50)
+        volN_G = np.linspace(0 , round(self.TMVol_G*4/100)*100, 100)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
                     self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR
         capacity /= 1000.
