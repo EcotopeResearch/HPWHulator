@@ -175,7 +175,7 @@ class ASHRAEsizer:
         accurateRecoveryTons = 60 * rhoCp * self.nPeople * \
                         (diffPeakFlowTable[:len(diffPeakFlowTable),1]) /  \
                         (diffPeakFlowTable[:len(diffPeakFlowTable),0]) *  \
-                        (self.storageT_F - self.incomingT_F) / self.defrostFactor / 12000
+                        (self.supplyT_F - self.incomingT_F) / self.defrostFactor / 12000
              
         return [primaryVol, accurateRecoveryTons]
         
