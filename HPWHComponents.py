@@ -131,7 +131,7 @@ class PrimarySystem_SP:
         """
         self._checkHeatHours(heathours)
         heatCap = (self.totalHWLoad + 24*self.extraLoad_GPH) / heathours * rhoCp * \
-            (self.storageT_F - self.incomingT_F) / self.defrostFactor /1000.
+            (self.supplyT_F - self.incomingT_F) / self.defrostFactor /1000.
         return heatCap
 
     def sizePrimaryTankVolume(self, heatHrs):
@@ -165,6 +165,7 @@ class PrimarySystem_SP:
         # If the swing tank is not being used
         if self.extraLoad_GPH == 0:
             totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
+        else self.
 
         # Check the Cycling Volume ##############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
