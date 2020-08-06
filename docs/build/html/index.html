@@ -150,6 +150,517 @@
 <h1>Heat Pump Water Heater Sizer, Documentation<a class="headerlink" href="#heat-pump-water-heater-sizer-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<span class="target" id="module-HPWHsizer"></span><dl class="class">
+<dt id="HPWHsizer.HPWHsizer">
+<em class="property">class </em><code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">HPWHsizer</code><a class="headerlink" href="#HPWHsizer.HPWHsizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>The main class to organize a primary and temperature maintenance HPWH system and size it using the Ecotope Modified ASHRAE Method.</p>
+<p>The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to pass the variables
+to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs by checking the variables and calculates extra variables. The
+loadshift array is also defined and check with setLoadShiftforPrimary(). The system is sized with the function build_size(), and further
+information is availalbe by pulling the size following the ASHRAE “more accurate” method with getASHRAEResult(). Plots for the sizing curves
+can be pulled from the sized system with plotSizingCurve(). Additionally, a plot simulating the design day can be created with plotPrimaryStorageLoadSim().</p>
+<p class="rubric">Examples</p>
+<p>Example 1:
+An example usage to find the recommended size is:</p>
+<p>To inialize the system:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">HPWHsizer</span> <span class="kn">import</span> <span class="n">HPWHsizer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span> <span class="o">=</span> <span class="n">HPWHsizer</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initPrimaryByPeople</span><span class="p">(</span><span class="n">nPeople</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<span class="go">                             nApt = 36,</span>
+<span class="go">                             gpdpp = 22.,</span>
+<span class="go">                             loadShapeNorm = &quot;stream&quot;,</span>
+<span class="go">                             supplyT_F = 120,</span>
+<span class="go">                             incomingT_F = 50,</span>
+<span class="go">                             storageT_F = 150.,</span>
+<span class="go">                             compRuntime_hr = 16.,</span>
+<span class="go">                             percentUseable = .9,</span>
+<span class="go">                             aquaFract = 0.4,</span>
+<span class="go">                             schematic = &quot;paralleltank&quot;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initTempMaint</span><span class="p">(</span><span class="n">Wapt</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<span class="go">                       setpointTM_F = 135,</span>
+<span class="go">                       TMonTemp_F = 125)</span>
+</pre></div>
+</div>
+<p>And then in order to find proper for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">build_size</span><span class="p">()</span>
+<span class="go">[346.1021666666667, 114.86110625, 48.15823981105004, 32.244741899999994]</span>
+</pre></div>
+</div>
+<p>To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">hpwh</span><span class="o">.</span><span class="n">plotSizingCurve</span><span class="p">(</span><span class="n">return_as_div</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>And to see the how the system performs in a simple simulation:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">hpwh</span><span class="o">.</span><span class="n">plotPrimaryStorageLoadSim</span><span class="p">(</span><span class="n">return_as_div</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Plotly figures can also be saved as html with write_html():</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">write_html</span><span class="p">(</span><span class="s2">&quot;output.html&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Example 2:</p>
+<p>If a user wants to align their sizing with the CA Title24 software use the initPrimaryByUnits() function follow:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">HPWHsizer</span> <span class="kn">import</span> <span class="n">HPWHsizer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span> <span class="o">=</span> <span class="n">HPWHsizer</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initPrimaryByUnits</span><span class="p">(</span><span class="n">nBR</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+<span class="go">                            rBR = &quot;CA&quot;,</span>
+<span class="go">                            gpdpp_BR = &quot;CA&quot;,</span>
+<span class="go">                            loadShapeNorm = &quot;stream&quot;,</span>
+<span class="go">                            supplyT_F = 125,</span>
+<span class="go">                            incomingT_F = 50,</span>
+<span class="go">                            storageT_F= 150.,</span>
+<span class="go">                            compRuntime_hr = 16.,</span>
+<span class="go">                            percentUseable = .8,</span>
+<span class="go">                            aquaFract = 0.4,</span>
+<span class="go">                            schematic = &quot;swingtank&quot;)</span>
+</pre></div>
+</div>
+<p>Which will use the California occupancy ratios and the California daily hot water draws. Then create the temperature maintenance load with:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initTempMaint</span><span class="p">(</span> <span class="n">Wapt</span> <span class="o">=</span> <span class="mi">100</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>Construct the system by building the connections between the components and size it. To find proper sizing for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">build_size</span><span class="p">()</span>
+<span class="go">[275.08088575585305, 87.32317975282498, &#39;80&#39;, 21.4964946]</span>
+</pre></div>
+</div>
+<p>To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">hpwh</span><span class="o">.</span><span class="n">plotSizingCurve</span><span class="p">(</span><span class="n">return_as_div</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Unfortunately the simulation of the primary system is yet built out for the swing tank.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>validbuild</strong><span class="classifier">boolean</span></dt><dd><p>Initialized as false, is true if the system is created susccesfully on a call to buildSystem()</p>
+</dd>
+<dt><strong>systemSized</strong><span class="classifier">boolean</span></dt><dd><p>Initialized as false, is true if the system is successfully sized.</p>
+</dd>
+<dt><strong>doLoadShift</strong><span class="classifier">boolean</span></dt><dd><p>Set to true if doing loadshift with a call to setLoadShiftforPrimary()</p>
+</dd>
+<dt><strong>inputs</strong><span class="classifier">HPWHsizerRead()</span></dt><dd><p>The input handler that checks for valid inputs</p>
+</dd>
+<dt><strong>primarySystem</strong><span class="classifier">PrimarySystem_SP</span></dt><dd><p>The primary component of the HPWH system of class PrimarySystem_SP</p>
+</dd>
+<dt><strong>tempmaintSystem</strong><span class="classifier">ParallelLoopTank/SwingTank</span></dt><dd><p>The temperature maintenance component of the HPWH system of class ParallelLoopTank or SwingTank</p>
+</dd>
+<dt><strong>ashraeSize</strong><span class="classifier">ASHRAEsizer</span></dt><dd><p>The primary component of the HPWH system, which is sized using the ASHRAE method of class ASHRAEsizer</p>
+</dd>
+<dt><strong>swingTankLoad_W</strong><span class="classifier">float</span></dt><dd><p>The fraction of the distrubution losses that the primary HPWH has to cover when using a swing tank schematic.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 80%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>initializeFromFile(fileName)</strong></p></td>
+<td><p>Function to initialize a HPWHsystem from a file.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,</strong></p></td>
+<td><p>storageT_F, compRuntime_hr, percentUseable, aquaFract, schematic, defrostFactor=1, singlePass=True) Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment. This is what users should use to align with CA Title24, see example 2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,</strong></p></td>
+<td><p>storageT_F, compRuntime_hr, percentUseable,  aquaFract, schematic, defrostFactor = 1, singlePass=True) Function to initialize the primary component of a HPWH system from the list of inputs using the full number of people and apartments.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>initTempMaint( Wapt, setpointTM_F = 135, TMonTemp_F = 0 )</strong></p></td>
+<td><p>Function to initialize the temperature maintenence component of a HPWH system from the list of inputs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>setLoadShiftforPrimary(ls_arr)</strong></p></td>
+<td><p>Adds a specified load shifting scenario to the HPWH system.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>buildSystem()</strong></p></td>
+<td><p>Organizes the HPWH system inputs around the schematic to put together the primary and temperature maintenance system</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>sizeSystem()</strong></p></td>
+<td><p>Sizes the built HPWH system and returns the minimum sizing results, volume and capacity for the primary and temperature maintence systems</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>build_size()</strong></p></td>
+<td><p>Builds and sizes the system.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>getASHRAEResult()</strong></p></td>
+<td><p>Returns just the minimum result for the primary component of the HPWH system from the sized system following the “more accurate” method from ASHRAE</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>plotSizingCurve( return_as_div = True)</strong></p></td>
+<td><p>Returns the primary sizing curve, storage volume vs. heating capacity for the</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>plotPrimaryStorageLoadSim(return_as_div = True, hourly = True)</strong></p></td>
+<td><p>Runs and returns a plot for the primary system simulating storage volume with HPWH heating agains the design load shape</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>writeToFile(fileName)</strong></p></td>
+<td><p>Writes the results of sizing the primary and temperature maintenance systems to a file.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.buildSystem">
+<code class="sig-name descname">buildSystem</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.buildSystem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a single pass centralized HPWH plant. Organizes the inputs to the relevant classes and passes important constants between the classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Exception: If schematic is trim tank throws erros</dt><dd><p>Exception: If am invalid schematic string is passed here throws error
+Exception: If trying to use multipass heat pumps for the primary system throws erros
+Exception: If the system does not build correctly.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.build_size">
+<code class="sig-name descname">build_size</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.build_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>One function to build and size the HPWH system after initalization, that returns minimum results
+:returns: [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G, TMCap_kBTUhr]
+:rtype: list</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.getASHRAEResult">
+<code class="sig-name descname">getASHRAEResult</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.getASHRAEResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the results from the system using the “more accurate method” from ASHRAE after building the system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>list</dt><dd><p>[PVol_G_atStorageT, PCap_kBTUhr]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.initPrimaryByPeople">
+<code class="sig-name descname">initPrimaryByPeople</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">nPeople</em>, <em class="sig-param">nApt</em>, <em class="sig-param">gpdpp</em>, <em class="sig-param">loadShapeNorm</em>, <em class="sig-param">supplyT_F</em>, <em class="sig-param">incomingT_F</em>, <em class="sig-param">storageT_F</em>, <em class="sig-param">compRuntime_hr</em>, <em class="sig-param">percentUseable</em>, <em class="sig-param">aquaFract</em>, <em class="sig-param">schematic</em>, <em class="sig-param">defrostFactor=1</em>, <em class="sig-param">singlePass=True</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.initPrimaryByPeople" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the primary system by the number of total units and number of total people</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nPeople</strong><span class="classifier">flaot</span></dt><dd><p>The estimated total number of people that will occupy the building</p>
+</dd>
+<dt><strong>nApt</strong><span class="classifier">flaot</span></dt><dd><p>The total number of apartment units in the project</p>
+</dd>
+<dt><strong>gpdpp</strong><span class="classifier">flaot</span></dt><dd><p>The design gallons per day per person at  120°F, or can be given as a string key to lookup values from ASHRAE low or medium or Ecotope design value</p>
+</dd>
+<dt><strong>loadShapeNorm</strong><span class="classifier">array_like or str</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load. If string will lookup the loadshape data</p>
+</dd>
+<dt><strong>incomingT_F</strong><span class="classifier">float</span></dt><dd><p>Incoming city water temperature (design temperature in winter). [°F]</p>
+</dd>
+<dt><strong>storageT_F: float</strong></dt><dd><p>Storage temperature of the primary hot water storage tanks. [°F]</p>
+</dd>
+<dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
+</dd>
+<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+</dd>
+<dt><strong>compRuntime_hr</strong><span class="classifier">float</span></dt><dd><p>Hour per day central heat pump equipment can run, duty cycle [hrs/day]</p>
+</dd>
+<dt><strong>percentUseable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+</dd>
+<dt><strong>defrostFactor</strong><span class="classifier">float</span></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.</p>
+</dd>
+<dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.</p>
+</dd>
+<dt><strong>schematic</strong><span class="classifier">float</span></dt><dd><p>The schemaitc used, options are “primary”, “paralleltank”, or “swingtank”</p>
+</dd>
+<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.</p>
+</dd>
+<dt><strong>singlePass</strong><span class="classifier">float</span></dt><dd><p>Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.initPrimaryByUnits">
+<code class="sig-name descname">initPrimaryByUnits</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">nBR</em>, <em class="sig-param">rBR</em>, <em class="sig-param">gpdpp_BR</em>, <em class="sig-param">loadShapeNorm</em>, <em class="sig-param">supplyT_F</em>, <em class="sig-param">incomingT_F</em>, <em class="sig-param">storageT_F</em>, <em class="sig-param">compRuntime_hr</em>, <em class="sig-param">percentUseable</em>, <em class="sig-param">aquaFract</em>, <em class="sig-param">schematic</em>, <em class="sig-param">defrostFactor=1</em>, <em class="sig-param">singlePass=True</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.initPrimaryByUnits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the primary system by the number of units by number of bedrooms and number of people per unit.
+If aligning the sizing requriements with CA this is the method that should be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nBR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the number of units by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units.</p>
+</dd>
+<dt><strong>rBR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the average number people in each unit by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units.</p>
+</dd>
+<dt><strong>gpdpp_BR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the design gallons used per unit by each unit by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units. .</p>
+</dd>
+<dt><strong>loadShapeNorm</strong><span class="classifier">array_like or str</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load. If string will lookup the loadshape data</p>
+</dd>
+<dt><strong>incomingT_F</strong><span class="classifier">float</span></dt><dd><p>Incoming city water temperature (design temperature in winter). [°F]</p>
+</dd>
+<dt><strong>storageT_F: float</strong></dt><dd><p>Storage temperature of the primary hot water storage tanks. [°F]</p>
+</dd>
+<dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
+</dd>
+<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+</dd>
+<dt><strong>compRuntime_hr</strong><span class="classifier">float</span></dt><dd><p>Hour per day central heat pump equipment can run, duty cycle [hrs/day]</p>
+</dd>
+<dt><strong>percentUseable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+</dd>
+<dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.</p>
+</dd>
+<dt><strong>schematic</strong><span class="classifier">float</span></dt><dd><p>The schemaitc used, options are “primary”, “paralleltank”, or “swingtank”</p>
+</dd>
+<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.</p>
+</dd>
+<dt><strong>singlePass</strong><span class="classifier">float</span></dt><dd><p>Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.initTempMaint">
+<code class="sig-name descname">initTempMaint</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">Wapt</em>, <em class="sig-param">setpointTM_F=130</em>, <em class="sig-param">TMonTemp_F=120</em>, <em class="sig-param">offTime_hr=0.333</em>, <em class="sig-param">TMRuntime_hr=0.333</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.initTempMaint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the temperature maintanence system after the primary system
+with either “swingtank” or “paralleltank”. Recommend to leave offtime_hr
+and TMRuntime_hr as defaulted, since they’re setup for a minimum runtime of
+10 minutes at the lower end of the design criteria for loop losses.</p>
+<dl class="field-list">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Exception: Error if primary system hasn’t been sized yet.</dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl>
+<dt><strong>Wapt</strong><span class="classifier">float</span></dt><dd><blockquote>
+<div><p>The recicuplation loop losses in terms of Watts per apartment.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>setpointTM_F<span class="classifier">float</span></dt><dd><p>The setpoint of the temprature maintence tank. Defaults to 130 °F.</p>
+</dd>
+<dt>TMonTemp_F :float</dt><dd><p>The temperature where parallel loop tank will turn on. Defaults to 120 °F.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.initializeFromFile">
+<code class="sig-name descname">initializeFromFile</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.initializeFromFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initilizes a system from a file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fileName</strong><span class="classifier">str</span></dt><dd><p>Name of file to open. File should have lines for each variable with format:                 &lt;name of variable&gt; &lt;value&gt; i.e. compRuntime_hr 16, or for list: nBR 10 10 10 0 0</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.plotParallelTankCurve">
+<code class="sig-name descname">plotParallelTankCurve</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">return_as_div=True</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.plotParallelTankCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a plot of the sizing curve as a div or a plotly figure</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return_as_div</strong></dt><dd><p>A logical on the output, as a div (true) or as a figure (false)</p>
+</dd>
+<dt><strong>Returns</strong></dt><dd></dd>
+<dt><strong>——-</strong></dt><dd></dd>
+<dt><strong>div/fig</strong></dt><dd><p>plot_div</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.plotPrimaryStorageLoadSim">
+<code class="sig-name descname">plotPrimaryStorageLoadSim</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">return_as_div=True</em>, <em class="sig-param">hourly=False</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.plotPrimaryStorageLoadSim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the hourly or minute level simulation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return_as_div</strong></dt><dd><p>A logical on the output, as a div (true) or as a figure (false)</p>
+</dd>
+<dt><strong>Returns</strong></dt><dd></dd>
+<dt><strong>——-</strong></dt><dd></dd>
+<dt><strong>div/fig</strong></dt><dd><p>plot_div</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.plotSizingCurve">
+<code class="sig-name descname">plotSizingCurve</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">return_as_div=True</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.plotSizingCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a plot of the sizing curve as a div or as a plotly fig</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>return_as_div</strong></dt><dd><p>A logical on the output, as a div (true) or as a figure (false)</p>
+</dd>
+<dt><strong>Returns</strong></dt><dd></dd>
+<dt><strong>——-</strong></dt><dd></dd>
+<dt><strong>div/fig</strong></dt><dd><p>plot_div</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.setLoadShiftforPrimary">
+<code class="sig-name descname">setLoadShiftforPrimary</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">ls_arr</em>, <em class="sig-param">cdf_shift=1</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.setLoadShiftforPrimary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the load shift to user defined list of 0s of false for force HPWH not to run, and 1s or true for run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>ls_arr</strong><span class="classifier">array_like</span></dt><dd><p>Array of zeros and ones of length 24 for each hour of the day to define when HPWH’s are allowed to run during a day for load shift.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizer.sizeSystem">
+<code class="sig-name descname">sizeSystem</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.sizeSystem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sizes the system after building with buildSystem()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>list</dt><dd><p>[PVol_G_atStorageT, PCap_kBTUhr, TMVol_G_atStorageT, TMCap_kBTUhr]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HPWHsizer.HPWHsizerRead">
+<em class="property">class </em><code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">HPWHsizerRead</code><a class="headerlink" href="#HPWHsizer.HPWHsizerRead" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for gathering hpwh sizing inputs and checking them. Will gather inputs by manual entry or from a file. A pulls data from string inputs.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.calcedVariables" title="HPWHsizer.HPWHsizerRead.calcedVariables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calcedVariables</span></code></a>(self)</p></td>
+<td><p>Calculate other variables needed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.checkInputs" title="HPWHsizer.HPWHsizerRead.checkInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkInputs</span></code></a>(self, gpdpp, loadShapeNorm, …)</p></td>
+<td><p>Checks inputs are all valid</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.initTempMaintInputs" title="HPWHsizer.HPWHsizerRead.initTempMaintInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initTempMaintInputs</span></code></a>(self, Wapt[, …])</p></td>
+<td><p>Assign temperature maintenance variables with either “swingtank” or “paralleltank”</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.initializeFromFile" title="HPWHsizer.HPWHsizerRead.initializeFromFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initializeFromFile</span></code></a>(self, fileName)</p></td>
+<td><p>“Read in a formated file with filename</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.setLoadShift" title="HPWHsizer.HPWHsizerRead.setLoadShift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setLoadShift</span></code></a>(self, ls_arr, cdf_shift)</p></td>
+<td><p>Checks and initilize the load shift variable.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 70%" />
+<col style="width: 30%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>initPrimaryByPeople</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>initPrimaryByUnits</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizerRead.calcedVariables">
+<code class="sig-name descname">calcedVariables</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.calcedVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate other variables needed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizerRead.checkInputs">
+<code class="sig-name descname">checkInputs</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">gpdpp</em>, <em class="sig-param">loadShapeNorm</em>, <em class="sig-param">supplyT_F</em>, <em class="sig-param">incomingT_F</em>, <em class="sig-param">storageT_F</em>, <em class="sig-param">compRuntime_hr</em>, <em class="sig-param">percentUseable</em>, <em class="sig-param">aquaFract</em>, <em class="sig-param">schematic</em>, <em class="sig-param">defrostFactor</em>, <em class="sig-param">singlePass</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.checkInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks inputs are all valid</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizerRead.initTempMaintInputs">
+<code class="sig-name descname">initTempMaintInputs</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">Wapt</em>, <em class="sig-param">setpointTM_F=0</em>, <em class="sig-param">TMonTemp_F=0</em>, <em class="sig-param">offTime_hr=0</em>, <em class="sig-param">TMRuntime_hr=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.initTempMaintInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign temperature maintenance variables with either “swingtank” or “paralleltank”</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizerRead.initializeFromFile">
+<code class="sig-name descname">initializeFromFile</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.initializeFromFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Read in a formated file with filename</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HPWHsizer.HPWHsizerRead.setLoadShift">
+<code class="sig-name descname">setLoadShift</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">ls_arr</em>, <em class="sig-param">cdf_shift</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.setLoadShift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks and initilize the load shift variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ls_arr</strong> (<em>TYPE</em>) – array of 0’s and 1’s or Boolean where 1 or True is .</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>Exception</strong> – Loadshift input array not on length 24.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="HPWHsizer.loadgpdpp">
+<code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">loadgpdpp</code><span class="sig-paren">(</span><em class="sig-param">gpdpp</em>, <em class="sig-param">nBR=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.loadgpdpp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads data for the gpdpp inputs if it is of string type, but passes gpdpp thorugh if it’s not string and is just a number.
+Valid string keys are ‘ashLow’, ‘ashMed’, or ‘ecoMark’, and for the advanced processing of the California data
+use “CA”. If using the “CA” option the number of units by bedrooms (nBR) is needed. The CA data has assumtions about the ratio of people per unit size.</p>
+<dl class="field-list">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Exception :</dt><dd><p>If asking for the “CA” option and the number of units by bedroom size and number of people aren’t defined</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl>
+<dt><strong>gpdpp</strong><span class="classifier">float/ string</span></dt><dd><blockquote>
+<div><p>The gallons per day per person value or a string key to lookup, valid keys are: ‘ashLow’, ‘ashMed’, or ‘ecoMark’, and “CA”</p>
+</div></blockquote>
+<dl class="simple">
+<dt>nBR<span class="classifier">list</span></dt><dd><p>List of the number of units by bedroom size for 0 bedroom units (studios) to 5+ bedroom units, for example: [ 0, 12, 12, 12, 0, 0]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 <span class="target" id="module-HPWHComponents"></span><p>HPWHComponents
 &#64;author: paul</p>
 <dl class="function">
@@ -604,6 +1115,166 @@ same amount of energy, meaning different volumes.</p>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<span class="target" id="module-ashraesizer"></span><p>Created on Mon Apr 27 16:01:38 2020</p>
+<p>&#64;author: adria</p>
+<dl class="class">
+<dt id="ashraesizer.ASHRAEsizer">
+<em class="property">class </em><code class="sig-prename descclassname">ashraesizer.</code><code class="sig-name descname">ASHRAEsizer</code><span class="sig-paren">(</span><em class="sig-param">nPeople</em>, <em class="sig-param">gpdpp</em>, <em class="sig-param">incomingT_F</em>, <em class="sig-param">supplyT_F</em>, <em class="sig-param">storageT_F</em>, <em class="sig-param">percentUseable</em>, <em class="sig-param">compRuntime_hr</em>, <em class="sig-param">defrostFactor=1</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Class containing attributes and methods to describe and size the parrallel loop tank arrangement. Unlike a swing tank, a parrallel loop tank     will have equipment to provide heat for periods of low or no hot water use.</p>
+</div></blockquote>
+<p class="rubric">Examples</p>
+<p>An example usage to find the recommended size following the ASHRAE method is:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ashraesizer</span> <span class="kn">import</span> <span class="n">ASHRAEsizer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">ASHRAEsizer</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">sizeVol_Cap</span><span class="p">()</span>
+<span class="go">[73.09343125000001, 25.060605000000002]</span>
+</pre></div>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>ashraeMediumLU</strong><span class="classifier">array_like</span></dt><dd><blockquote>
+<div><p>The medium table derived from ASHRAE to deretrime hot water usage</p>
+</div></blockquote>
+<dl class="simple">
+<dt>ashraeLowLU<span class="classifier">array_like</span></dt><dd><p>The low table derived from ASHRAE to deretrime hot water usage</p>
+</dd>
+<dt>nPeople<span class="classifier">float</span></dt><dd><p>The number of people in estimated to live in the project.</p>
+</dd>
+<dt>gpdpp<span class="classifier">float</span></dt><dd><p>The volume of water in gallons at 120F each person uses per dat.[°F]</p>
+</dd>
+<dt>incomingT_F<span class="classifier">float</span></dt><dd><p>The incoming city water temperature on the design day. [°F]</p>
+</dd>
+<dt>supplyT_F<span class="classifier">float</span></dt><dd><p>The hot water supply temperature to the occupants.[°F]</p>
+</dd>
+<dt>storageT_F<span class="classifier">float</span></dt><dd><p>The hot water storage temperature. [°F]</p>
+</dd>
+<dt>percentUseable<span class="classifier">float</span></dt><dd><p>The fraction of the storage volume that can be filled with hot water.</p>
+</dd>
+<dt>compRuntime_hr<span class="classifier">float</span></dt><dd><p>The number of hours the compressor will run on the design day. [Hr]</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>defrostFactor</strong><span class="classifier">float</span></dt><dd><p>A multipier used to account for defrost in the final heating capacity. Default equals 1.</p>
+</dd>
+<dt><strong>peakFlowTable</strong><span class="classifier">array_like</span></dt><dd><blockquote>
+<div><p>A array to describe the peak hot water flow events from 5 minutes to 24 hours, found from interpolating/extrapolating between the ASHRAE Low and Medium tables</p>
+</div></blockquote>
+<dl class="simple">
+<dt>PCap_KBTUHR<span class="classifier">float</span></dt><dd><p>The primary heating capacity for the sized system using the ASHRAE “more accurate” method [kBTU/hr]</p>
+</dd>
+<dt>PVol_G_atStorageT<span class="classifier">float</span></dt><dd><p>The storage volume in gallons at the storage temperature for the sized system using the ASHRAE “more accurate” method [gallons]</p>
+</dd>
+<dt>primaryVolArr_atStorageT<span class="classifier">array_like</span></dt><dd><p>An array of possible storage volumes found using the using the ASHRAE “more accurate” method corresponding to heating capacitys in accurateRecoveryTonsArr [gallons]</p>
+</dd>
+<dt>accurateRecoveryTonsArr<span class="classifier">array_like</span></dt><dd><p>An array of possible heating capacitys found using the using the ASHRAE “more accurate” method corresponding to storage volumes in primaryVolArr_atStorageT  [kBTU/hr]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 5%" />
+<col style="width: 95%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>sizePrimaryCurveAshrae(flowTable)</strong></p></td>
+<td><p>General function to size the water heating system based on a flow table, ASHRAE low, medium, or an interpolated table based on the input for gpdpp primaryCurve() Function to return the sized ASHRAE curve for the linear interpolated/extrapolated gallons per day per person from the ASHRAE Low and Medium Cruves getMediumCurve() Returns the ASHRAE medium sizing curve getLowCurve() Returns the ASHRAE low sizing curve tonsRecoveryForMaxDaily() Calculates the system heating capacity for a given compressor run time by interpolating from the ASHRAE curve sizeVol_Cap() Sizes the system following the ASHRAE “more accurate” methodolgy and returns the heating capacity and tons.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="ashraesizer.ASHRAEsizer.getLowCurve">
+<code class="sig-name descname">getLowCurve</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer.getLowCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the sizing curve for the ASHRAE LOW table following the ASHRAE “more accurate” method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>[vol_g, cap_kbtuhr]</strong><span class="classifier">list</span></dt><dd><p>Sized volume in gallons at storage temperature and heating capactiy in kBTU/hr</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ashraesizer.ASHRAEsizer.getMediumCurve">
+<code class="sig-name descname">getMediumCurve</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer.getMediumCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the sizing curve for the ASHRAE MEDIUM table following the ASHRAE “more accurate” method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>[vol_g, cap_kbtuhr]</strong><span class="classifier">list</span></dt><dd><p>Sized volume in gallons at storage temperature and heating capactiy in kBTU/hr</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ashraesizer.ASHRAEsizer.primaryCurve">
+<code class="sig-name descname">primaryCurve</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer.primaryCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to return the sized ASHRAE curve for the linear interpolated/extrapolated         gallons per day per person from the ASHRAE Low and Medium Cruves</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>list: [primaryVolArr_atStorageT, accurateRecoveryKBTUHr]. A list of the</dt><dd><p>primary storage options in gallons at the storage temperature with the
+corresponding list of heating capacity options in kBTU/hr</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ashraesizer.ASHRAEsizer.sizePrimaryCurveAshrae">
+<code class="sig-name descname">sizePrimaryCurveAshrae</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">flowTable</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer.sizePrimaryCurveAshrae" title="Permalink to this definition">¶</a></dt>
+<dd><p>General function to size the water heating system based on a flow table, ASHRAE low, medium, or an interpolated table based on the input for gpdpp
+:param flowTable: A array of pairs describing volume flow at increasing lengths of time.
+:type flowTable: array_like</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>[primaryVol, accurateRecoveryTons]</strong><span class="classifier">list</span></dt><dd><p>Returns a list of pairs for the sizing the primary HPWH following the ASHRAE “more accurate” method</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ashraesizer.ASHRAEsizer.sizeVol_Cap">
+<code class="sig-name descname">sizeVol_Cap</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer.sizeVol_Cap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function sizes the system following the ASHRAE “more accurate” methodolgy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>list: [PCap_KBTUHR, PVol_G_atStorageT]. The primary heating capacity on the design day in kBTU/hr and the primary volume at the storage temperature.</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ashraesizer.ASHRAEsizer.tonsRecoveryForMaxDaily">
+<code class="sig-name descname">tonsRecoveryForMaxDaily</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#ashraesizer.ASHRAEsizer.tonsRecoveryForMaxDaily" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the system heating capacity for a given compressor run time by interpolating from the ASHRAE curve</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>heatCap</strong><span class="classifier">float</span></dt><dd><p>The heating capacity in tons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>

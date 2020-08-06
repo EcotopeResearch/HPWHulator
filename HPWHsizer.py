@@ -13,9 +13,13 @@ from plotly.offline import plot
 ##############################################################################
 class HPWHsizer:
     """
-    The main class to organize a primary and temperature maintenance HPWH system and size it using the Ecotope Modified ASHRAE Metho.
+    The main class to organize a primary and temperature maintenance HPWH system and size it using the Ecotope Modified ASHRAE Method.
 
-    The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to pass the variables to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs by checking the variables and calculates extra variables. The loadshift array is also defined and check with setLoadShiftforPrimary(). The system is sized with the function build_size(), and further information is availalbe by pulling the size following the ASHRAE "more accurate" method with getASHRAEResult(). Plots for the sizing curves can be pulled from the sized system with plotSizingCurve,  plotPrimaryStorageLoadSim.
+    The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to pass the variables
+    to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs by checking the variables and calculates extra variables. The
+    loadshift array is also defined and check with setLoadShiftforPrimary(). The system is sized with the function build_size(), and further
+    information is availalbe by pulling the size following the ASHRAE "more accurate" method with getASHRAEResult(). Plots for the sizing curves
+    can be pulled from the sized system with plotSizingCurve(). Additionally, a plot simulating the design day can be created with plotPrimaryStorageLoadSim().
 
     Attributes
     ----------
@@ -92,6 +96,7 @@ class HPWHsizer:
     An example usage to find the recommended size is:
 
     To inialize the system:
+
     >>> from HPWHsizer import HPWHsizer
     >>> hpwh = HPWHsizer()
     >>> hpwh.initPrimaryByPeople(nPeople = 100,
@@ -110,39 +115,45 @@ class HPWHsizer:
                            TMonTemp_F = 125)
 
     And then in order to find proper for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:
+
     >>> hpwh.build_size()
     [346.1021666666667, 114.86110625, 48.15823981105004, 32.244741899999994]
 
     To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:
+
     >>> fig = hpwh.plotSizingCurve(return_as_div=False)
     >>> fig.show()
 
     And to see the how the system performs in a simple simulation:
+
     >>> fig = hpwh.plotPrimaryStorageLoadSim(return_as_div=False)
     >>> fig.show()
+
     Plotly figures can also be saved as html with write_html():
+
     >>> fig.write_html("output.html")
 
-    
+
     Example 2:
-        
-    If a user what's to align their sizing with the CA Title24 software use the initPrimaryByUnits() function follow:
-        
+
+    If a user wants to align their sizing with the CA Title24 software use the initPrimaryByUnits() function follow:
+
     >>> from HPWHsizer import HPWHsizer
     >>> hpwh = HPWHsizer()
     >>> hpwh.initPrimaryByUnits(nBR = [6,12,12,6,0,0],
-                                rBR = "CA", 
+                                rBR = "CA",
                                 gpdpp_BR = "CA",
                                 loadShapeNorm = "stream",
-                                supplyT_F = 125, 
+                                supplyT_F = 125,
                                 incomingT_F = 50,
                                 storageT_F= 150.,
                                 compRuntime_hr = 16.,
                                 percentUseable = .8,
                                 aquaFract = 0.4,
-                                schematic = "swingtank")    
+                                schematic = "swingtank")
+
     Which will use the California occupancy ratios and the California daily hot water draws. Then create the temperature maintenance load with:
-    
+
     >>> hpwh.initTempMaint( Wapt = 100 )
 
     Construct the system by building the connections between the components and size it. To find proper sizing for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:
@@ -151,10 +162,11 @@ class HPWHsizer:
     [275.08088575585305, 87.32317975282498, '80', 21.4964946]
 
     To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:
+
     >>> fig = hpwh.plotSizingCurve(return_as_div=False)
     >>> fig.show()
-    
-    Unfortunately the simulation of the primary system is yet built out for the swing tank. 
+
+    Unfortunately the simulation of the primary system is yet built out for the swing tank.
 
     """
     def __init__(self):
@@ -694,10 +706,10 @@ class HPWHsizerRead:
         else:
             self.rBR = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
         #Now get the number of people
-        nPeople = sum(self.nBR * self.rBR) 
+        nPeople = sum(self.nBR * self.rBR)
 
 
-        # Check if gpdpp_BR is a string input and get the gpdpp 
+        # Check if gpdpp_BR is a string input and get the gpdpp
         if type(gpdpp_BR) is str: # if the input here is a string get the loadshape.
             self.gpdpp_BR = loadgpdpp(gpdpp_BR, self.nBR)
             gpdpp = self.gpdpp_BR
@@ -719,7 +731,7 @@ class HPWHsizerRead:
         # loadShapeNorm have been coeerced to np.arrays so check these for string inputs
         if loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
             loadShapeNorm = self.hpwhData.getLoadshape()
-            
+
         gpdpp =  loadgpdpp(gpdpp)
 
         self.checkInputs(gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
@@ -986,10 +998,10 @@ class writeClassAtts:
 
 def loadgpdpp( gpdpp, nBR = None):
     """
-    Loads data for the gpdpp inputs if it is of string type, but passes gpdpp thorugh if it's not string and is just a number. 
-    Valid string keys are 'ashLow', 'ashMed', or 'ecoMark', and for the advanced processing of the California data 
+    Loads data for the gpdpp inputs if it is of string type, but passes gpdpp thorugh if it's not string and is just a number.
+    Valid string keys are 'ashLow', 'ashMed', or 'ecoMark', and for the advanced processing of the California data
     use "CA". If using the "CA" option the number of units by bedrooms (nBR) is needed. The CA data has assumtions about the ratio of people per unit size.
-	        
+
     Attributes
     ----------
         gpdpp : float/ string
@@ -999,8 +1011,8 @@ def loadgpdpp( gpdpp, nBR = None):
 
     Raises
     ----------
-    Exception : 
-        If asking for the "CA" option and the number of units by bedroom size and number of people aren't defined 
+    Exception :
+        If asking for the "CA" option and the number of units by bedroom size and number of people aren't defined
 
     """
     # Check if gpdpp is a string and look up by key
@@ -1013,17 +1025,16 @@ def loadgpdpp( gpdpp, nBR = None):
             if len(nBR) != 6:
                 raise Exception("Cannot get the gpdpp for the CA data set without knowning the number of units by bedroom size for 0 BR (studios) through 5+ BR, the list must be of length 6 in that order.")
 
-            # Count up the gpdpp for each bedroom type 
+            # Count up the gpdpp for each bedroom type
             daily_totals = np.zeros(365)
             for ii in range(0,6):
                 daily_totals += nBR[ii] * np.array(hpwhData.getCAGPDPPYearly(str(ii) + "br")) # daily totals is gpdpp * bedroom
-                
-            # Get the 98th percentile day divide by the number of people rounded up to an integer. 
+
+            # Get the 98th percentile day divide by the number of people rounded up to an integer.
             gpdpp = np.ceil(np.percentile(daily_totals,98)/ sum(nBR))
-            
+
         # Else look up by normal key function
         else:
             gpdpp = hpwhData.getGPDPP(gpdpp)[0]
 
     return gpdpp
-
