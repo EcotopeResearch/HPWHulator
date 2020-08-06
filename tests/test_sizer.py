@@ -121,7 +121,7 @@ def test_primary_AF_over_1_Error(primary_sizer):
     primary_sizer.inputs.storageT_F = 160
     primary_sizer.inputs.percentUseable = .5
     primary_sizer.inputs.aquaFract = .56
-    primary_sizer.inputs.compRuntime_hr = 9.
+    primary_sizer.inputs.compRuntime_hr = 8.
     # Recalc inputs
     primary_sizer.inputs.calcedVariables()
     # Size the system
@@ -131,10 +131,11 @@ def test_primary_AF_over_1_Error(primary_sizer):
 
 # Test the Fetcher
 def test_getLoadshape(fetcher):
-    assert fetcher.getLoadshape() == [0.008915,0.004458,0.001486,0.001486,0.001486,0.014859,
-                    0.069837,0.13373,0.104012,0.077266,0.035067,0.031204,
-                    0.020802,0.022288,0.024071,0.024071,0.020802,0.043388,
-                    0.047251,0.07578,0.092125,0.059435,0.053492,0.032689]
+    assert fetcher.getLoadshape() == [0.015197568,
+			0.006079027,0.003039514,0.003039514,0.003039514,0.009118541,0.075987842,
+			0.151975684,0.100303951,0.082066869,0.021276596,0.024316109, 0.021276596,
+			0.024316109,	0.012158055,	0.006079027,	0.009118541,	0.036474164, 0.054711246,
+            0.072948328, 0.088145897, 0.09118541 , 0.063829787,0.024316109]
 def test_getGPDPP(fetcher):
     with pytest.raises(Exception):
         assert fetcher.getGPDPP("wrong")
