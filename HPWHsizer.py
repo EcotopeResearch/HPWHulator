@@ -51,7 +51,8 @@ class HPWHsizer:
     initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
                     schematic, defrostFactor=1, singlePass=True)
-        Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment.
+        Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment. This is what users should use to align with CA Title24, see example 2.
+
 
     initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable,  aquaFract,
@@ -87,6 +88,7 @@ class HPWHsizer:
 
     Examples
     --------
+    Example 1:
     An example usage to find the recommended size is:
 
     To inialize the system:
@@ -112,14 +114,47 @@ class HPWHsizer:
     [346.1021666666667, 114.86110625, 48.15823981105004, 32.244741899999994]
 
     To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:
-    >>> fig = primary_sizer.plotSizingCurve(return_as_div=False)
+    >>> fig = hpwh.plotSizingCurve(return_as_div=False)
     >>> fig.show()
 
     And to see the how the system performs in a simple simulation:
-    >>> fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    >>> fig = hpwh.plotPrimaryStorageLoadSim(return_as_div=False)
     >>> fig.show()
     Plotly figures can also be saved as html with write_html():
     >>> fig.write_html("output.html")
+
+    
+    Example 2:
+        
+    If a user what's to align their sizing with the CA Title24 software use the initPrimaryByUnits() function follow:
+        
+    >>> from HPWHsizer import HPWHsizer
+    >>> hpwh = HPWHsizer()
+    >>> hpwh.initPrimaryByUnits(nBR = [6,12,12,6,0,0],
+                                rBR = "CA", 
+                                gpdpp_BR = "CA",
+                                loadShapeNorm = "stream",
+                                supplyT_F = 125, 
+                                incomingT_F = 50,
+                                storageT_F= 150.,
+                                compRuntime_hr = 16.,
+                                percentUseable = .8,
+                                aquaFract = 0.4,
+                                schematic = "swingtank")    
+    Which will use the California occupancy ratios and the California daily hot water draws. Then create the temperature maintenance load with:
+    
+    >>> hpwh.initTempMaint( Wapt = 100 )
+
+    Construct the system by building the connections between the components and size it. To find proper sizing for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:
+
+    >>> hpwh.build_size()
+    [275.08088575585305, 87.32317975282498, '80', 21.4964946]
+
+    To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:
+    >>> fig = hpwh.plotSizingCurve(return_as_div=False)
+    >>> fig.show()
+    
+    Unfortunately the simulation of the primary system is yet built out for the swing tank. 
 
     """
     def __init__(self):
@@ -152,6 +187,7 @@ class HPWHsizer:
                     schematic, defrostFactor = 1, singlePass=True):
         """
         Initializes the primary system by the number of units by number of bedrooms and number of people per unit.
+        If aligning the sizing requriements with CA this is the method that should be used.
 
         Attributes
         ----------
@@ -972,7 +1008,7 @@ def loadgpdpp( gpdpp, nBR = None):
         hpwhData = hpwhDataFetch()
 
         if gpdpp.lower() == "ca" :
-            if nBR is None or sum(nBR) == 0 or not isinstance(nBR,list):
+            if nBR is None or sum(nBR) == 0:
                 raise Exception("Cannot get the gpdpp for the CA data set without knowning the number of units by bedroom size for 0 BR (studios) through 5+ BR, the list must be of length 6 in that order.")
             if len(nBR) != 6:
                 raise Exception("Cannot get the gpdpp for the CA data set without knowning the number of units by bedroom size for 0 BR (studios) through 5+ BR, the list must be of length 6 in that order.")
