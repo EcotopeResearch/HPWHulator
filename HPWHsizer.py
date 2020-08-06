@@ -529,9 +529,9 @@ class HPWHsizer:
             D_hw = np.array(D_hw[-(60*hrind_fromback):])*60
             V = np.array(V[-(60*hrind_fromback):])
 
-        runhrs = (sum(run)/max(G_hw)/60) if hourly else (sum(run)/max(G_hw)/60)
+        #runhrs = (sum(run)/max(G_hw)/60) if hourly else (sum(run)/max(G_hw)/60)
 
-        nameG_hw = "HW Generation - Compressor hrs/day: %.1f " % runhrs
+        nameG_hw = "HW Generation"
         x_data = list(range(len(V)))
         fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume',
                               mode = 'lines', line_shape='hv',
