@@ -5,7 +5,13 @@ Heat Pump Water Heater Sizer, Documentation
    :maxdepth: 2
    :caption: Contents:
 
+.. automodule:: HPWHsizer
+    :members:
+
 .. automodule:: HPWHComponents
+    :members:
+	
+.. automodule:: ashraesizer
     :members:
 
 Indices and tables
