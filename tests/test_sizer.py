@@ -48,10 +48,11 @@ def people_sizer():
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByPeople(100, 36, 22., "stream",
+    hpwh.initPrimaryByPeople(100, 36, 22, "stream",
                     120, 50, 150., 16., .9, 0.4,
                     "primary", .9 )
     return hpwh
+
 
 @pytest.fixture
 def fetcher():
@@ -322,6 +323,21 @@ def test_initPrimaryByUnits(units_sizer):
     units_sizer.writeToFile("tests/output/units_sizer.txt")
     assert file_regression("tests/ref/units_sizer.txt",
                            "tests/output/units_sizer.txt")
+
+
+def test_CA_sizing_settings():
+    '''Returns a HPWHsizer instance initialized by nPeople inputs'''
+    hpwh = HPWHsizer.HPWHsizer()
+    hpwh.initPrimaryByUnits([6,12,12,6,0,0], "CA", "CA", "stream",
+                    125, 50, 150., 16., .8, 0.4,
+                    "swingtank")
+    hpwh.initTempMaint(100)
+
+    results = hpwh.build_size()
+    assert len(results) == 4
+    hpwh.writeToFile("tests/output/ca_sizer.txt")
+    assert file_regression("tests/ref/ca_sizer.txt",
+                           "tests/output/ca_sizer.txt")
 
 ##############################################################################
 # Load Shift tests
