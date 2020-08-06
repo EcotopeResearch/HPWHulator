@@ -2,29 +2,34 @@
 # HPWHulator 	
 
 ### Installing:
-Steps for installing conda enviroment from the Anaconda prompt
+Steps for installing conda environment from the Anaconda prompt
 1. Navigate to the HPWHulator directory.
-2. Create new eviroment from .yml file
+2. Create new environment from .yml file
 
 	$ conda env create --file HPWHSizer.yml
-3. Check enviroment was created
+3. Check environment was created
 
 	$ conda env list
-4. Activate new enviroment
+4. Activate new environment
 
 	$ conda activate HPWHSizer
 
-If an enviroment already exits it can be removed with:
+If an environment already exits it can be removed with:
 
 	$ conda remove --name envname --all
-	
-	
-All the available enviroment can be found with:
+
+
+All the available environment can be found with:
 
 	$ conda env list
 
 ### Testing:
-From the parent directory in Anaconda prompt and type 
+From the parent directory in Anaconda prompt and type
 
 	$ python -m pytest
 
+### Updating Documentation:
+1. If not installed in environment: pip install sphinx and numpydocs
+2. Using Anaconda prompt navigate to docs directory and run:
+
+	$ make html
