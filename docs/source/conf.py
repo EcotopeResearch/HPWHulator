@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'HPWHulator'
-copyright = '2020, Paul, Adria, Scott'
-author = 'Paul, Adria, Scott'
+copyright = '2020, Ecotope Inc.'
+author = 'Paul Kintner, Adria Banks, Scott Spielman'
 
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'
