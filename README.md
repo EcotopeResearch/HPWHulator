@@ -33,3 +33,9 @@ From the parent directory in Anaconda prompt and type
 2. Using Anaconda prompt navigate to docs directory and run:
 
 	$ make html
+
+
+
+### Contact Information
+To get in touch with Ecotope Inc. go here: http://ecotope.com/contact/
+
