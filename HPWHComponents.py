@@ -165,7 +165,8 @@ class PrimarySystem_SP:
         # If the swing tank is not being used
         if self.extraLoad_GPH == 0:
             totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
-        #else 
+        else:
+            totalVolMax = totalVolMax / (1-self.aquaFract)
 		#	totalVolMax = mixVolume(totalVolMax,(self.supplyT_F-self.storageT_F)/2 ,self.incomingT_F, self.supplyT_F) / (1-self.aquaFract)
 
 
