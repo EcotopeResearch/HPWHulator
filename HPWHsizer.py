@@ -188,10 +188,11 @@ class HPWHsizer:
 
     """
     def __init__(self):
+        
         print( " HPWHulator Copyright (C) 2020  Ecotope Inc. ")
-		print("This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute under certain conditions; details check GNU AFFERO GENERAL PUBLIC LICENSE_08102020.docx."
+        print("This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute under certain conditions; details check GNU AFFERO GENERAL PUBLIC LICENSE_08102020.docx.")
 
-		self.validbuild     = False
+        self.validbuild     = False
         self.systemSized    = False
         self.doLoadShift    = False
         self.inputs = HPWHsizerRead()
