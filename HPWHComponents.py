@@ -526,7 +526,7 @@ class SwingTank:
         The volume of the swing tank required to ride out the low use period.
     """
     Table_Napts = [0, 12, 24, 48, 96]
-    sizingTable_MEASHRAE = ["80", "80", "80", "120 - 300", "120 - 300"]
+    sizingTable_EMASHRAE = ["80", "80", "80", "120 - 300", "120 - 300"]
     sizingTable_CA = ["80", "96", "168", "288", "480"]
 
     swingLoadToPrimary_Wapt = 50.
@@ -561,7 +561,7 @@ class SwingTank:
         if CA:
             self.TMVol_G = self.sizingTable_CA[ind]
         else:
-            self.TMVol_G = self.sizingTable_MEASHRAE[ind]
+            self.TMVol_G = self.sizingTable_EMASHRAE[ind]
 
         self.TMCap_kBTUhr = TMSafetyFactor * Wapt75 * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
 
@@ -581,8 +581,8 @@ class SwingTank:
         Returns the load in watts that the primary system handles from the reciruclation loop losses.
         Returns
         -------
-        float
-            self.swingLoadToPrimary_W
+        list
+            Table of number of apartments and the tank volume for the swing tank sizing 
         """
         return self.swingLoadToPrimary_W
 
@@ -590,7 +590,7 @@ class SwingTank:
         if CA:
             return list(zip(self.Table_Napts, self.sizingTable_CA))
         else:
-            return list(zip(self.Table_Napts, self.sizingTable_MEASHRAE))
+            return list(zip(self.Table_Napts, self.sizingTable_EMASHRAE))
 
 
 ##############################################################################
