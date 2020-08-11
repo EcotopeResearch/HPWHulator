@@ -91,7 +91,6 @@ class PrimarySystem_SP:
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
         self.loadShift = False;
-        self.LS_cdf = 0; 
         
         # Outputs
         self.PCap_kBTUhr              = 0. #kBTU/Hr
