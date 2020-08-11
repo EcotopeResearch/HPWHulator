@@ -91,12 +91,12 @@ class PrimarySystem_SP:
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
         self.loadShift = False;
-
+        
         # Outputs
         self.PCap_kBTUhr              = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-    def setLoadShift(self, schedule):
+    def setLoadShift(self, schedule, percent_days):
         """
         Sets the load shifting schedule from input schedule
 
@@ -104,10 +104,14 @@ class PrimarySystem_SP:
         ----------
         schedule : array_like
             List or array of 0's and 1's for don't run and run.
+        
+        percent_days : float
+            Percent of days to be shifted in a load shift scenario
 
         """
         # Coerce to 0s and 1s
         self.LS_on_off = np.where(schedule > 0, 1, 0)
+        self.LS_cdf = percent_days
         self.loadShift = True
         # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
         self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
@@ -170,7 +174,7 @@ class PrimarySystem_SP:
         LSrunningVol_G = 0
 
         if self.loadShift:
-            LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off)
+            LSrunningVol_G = self.__calcRunningVol(heatHrs,self.LS_on_off, self.LS_cdf)
 
         # Get total volume from max of primary method or load shift method
         totalVolMax = max(runningVol_G, LSrunningVol_G)
@@ -219,8 +223,6 @@ class PrimarySystem_SP:
             The running volume in gallons
 
         """
-
-
 
         diffN   = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs - np.tile(self.loadShapeNorm,2)
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
