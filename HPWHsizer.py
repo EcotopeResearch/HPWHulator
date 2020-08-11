@@ -410,7 +410,7 @@ class HPWHsizer:
                                                  self.inputs.defrostFactor,
                                                  self.swingTankLoad_W)
             if self.doLoadShift:
-                self.primarySystem.setLoadShift(self.inputs.loadshift)
+                self.primarySystem.setLoadShift(self.inputs.loadshift, self.inputs.cdf_shift)
 
         elif not self.inputs.singlePass:
             # Multipass systems not yet supported
