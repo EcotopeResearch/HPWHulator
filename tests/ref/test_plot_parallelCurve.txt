@@ -58,8 +58,5 @@ Figure({
               'type': 'scatter',
               'x': [272.0389119097484],
               'y': [136.48568]}],
-    'layout': {'template': '...',
-               'title': {'text': 'Parallel Loop Tank Sizing Curve, with a minimum runtime of 10 minutes'},
-               'xaxis': {'range': [0, 1100.0], 'title': {'text': 'Parallel Loop Tank Volume (Gallons)'}},
-               'yaxis': {'range': [0, 596.3735844], 'title': {'text': 'Parallel Loop Heating Capacity (kBTU/hr)'}}}
+    'layout': {'template': '...'}
 })

@@ -21,11 +21,12 @@ import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank, mixVolume # TrimTank, PrimarySystem_MP_NR, PrimarySystem_MP_R
 from ashraesizer import ASHRAEsizer
-from cfg import compMinimumRunTime
+from cfg import compMinimumRunTime, rhoCp, W_TO_BTUHR
 from dataFetch import hpwhDataFetch
 
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
+from plotly.subplots import make_subplots
 
 
 ##############################################################################
@@ -102,7 +103,7 @@ class HPWHsizer:
     plotSizingCurve( return_as_div = True)
          Returns the primary sizing curve, storage volume vs. heating capacity for the
 
-    plotPrimaryStorageLoadSim(return_as_div = True, hourly = True)
+    plotPrimaryStorageLoadSim(return_as_div = True)
          Runs and returns a plot for the primary system simulating storage volume with HPWH heating agains the design load shape
 
     writeToFile(fileName)
@@ -250,7 +251,7 @@ class HPWHsizer:
         aquaFract  : float
             The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
         schematic  : float
-            The schemaitc used, options are "primary", "paralleltank", or "swingtank"
+            The schematic used, options are "primary", "paralleltank", or "swingtank"
         defrostFactor: float
             A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.
         singlePass  : float
@@ -294,7 +295,7 @@ class HPWHsizer:
         aquaFract  : float
             The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
         schematic  : float
-            The schemaitc used, options are "primary", "paralleltank", or "swingtank"
+            The schematic used, options are "primary", "paralleltank", or "swingtank"
         defrostFactor: float
             A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.
         singlePass  : float
@@ -470,7 +471,6 @@ class HPWHsizer:
         else:
             raise Exception("The system can not be sized without a valid build")
 
-
     def plotSizingCurve(self, return_as_div = True):
         """
         Returns a plot of the sizing curve as a div or as a plotly fig
@@ -491,11 +491,11 @@ class HPWHsizer:
 
         hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
 
-        [x_ash, y_ash] = self.ashraeSize.primaryCurve()
-        fig.add_trace(Scatter(x=x_ash[:-1], y=y_ash[:-1], #Drops the last point
-                              mode='lines', name='ASHRAE Sizing Curve',
-                              hovertemplate = hovertext,
-                              opacity=0.8, marker_color='red'))
+        # [x_ash, y_ash] = self.ashraeSize.primaryCurve()
+        # fig.add_trace(Scatter(x=x_ash[:-1], y=y_ash[:-1], #Drops the last point
+        #                       mode='lines', name='ASHRAE Sizing Curve',
+        #                       hovertemplate = hovertext,
+        #                       opacity=0.8, marker_color='red'))
 
         # [xlow, ylow] = self.ashraeSize.getLowCurve()
         # fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
@@ -509,15 +509,15 @@ class HPWHsizer:
                               hovertemplate = hovertext,
                               opacity=0.8, marker_color='green'))
 
-        fig.add_trace(Scatter(x=(0,max(x_data[-1],x_ash[-2], x_data[0])),
-                              y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
-                              mode='lines', name='Minimum Size',
-                              opacity=0.8, marker_color='grey'))
+        # fig.add_trace(Scatter(x=(0,max(x_data[-1],x_data[-2], x_data[0])),
+        #                       y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
+        #                       mode='lines', name='Recommended Minimum Size',
+        #                       opacity=0.8, marker_color='grey'))
 
         fig.add_trace(Scatter(x=[self.primarySystem.PVol_G_atStorageT],
                               y=[self.primarySystem.PCap_kBTUhr],
                               mode='markers', marker_symbol="diamond",marker_size=10,
-                              name='System Size',
+                              name='Recommended Size',
                               opacity=0.8, marker_color='blue'))
 
         fig.update_layout(title="Primary Sizing Curve",
@@ -531,9 +531,9 @@ class HPWHsizer:
         else:
             return fig
 
-    def plotPrimaryStorageLoadSim(self, return_as_div = True, hourly = False):
+    def plotPrimaryStorageLoadSim(self, return_as_div = True):
         """
-        Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the hourly or minute level simulation
+        Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the minute level simulation
 
         Parameters
         ----------
@@ -546,46 +546,74 @@ class HPWHsizer:
         """
         if not self.systemSized:
             raise Exception("System must be sized first")
-        if self.inputs.schematic == "swingtank":
-            raise Exception("Simulation does not support swing tanks at the moment")
 
-        fig = Figure()
+        
+        [ V, G_hw, D_hw, run, swingT, srun ] = self.runStorage_Load_Sim();
+        
+        hrind_fromback = 24 # Look at the last 24 hours of the simulation not the whole thing
+        run = np.array(run[-(60*hrind_fromback):])*60
+        G_hw = np.array(G_hw[-(60*hrind_fromback):])*60
+        D_hw = np.array(D_hw[-(60*hrind_fromback):])*60
+        V = np.array(V[-(60*hrind_fromback):])
 
-        [ V, G_hw, D_hw, run ] = self.primarySystem.runStorage_Load_Sim(hourly = hourly);
-
-        hrind_fromback = 24
-        if hourly:
-            run = np.array(run[-hrind_fromback:])
-            G_hw = np.array(G_hw[-hrind_fromback:])
-            D_hw = np.array(D_hw[-hrind_fromback:])
-            V = np.array(V[-hrind_fromback:])
+        if swingT:
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
         else:
-            run = np.array(run[-(60*hrind_fromback):])*60
-            G_hw = np.array(G_hw[-(60*hrind_fromback):])*60
-            D_hw = np.array(D_hw[-(60*hrind_fromback):])*60
-            V = np.array(V[-(60*hrind_fromback):])
+            fig = Figure()
 
-        #runhrs = (sum(run)/max(G_hw)/60) if hourly else (sum(run)/max(G_hw)/60)
-
-        nameG_hw = "HW Generation"
+            
+        # Do primary components
         x_data = list(range(len(V)))
-        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume',
+        
+        if self.doLoadShift:
+            ls_off = [ int(not x)* max(V)*2 for x in G_hw] 
+            fig.add_trace(Scatter(x=x_data, y=ls_off, name='Load Shift Off Period',
+                                  mode = 'lines', line_shape='hv',
+                                  opacity=0.5, marker_color='grey',
+                                  fill='tonexty'))
+        
+        fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume at Storage Temperature',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='green'))
-        fig.add_trace(Scatter(x=x_data, y=run, name = nameG_hw,
+        fig.add_trace(Scatter(x=x_data, y=run, name = "Hot Water Generation at Storage Temperature",
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='red'))
-        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand',
+        fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand at Supply Temperature',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='blue'))
-        fig.add_trace(Scatter(x=x_data, y=G_hw, name='Generation Volume per Hour',
-                              mode = 'lines', line_shape='hv',
-                              opacity=0.8, marker_color='grey'))
+        fig.update_yaxes(range=[0, np.ceil(max(V)/100)*100])
 
         fig.update_layout(title="Hot Water Simulation",
-                          xaxis_title= "Hour of Day" if hourly else "Minute of Day",
-                          yaxis_title="Gallons at Supply Temperature")
+                          xaxis_title= "Minute of Day",
+                          yaxis_title="Gallons or Gallons per Hour")
                           #legend_orientation="h")
+                          
+        # Do Swing Tank components:
+        if swingT:
+            swingT = np.array(swingT[-(60*hrind_fromback):])
+            srun = np.array(srun[-(60*hrind_fromback):])
+            
+            # heatin_kWh = sum(srun)/60*self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR 
+            # recircLoss = self.tempmaintSystem.Wapt*self.tempmaintSystem.nApt/1000 * 48
+            
+            # strname = "Swing Temp,\nEnergy in Swing: " + str(round(heatin_kWh)) + \
+            #     "\nRecircL: " + str(round(recircLoss)) + "\nRatio: " + str(round(heatin_kWh/recircLoss*100)) + \
+            #         "\n Comp Run Time: " +str(round(np.count_nonzero(run)/60/2,2))
+            
+            fig.add_trace(Scatter(x=x_data, y=swingT, 
+                                  name= 'Swing Tank Temperature',
+                                  mode = 'lines', line_shape='hv',
+                                  opacity=0.8, marker_color='purple',     yaxis="y2") )#,
+                         # secondary_y=True,)
+    
+            fig.update_layout(yaxis2=dict(
+                                title="Swing Tank Temperature (\N{DEGREE SIGN}F)",
+                                anchor="x",
+                                overlaying="y",
+                                side="right",
+                                range= [self.inputs.supplyT_F-5, self.inputs.storageT_F],) )
+            
+        
 
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
@@ -668,6 +696,265 @@ class HPWHsizer:
                 TMWriter.writeLine('TMCurve_vol, ' +np.array2string(TMCurve[0], precision = 2, separator=",", max_line_width = 300.))
                 TMWriter.writeLine('TMCurve_heatCap_kBTUhr, ' +np.array2string(TMCurve[1], precision = 2, separator=",", max_line_width = 300.))
 
+    def runStorage_Load_Sim(self, Pcapacity = None, Pvolume = None):
+        """
+        Returns sizing storage depletion and load results for water volumes at the supply temperature
+
+        Parameters
+        ----------
+        Pcapacity (float) : The primary heating capacity in kBTUhr to use for the simulation, default is the sized system
+        Pvolume (float) : The primary storage volume in gallons to  to use for the simulation, default is the sized system
+
+        Returns
+        -------
+        list [ V, G_hw, D_hw, run ]
+        V - Volume of HW in the tank with time at the strorage temperature. 
+        G_hw - The generation of HW with time at the supply temperature
+        D_hw - The hot water demand with time at the tsupply temperature
+        run - The actual output in gallons of the HPWH with time
+        """
+        if not Pcapacity:
+            if self.primarySystem.PCap_kBTUhr:
+                Pcapacity =  self.primarySystem.PCap_kBTUhr
+            else:
+                raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
+
+        if not Pvolume:
+            if self.primarySystem.PVol_G_atStorageT:
+                Pvolume =  self.primarySystem.PVol_G_atStorageT
+            else:
+                raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
+            
+
+        # Get the generation rate from the primary capacity
+        G_hw = 1000 * Pcapacity / rhoCp / (self.primarySystem.supplyT_F - self.primarySystem.incomingT_F) \
+               * self.primarySystem.defrostFactor * np.tile(self.primarySystem.LS_on_off,3)
+               
+        # Define the use of DHW with the normalized load shape
+        D_hw = self.primarySystem.totalHWLoad * np.tile(self.primarySystem.loadShapeNorm,3)
+
+        G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
+        D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
+
+        # Init the "simulation"
+        V0 = Pvolume* self.primarySystem.percentUseable
+        Vtrig = Pvolume* (1 - self.primarySystem.aquaFract)
+        
+        if self.inputs.schematic == "swingtank" : 
+            hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,                                
+                                Tcw = self.primarySystem.incomingT_F,
+                                Tstorage = self.primarySystem.storageT_F,
+                                Tsupply = self.primarySystem.supplyT_F,
+                                schematic = self.inputs.schematic,
+                                swing_V0 = int(self.tempmaintSystem.TMVol_G.split()[0]),
+                                swing_Ttrig = self.primarySystem.supplyT_F,
+                                Qrecirc_W = self.tempmaintSystem.Wapt*self.tempmaintSystem.nApt,
+                                Swing_Elem_kW = self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR )
+
+        else:
+           # hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig) 
+           hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,
+                               Tcw = self.primarySystem.incomingT_F,
+                               Tstorage = self.primarySystem.storageT_F,
+                               Tsupply = self.primarySystem.supplyT_F)
+
+        return hpwhsim.simulate()
+
+###############################################################################
+class Simulator:
+    """
+    Simulator class to check the primary and swing tank systems.
+    
+    """
+    pheating = False
+    swingheating = False
+
+    def __init__(self, G_hw, D_hw, V0, Vtrig, 
+                 Tcw, Tstorage, Tsupply,
+                 schematic = "primary",
+                 swing_V0 = None,
+                 swing_Ttrig = None,
+                 Qrecirc_W = None,
+                 Swing_Elem_kW = None,
+                 ):
+        """
+        Returns sizing storage depletion and load results for water volumes at the supply temperature
+
+        Parameters
+        ----------
+        G_hw : (list) 
+            The primary hot water generation rate in gallons per minute 
+            
+        D_hw : (list)
+            The hot water draw rate at the supply temperature
+            
+        V0 : (float) 
+            The storage volume of the primary system at the storage temperature
+            
+        Vtrig : (float) 
+            The remaining volume of the primary storage volume when heating is triggered.
+        """
+
+        self.__checkInputs(G_hw, D_hw, V0, Vtrig)
+        
+        self.Tsupply = Tsupply
+        self.Tcw = Tcw
+        self.Tstorage = Tstorage
+            
+        self.N = len(G_hw)
+        self.G_hw = G_hw
+        self.D_hw = D_hw
+        self.prun = [0] * (self.N)
+
+        self.V0 = V0
+        self.pV = [V0] + [0] * (self.N - 1)
+        self.Vtrig = Vtrig # For the primary system
+      
+        self.schematic = schematic
+
+        self.swingT = None
+        self.srun = None
+        
+        # If swing tank gather all of the swing tank inputs.
+        if self.schematic == "swingtank":
+            self.swing_V0 = swing_V0
+            self.swing_Ttrig = swing_Ttrig
+
+            self.recircLoss_dT = Qrecirc_W * W_TO_BTUHR / 60 / rhoCp / self.swing_V0  #1/60 to get timestep of 1 minute
+            self.element_dT = Swing_Elem_kW * 1000 * W_TO_BTUHR / 60 / rhoCp / self.swing_V0  #1/60 to get timestep of 1 minute
+            self.element_deadband_F = 8.
+            
+            self.swingT = [self.Tstorage] + [0] * (self.N - 1)
+            self.srun = [0] * (self.N)
+                                    
+        
+    def __checkInputs(self, G_hw, D_hw, V0, Vtrig):
+        if len(G_hw) != len(D_hw):
+            raise Exception( "Hot water generation and domestic hot water use must have the same length, i.e. time")
+        if V0 <= Vtrig:
+            raise Exception( "The initial storage volume can't be greater than the volume to trigger heating.")
+
+    def simulate(self):
+        # Run the "simulation"
+        for ii in range(1,self.N):
+            
+            if self.schematic == "swingtank":
+                hw_outSwing = mixVolume(self.D_hw[ii], self.swingT[ii-1], self.Tcw, self.Tsupply)
+
+                self.swingT[ii], self.srun[ii] = self.runOneSwingStep(self.swingT[ii-1], hw_outSwing)
+                
+                mixedGHW = mixVolume(self.G_hw[ii], self.Tstorage, self.Tcw, self.Tsupply)
+                #mixedGHW = self.G_hw[ii]
+                self.pV[ii], self.prun[ii] = self.runOnePrimaryStep(self.pV[ii-1], hw_outSwing, mixedGHW )
+                
+            elif self.schematic == "primary" or self.schematic == "paralleltank":
+                mixedDHW = mixVolume(self.D_hw[ii], self.Tstorage, self.Tcw, self.Tsupply)
+                mixedGHW = mixVolume(self.G_hw[ii], self.Tstorage, self.Tcw, self.Tsupply)
+                self.pV[ii], self.prun[ii] = self.runOnePrimaryStep(self.pV[ii-1], mixedDHW, mixedGHW)
+       
+            else:
+                raise Exception(self.schematic + " is not a valid schematic")
+                
+        return [roundList(self.pV,3),
+                roundList(self.G_hw,3),
+                roundList(self.D_hw,3),
+                roundList(self.prun,3),
+                roundList(self.swingT,3) if self.swingT else None,
+                roundList(self.srun,3) if self.srun else None ]
+
+
+    def runOnePrimaryStep(self, Vcurr, hw_out, hw_in):
+        """
+        Runs one step on the primary system. This changes the volume of the primary system
+        by assuming there is hot water removed at a volume of hw_out and hot water
+        generated or added at a volume of hw_in. This is assuming the system is perfectly
+        stratified and all of the hot water above the cold temperature is at the storage temperature. 
+
+        Parameters
+        ----------
+        Vcurr (float) : The primary volume at the timestep.
+        hw_out (float) : The volume of DHW removed from the primary system, assumed that 100% of what of what is removed is replaced 
+        hw_in (float) : The volume of hot water generated in a time step
+        
+        Returns
+        -------
+        Vnew (float) : The new primary volume at the timestep.
+        did_run (float) : The volume of hot water generated during the time step. 
+        
+        """
+        did_run = 0
+        Vnew = 0
+        if self.pheating:
+                Vnew = Vcurr + hw_in - hw_out # If heating, generate HW and lose HW
+                did_run = hw_in
+
+        else:  # Else not heating,
+            Vnew = Vcurr - hw_out # So lose HW
+            if Vnew < self.Vtrig: # If should heat
+                time_missed = (self.Vtrig - Vnew)/hw_out#Volume below turn on / rate of draw gives time below tigger
+                Vnew += hw_in * time_missed # Start heating
+                did_run = hw_in*time_missed
+                self.pheating = True
+
+        if Vnew > self.V0: # If overflow
+            time_over = (Vnew - self.V0) / (hw_in - hw_out) # Volume over generated / rate of generation gives time above full
+            Vnew = self.V0 - hw_out * time_over # Make full with miss volume
+            did_run = hw_in * (1-time_over)
+            self.pheating = False # Stop heating
+        
+        # if Vnew < 0:
+        #     raise Exception ( "Primary storage ran out of Volume!")
+        
+        return Vnew, did_run
+
+    def runOneSwingStep(self, Tcurr, hw_out):
+        """
+        Runs one step on the swing tank step. Since the swing tank is in series with the primary system
+        the temperature needs to be tracked to inform inputs for primary step. The driving assumptions here
+        are that the swing tank is well mixed and can be tracked by the average tank temperature 
+        and that the system loses the recirculation loop losses as a constant Watts and thus the 
+        actual flow rate and return temperature from the loop do not matter. 
+        
+        Parameters
+        ----------
+        Tcurr (float) : The current temperature at the timestep.
+        hw_out (float) : The volume of DHW removed from the swing tank system.
+        hw_in (float) : The volume of DHW added to the system.
+        
+        Returns
+        -------
+        Tnew (float) : The new swing tank tempeature the timestep assuming the tank is well mixed.
+        did_run (float) : Logic if heated during time step (1) or not (0) 
+        
+        """
+        did_run = 0
+        
+        # Take out the recirc losses 
+        Tnew = Tcurr - self.recircLoss_dT
+
+        # Add in heat for a draw
+        if hw_out:
+            Tnew += hw_out * (self.Tstorage - Tcurr) / self.swing_V0
+       
+        # Check if the element is heating
+        if self.swingheating:
+            Tnew += self.element_dT #If heating, generate HW and lose HW
+            did_run = 1
+            
+            # Check if the should be off
+            if Tnew >= self.swing_Ttrig + self.element_deadband_F: # If should heat
+                self.swingheating = False
+
+        if Tnew <= self.swing_Ttrig: # If the element should turn on
+            self.swingheating = True # Stop heating
+            
+       # if Tnew < self.Tsupply: # Check for errors
+        #    raise Exception("The swing tank dropped below the supply temperature! The system is undersized")
+        
+        #print(Tnew, Tcurr, hw_out, hw_outSwing, hw_outSwing * (self.Tstorage - Tcurr),self.swing_Ttrig, self.swingheating, did_run )
+
+        return Tnew, did_run 
+
 
 ##############################################################################
 ##############################################################################
@@ -678,7 +965,7 @@ class HPWHsizerRead:
 
 
     """
-    schematicNames = ["primary", "swingtank", "paralleltank", "trimtank"]
+    schematicNames = ["primary", "swingtank", "paralleltank"]
     hpwhData = hpwhDataFetch()
 
     def __init__(self):
@@ -1016,8 +1303,6 @@ class writeClassAtts:
         with open(self.fileName, 'a') as file1:
              file1.write(text + '\n')
 
-
-
 ##############################################################################
 
 def loadgpdpp( gpdpp, nBR = None):
@@ -1062,3 +1347,47 @@ def loadgpdpp( gpdpp, nBR = None):
             gpdpp = hpwhData.getGPDPP(gpdpp)[0]
 
     return gpdpp
+
+##############################################################################
+
+def HRLIST_to_MINLIST(a_list):
+    """
+    Repeats each element of a_list 60 times to go from hourly to minute.
+    Still may need other unit conversions to get data from per hour to per minute
+
+    Parameters
+    ----------
+    a_list : list
+        A list in of values per hour.
+
+    Returns
+    -------
+    out_list : list
+        A list in of values per minute created by repeating values per hour 60 times.
+
+    """
+    out_list = []
+    for num in a_list:
+        out_list += [num]*60
+    return out_list
+
+##############################################################################
+
+def roundList(a_list, n=3):
+    """
+    Rounds elements in a python list
+
+    Parameters
+    ----------
+    a_list : float
+        list to round values of.
+    n : int
+        optional, default = 3. Number of digits to round elements to.
+
+    Returns
+    -------
+    list
+        rounded values.
+
+    """
+    return [round(num, n) for num in a_list]
