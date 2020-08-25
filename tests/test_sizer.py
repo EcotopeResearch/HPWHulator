@@ -73,7 +73,15 @@ def primary_sizer():
                     "primary", .9 )
     return hpwh
 
-
+@pytest.fixture
+def CA_sizer(): # Returns the hpwh sizer object designed for Cali options
+    hpwh = HPWHsizer.HPWHsizer()
+    hpwh.initPrimaryByUnits([6,12,12,6,0,0], "CA", "CA", "stream",
+                    125, 50, 150., 16., .8, 0.4,
+                    "swingtank")
+    hpwh.initTempMaint(100)
+    return hpwh
+    
 @pytest.fixture
 def fetcher():
     fetch = dataFetch.hpwhDataFetch()
@@ -205,7 +213,6 @@ def test_loadgpdpp(x, nBR, expected):
     assert HPWHsizer.loadgpdpp(x,nBR) == expected
     
 
-
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 120),
     (120, 160),
@@ -217,12 +224,8 @@ def test_loadgpdpp(x, nBR, expected):
     (.05, .99),
     ])
 @pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
-@pytest.mark.parametrize("LS", [
-    ([1]*24),
-    ([1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1])
-])
 def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime_hr,
-                              nPercentUseable, nAF, LS):
+                              nPercentUseable, nAF):
     # Reset inputs
     primary_sizer.inputs.supplyT_F = nSupplyT
     primary_sizer.inputs.storageT_F = nStorageT_F
@@ -231,11 +234,36 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime
     primary_sizer.inputs.compRuntime_hr = ncompRuntime_hr
     # Recalc inputs
     primary_sizer.inputs.calcedVariables()
-    primary_sizer.setLoadShiftforPrimary(LS)
     # Size the system
     primary_sizer.build_size()
     # Check the simulation plot is all >= 0
-    [ V, G_hw, D_hw, run ] = primary_sizer.primarySystem.runStorage_Load_Sim()
+    [ V, G_hw, D_hw, run, _, _ ] = primary_sizer.runStorage_Load_Sim()
+    assert all(i >= 0 for i in V + G_hw + D_hw + run)
+
+
+@pytest.mark.parametrize("nSupplyT, nStorageT_F", [
+    (120, 140),
+    (120, 160),
+    (150, 150),
+    ])
+@pytest.mark.parametrize("nPep", [
+    20, 100, 2000
+    ])
+@pytest.mark.parametrize("nApt", [
+    12, 100, 1200
+    ])
+def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt):
+    # Reset inputs
+    CA_sizer.inputs.supplyT_F = nSupplyT
+    CA_sizer.inputs.storageT_F = nStorageT_F
+    CA_sizer.inputs.nPep = nPep
+    CA_sizer.inputs.nApt = nApt
+    # Recalc inputs
+    CA_sizer.inputs.calcedVariables()
+    # Size the system
+    CA_sizer.build_size()
+    # Check the simulation plot is all >= 0
+    [ V, G_hw, D_hw, run, _, _ ] = CA_sizer.runStorage_Load_Sim()
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
 
 ##############################################################################
@@ -344,18 +372,10 @@ def test_initPrimaryByUnits(units_sizer):
     assert file_regression("tests/ref/units_sizer.txt",
                            "tests/output/units_sizer.txt")
 
-
-def test_CA_sizing_settings():
-    '''Returns a HPWHsizer instance initialized by nPeople inputs'''
-    hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByUnits([6,12,12,6,0,0], "CA", "CA", "stream",
-                    125, 50, 150., 16., .8, 0.4,
-                    "swingtank")
-    hpwh.initTempMaint(100)
-
-    results = hpwh.build_size()
+def test_CA_sizing_settings(CA_sizer):
+    results = CA_sizer.build_size()
     assert len(results) == 4
-    hpwh.writeToFile("tests/output/ca_sizer.txt")
+    CA_sizer.writeToFile("tests/output/ca_sizer.txt")
     assert file_regression("tests/ref/ca_sizer.txt",
                            "tests/output/ca_sizer.txt")
 
@@ -374,6 +394,8 @@ def test_size_LS(primary_sizer, file1, LS):
     primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                            "tests/output/"+os.path.basename(file1))
+    
+    
 
 ##############################################################################
 ## Test ploting outputs stay same
@@ -381,6 +403,8 @@ def test_plot_primaryCurve(primary_sizer):
     primary_sizer.build_size()
     fig = primary_sizer.plotSizingCurve(return_as_div=False)
     fig.write_html("tests/output/test_plot_primaryCurve.html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+
     with open('tests/output/test_plot_primaryCurve.txt', 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/test_plot_primaryCurve.txt",
@@ -389,6 +413,8 @@ def test_plot_primaryCurve(primary_sizer):
 def test_parallel_curve(units_sizer):
     units_sizer.build_size()
     fig = units_sizer.plotParallelTankCurve(return_as_div=False)
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+
     with open('tests/output/test_plot_parallelCurve.txt', 'w') as file:
         file.write(str(fig))
     fig.write_html("tests/output/test_plot_parallelCurve.html")
@@ -399,11 +425,24 @@ def test_plot_simPrimary(primary_sizer):
     primary_sizer.build_size()
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/test_plot_simPrimary.html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+
     with open('tests/output/test_plot_simPrimary.txt', 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/test_plot_simPrimary.txt",
                            "tests/output/test_plot_simPrimary.txt")
 
+def test_plot_simSwing(CA_sizer):
+    CA_sizer.build_size()
+    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simSwing.html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+
+    with open('tests/output/test_plot_simSwing.txt', 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/test_plot_simSwing.txt",
+                           "tests/output/test_plot_simSwing.txt")
+    
 @pytest.mark.parametrize("file1, LS", [
    ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
    ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
@@ -416,6 +455,25 @@ def test_plot_LS(primary_sizer, file1, LS):
 
     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+
+    with open("tests/output/"+os.path.basename(file1), 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                           "tests/output/"+os.path.basename(file1))
+
+@pytest.mark.parametrize("file1, LS", [
+   ( "test_plot_swingLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+   ( "test_plot_swingLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+])
+def test_swing_LS(CA_sizer, file1, LS):
+    CA_sizer.setLoadShiftforPrimary(LS)
+    CA_sizer.build_size()
+
+    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/"+os.path.basename(file1),
