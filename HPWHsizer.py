@@ -764,6 +764,60 @@ class HPWHsizer:
 class Simulator:
     """
     Simulator class to check the primary and swing tank systems.
+    The Simulator class to run a simple simulation .
+
+    This class will run the primary simulation (schematic = "primary") or primary with swing tank simulation (schematic = "swingtank"). Both are run
+    on a minute timestep to approximate the available storage volume in the primary system
+    and the average tank temperature in the swing tank, if applicable. 
+    
+    The primary system is run assuming the system is perfectly stratified and all of the hot water above the
+    cold temperature line is at the storage temperature. Each time step some hot water is removed 
+    and some added according to the inputs.
+    
+    The swing tank is run assuming that the swing tank is well mixed and can be tracked by the average tank temperature 
+    and that the system loses the recirculation loop losses as a constant Watts. 
+    Since the swing tank is in series with the primary system the temperature needs
+    to be tracked to inform inputs for primary step, unlike the parallel loop tank
+    which is seperated from the primary system.
+    
+    The swing tank is also assumed to have an 8 °F deadband from the swing heating trigger temperature.
+    
+    
+    Examples
+    --------
+    An example usage to simulate a swing tank system:
+
+    First make sure the hot water draws are in gpm. For examples starting with gph for each hour of the day, 
+    a list can be converted to gpm for each minute oof the day following:
+        
+    
+    >>> D_hw_gph = [ 27, 12, 8, 8, 24, 40, 74, 87, 82, 67, 40, 34, 29, 27, 
+                    29, 34, 40, 48, 51, 55, 59, 51, 38, 36]
+    
+    >>> D_hw_gpm = np.array(HRLIST_to_MINLIST(D_hw_gph)) / 60
+    
+    
+    Then the simulator can be imported and initilized, with the desired inputs.
+    
+    
+    >>> from HPWHsizer import Simulator
+    >>> hpwhsim = Simulator(G_hw = [64]*24*60,
+                            D_hw = D_hw_gpm,
+                            V0 = 300,
+                            Vtrig = 180,     
+                            Tcw = 50,
+                            Tstorage = 150,
+                            Tsupply = 120,
+                            schematic = "swingtank",
+                            swing_V0 = 80,
+                            swing_Ttrig = 121,
+                            Qrecirc_W = 2700,
+                            Swing_Elem_kW = 5 )
+
+    And then in order to find proper for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:
+
+    >>> primaryVol, G_hw, D_hw, primaryGen, swingTemp, swingHeat = hpwhsim.simulate()
+
     
     """
     pheating = False
@@ -778,21 +832,45 @@ class Simulator:
                  Swing_Elem_kW = None,
                  ):
         """
-        Returns sizing storage depletion and load results for water volumes at the supply temperature
-
+        Initialize the simulation to run. Default is the "primary" schematic.
         Parameters
         ----------
-        G_hw : (list) 
-            The primary hot water generation rate in gallons per minute 
+        G_hw : list
+            The primary hot water generation rate in gallons per minute .
             
-        D_hw : (list)
-            The hot water draw rate at the supply temperature
+        D_hw : list
+            The hot water draw rate at the supply temperature.
             
-        V0 : (float) 
+        V0 : float
             The storage volume of the primary system at the storage temperature
             
-        Vtrig : (float) 
-            The remaining volume of the primary storage volume when heating is triggered.
+        Vtrig : float
+            The remaining volume of the primary storage volume when heating is triggered, note this equals V0*(1 - aquaFract)
+            
+        Tcw : float
+            The cold makeup water temperature
+            
+        Tstorage : float
+            The hot water storage temperature 
+            
+        Tsupply : float
+            The hot water supply temperature to occupants.
+            
+        schematic : string
+            The schematic string, either "primary", "paralleltank", or "swingtank". Controls the model run. Defaults to "primary".
+            
+        swing_V0 : float
+            The storage volume of the swing tank. Is not need unless schematic is set to "swingtank". Defaults to None.
+            
+        swing_Ttrig : float
+            The swing tank tempeature when the swing tank resistance elements turn on. Is not need unless schematic is set to "swingtank". Defaults to None.
+
+        Qrecirc_W : float
+            The recirculation loop losses in Watts. Is not need unless schematic is set to "swingtank". Defaults to None.
+
+        Swing_Elem_kW : float
+            The swing tank resistance elements power output in kWatts. Is not need unless schematic is set to "swingtank". Defaults to None.
+    
         """
 
         self.__checkInputs(G_hw, D_hw, V0, Vtrig)
