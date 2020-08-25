@@ -587,8 +587,9 @@ class HPWHsizer:
 
         fig.update_layout(title="Hot Water Simulation",
                           xaxis_title= "Minute of Day",
-                          yaxis_title="Gallons or Gallons per Hour")
-                          #legend_orientation="h")
+                          yaxis_title="Gallons or\nGallons per Hour",
+                          width=900,
+                          height=700)
                           
         # Do Swing Tank components:
         if swingT:
@@ -616,11 +617,11 @@ class HPWHsizer:
                          row=2,col=1,
                          secondary_y=True)
 
-            fig.update_yaxes(title_text="Swing Tank Temperature (\N{DEGREE SIGN}F)", 
+            fig.update_yaxes(title_text="Swing Tank\nTemperature (\N{DEGREE SIGN}F)", 
                              showgrid=False, row=2, col=1,
                              secondary_y=False, range=[self.inputs.supplyT_F-5, self.inputs.storageT_F])
 
-            fig.update_yaxes(title_text="Resistance Element Output (kW)", 
+            fig.update_yaxes(title_text="Resistance Element\nOutput (kW)", 
                              showgrid=False, row=2, col=1,
                              secondary_y=True, range=[0,np.ceil(max(srun)/10)*10])
 
