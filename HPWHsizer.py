@@ -557,7 +557,9 @@ class HPWHsizer:
         V = np.array(V[-(60*hrind_fromback):])
 
         if swingT:
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig = make_subplots(rows=2, cols=1,
+                                specs=[[{"secondary_y": False}],
+                                        [{"secondary_y": True}]])
         else:
             fig = Figure()
 
@@ -591,7 +593,7 @@ class HPWHsizer:
         # Do Swing Tank components:
         if swingT:
             swingT = np.array(swingT[-(60*hrind_fromback):])
-            srun = np.array(srun[-(60*hrind_fromback):])
+            srun = np.array(srun[-(60*hrind_fromback):]) * self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR #srun is logical so convert to kW
             
             # heatin_kWh = sum(srun)/60*self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR 
             # recircLoss = self.tempmaintSystem.Wapt*self.tempmaintSystem.nApt/1000 * 48
@@ -603,18 +605,26 @@ class HPWHsizer:
             fig.add_trace(Scatter(x=x_data, y=swingT, 
                                   name= 'Swing Tank Temperature',
                                   mode = 'lines', line_shape='hv',
-                                  opacity=0.8, marker_color='purple',     yaxis="y2") )#,
-                         # secondary_y=True,)
-    
-            fig.update_layout(yaxis2=dict(
-                                title="Swing Tank Temperature (\N{DEGREE SIGN}F)",
-                                anchor="x",
-                                overlaying="y",
-                                side="right",
-                                range= [self.inputs.supplyT_F-5, self.inputs.storageT_F],) )
+                                  opacity=0.8, marker_color='purple',yaxis="y2"), 
+                          row=2,col=1,
+                         secondary_y=False )
             
-        
+            fig.add_trace(Scatter(x=x_data, y=srun, 
+                                  name= 'Swing Tank Resistance Element',
+                                  mode = 'lines', line_shape='hv',
+                                  opacity=0.8, marker_color='goldenrod'), 
+                         row=2,col=1,
+                         secondary_y=True)
 
+            fig.update_yaxes(title_text="Swing Tank Temperature (\N{DEGREE SIGN}F)", 
+                             showgrid=False, row=2, col=1,
+                             secondary_y=False, range=[self.inputs.supplyT_F-5, self.inputs.storageT_F])
+
+            fig.update_yaxes(title_text="Resistance Element Output (kW)", 
+                             showgrid=False, row=2, col=1,
+                             secondary_y=True, range=[0,np.ceil(max(srun)/10)*10])
+
+            
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
                         include_plotlyjs = False)
