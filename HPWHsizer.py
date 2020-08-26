@@ -1272,7 +1272,7 @@ class HPWHsizerRead:
         """ Calculate other variables needed."""
         self.totalHWLoad_G = self.gpdpp * self.nPeople
         # Covert hw load to gallons at the given supply temperature using 120 F and cold water of 40 F
-        self.totalHWLoad_G = mixVolume(self.totalHWLoad_G, self.supplyT_F, self.incomingT_F, 120.)
+        #self.totalHWLoad_G = mixVolume(self.totalHWLoad_G, self.supplyT_F, self.incomingT_F, 120.)
 
 # Helper Functions for reading and writing files
     def __importArrLine(self, line, setLength):
