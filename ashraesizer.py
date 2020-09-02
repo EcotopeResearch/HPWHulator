@@ -18,7 +18,6 @@
 """
 import numpy as np
 from cfg import rhoCp, TONS_TO_KBTUHR
-from HPWHComponents import mixVolume
 
 class ASHRAEsizer:
     """

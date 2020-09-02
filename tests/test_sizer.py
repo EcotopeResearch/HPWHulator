@@ -306,10 +306,6 @@ def test_multipass(people_sizer):
     with pytest.raises(Exception, match="Multipass is yet supported"):
         assert people_sizer.build_size()
 
-def test_trimtank(people_sizer):
-    people_sizer.inputs.schematic = 'trimtank'
-    with pytest.raises(Exception, match="Trim tanks are not supported yet"):
-        assert people_sizer.build_size()
 
 ##############################################################################
 # Full model and file tests!

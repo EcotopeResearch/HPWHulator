@@ -23,6 +23,7 @@ temperatureMaintenanceSystem:
 schematic, swingtank
 nApt, 60.000
 Wapt, 90.000
+safetyTM, 1.750
 swingLoadToPrimary_W, 5400.000
 TMCap_kBTUhr, 32.245
 TMVol_G, 120 - 300

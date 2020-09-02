@@ -17,7 +17,7 @@
 
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, compMinimumRunTime
+from cfg import rhoCp, W_TO_BTUHR, compMinimumRunTime
 from dataFetch import hpwhDataFetch
 
 ##############################################################################
@@ -360,16 +360,17 @@ class ParallelLoopTank:
         Volume of parrallel loop tank.
     """
 
-    def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr):
+    def __init__(self, nApt, Wapt, safetyTM, setpointTM_F, TMonTemp_F, offTime_hr):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
 
+        self.safetyTM  = safetyTM # Safety factor
+        
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
         self.offTime_hr  = offTime_hr # Hour
-        self.TMRuntime_hr  = TMRuntime_hr # Hour
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
         self.TMVol_G = 0 # Gallons
@@ -393,19 +394,11 @@ class ParallelLoopTank:
         # self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
         #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
 
-        TMVol_G =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
+        self.TMVol_G  =  self.Wapt * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
-        tempCap_kBTUhr =   TMSafetyFactor * self.Wapt * self.nApt * W_TO_BTUHR * \
-            (1. + self.offTime_hr/self.TMRuntime_hr) / 1000
+        self.TMCap_kBTUhr = self.safetyTM * self.Wapt * self.nApt * W_TO_BTUHR/1000 
 
-        # Check if the heating capacity is greater than the upper bound of recirc losses.
-        if tempCap_kBTUhr*1000/W_TO_BTUHR > self.Wapt * Wapt75 * self.nApt :
-            self.TMCap_kBTUhr = tempCap_kBTUhr
-            self.TMVol_G = TMVol_G
-        else:
-            raise Exception("The parallel loop tank run time is long relative to the off time and does not meet the safety factor of 1.75."+\
-                            "The run time should be less or equal to: 1.3 x off time.")       
                             
     def getSizingResults(self):
         """
@@ -430,7 +423,7 @@ class ParallelLoopTank:
 
         volN_G = np.linspace(0 , round(self.TMVol_G*4/100)*100, 100)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
-                    self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR
+                    self.nApt * self.Wapt * 0.66 * W_TO_BTUHR #0.66 comes from the lower limit of the distrubution losses. 
         capacity /= 1000.
 
         keep = capacity >= self.TMCap_kBTUhr
@@ -462,12 +455,13 @@ class SwingTank:
 
     #swingLoadToPrimary_Wapt = 50.
 
-    def __init__(self, nApt, Wapt):
+    def __init__(self, nApt, Wapt, safetyTM):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt #W/ apartment
-
+        self.safetyTM   = safetyTM # Safety factor
+        
         self.swingLoadToPrimary_W = self.Wapt * self.nApt
 
         # Outputs:
@@ -494,7 +488,7 @@ class SwingTank:
         else:
             self.TMVol_G = self.sizingTable_EMASHRAE[ind]
 
-        self.TMCap_kBTUhr = TMSafetyFactor * Wapt75 * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
+        self.TMCap_kBTUhr = self.safetyTM * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
 
     def getSizingResults(self):
         """
