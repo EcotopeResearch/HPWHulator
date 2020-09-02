@@ -17,8 +17,10 @@
 
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, compMinimumRunTime
+from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, HRLIST_to_MINLIST, \
+                compMinimumRunTime, mixVolume
 from dataFetch import hpwhDataFetch
+from Simulator import Simulator
 
 ##############################################################################
 ## Components of a HPWH system given below:
@@ -49,14 +51,14 @@ class PrimarySystem_SP:
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
     defrostFactor: float
         A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
-    swingTankLoad_W : float
-        An addition of extra laod from the distrubution system when using the swing tank.
-    PCap_kBTUhr : float
+     PCap_kBTUhr : float
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT : float
         Primary storage tank volume [gals]
     aquaFract : float
         Fractional hieght of the aquastat in the tank.
+    SwingTank : swingtank
+        The swing tank object associated with the primary system if there is one.
     swingTankLoad_W : float
         Extra load in Watts that is added to the primary system.
 
@@ -65,7 +67,7 @@ class PrimarySystem_SP:
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
                  incomingT_F, supplyT_F, storageT_F,
                  percentUseable, compRuntime_hr, aquaFract,
-                 defrostFactor, swingTankLoad_W = 0):
+                 defrostFactor, swingTank = None):
 
         #Initialize the sizer object with the inputs
         self.totalHWLoad    = totalHWLoad
@@ -84,9 +86,17 @@ class PrimarySystem_SP:
         self.compRuntime_hr     = compRuntime_hr
         self.aquaFract          = aquaFract #Fraction
 
-        self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
-            (self.storageT_F - self.incomingT_F) # Converts the extra load from the swing tank in Watts to GPH
-
+        if swingTank:
+            self.swingTank = swingTank
+            # Get part of recicualtion loop losses added to primary system
+            swingTankLoad_W = swingTank.getSwingLoadOnPrimary_W()
+            self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
+                (self.storageT_F - self.incomingT_F) # Converts the extra load from the swing tank in Watts to GPH
+       
+        else:
+            self.swingTank = None
+            self.extraLoad_GPH = 0
+    
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
@@ -194,7 +204,7 @@ class PrimarySystem_SP:
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             if min_AF < 1:
-                raise ValueError ("The aquastat fraction is too low in the storge system recommend increasing to a minimum of: %.3f or increasing the maximum run hours in the day" % round(min_AF,3))
+                raise ValueError ("ERR ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: %.3f." % round(min_AF,3))
             else:
                 raise ValueError ("The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
@@ -223,19 +233,66 @@ class PrimarySystem_SP:
 
         """
 
-        diffN   = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs - np.tile(self.loadShapeNorm,2)
+        genrate = (np.tile(onOffArr,2) + self.extraLoad_GPH/self.totalHWLoad) / heatHrs #hourly
+        diffN   = genrate - np.tile(self.loadShapeNorm,2) #hourly
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
+        diffN *= self.totalHWLoad
         # Get the running volume ##############################################
         if len(diffInd) == 0:
             raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
         else:
-            runVolTemp = 0
+            runV_G = 0
             for peakInd in diffInd:
-                diffCum = np.cumsum(diffN[peakInd:]) #Get the rest of the day from the start of the peak
-                runVolTemp = max(runVolTemp, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
-        runV_G = runVolTemp * self.totalHWLoad
+                # if not a swing tank Model
+                if not self.swingTank:
+                    #Get the rest of the day from the start of the peak
+                    diffCum = np.cumsum(diffN[peakInd:])  #hourly
+                    
+                # else it is a swing tank model
+                else:
+                    hw_out = np.tile(self.loadShapeNorm, 2)
+                    hw_out = np.array(HRLIST_to_MINLIST(hw_out[peakInd:])) / 60 * self.totalHWLoad # to minute
+                    genrate_min = np.array(HRLIST_to_MINLIST(genrate[peakInd:])) / 60 * self.totalHWLoad # to minute
+                    
+                    # print( self.totalHWLoad *self.loadShapeNorm/ 60 )
+                    # print( np.mean(hw_out.reshape(-1, 60), axis=1))
+                    # Get the mixed generation rate so we know how much hot water at the storage temperature we make each step
+                    # since the modeling of the swing tank assumes that it gets x gallons at the supply temperature.
+                    genrate_min = mixVolume(genrate_min, self.storageT_F, self.incomingT_F, self.supplyT_F)
+                    
+                    # Simulate the swing tank assuming it hits the peak just above the supply temperature. 
+                    hpwhsim = Simulator([0]*len(hw_out), hw_out, 10, 1,                                
+                                Tcw = self.incomingT_F,
+                                Tstorage = self.storageT_F,
+                                Tsupply = self.supplyT_F,
+                                schematic = "swingtank",
+                                swing_V0 = int(self.swingTank.TMVol_G.split()[0]),
+                                swing_Ttrig = self.supplyT_F,
+                                Qrecirc_W = self.swingTank.Wapt*self.swingTank.nApt,
+                                Swing_Elem_kW = self.swingTank.TMCap_kBTUhr/W_TO_BTUHR )
+                    # Get the volume removed for the primary adjusted by the swing tank
+                    [swingT, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F+1)
+                  
+                    # Get the new difference in generation and demand
+                    diffN =  genrate_min - hw_out_from_swing
+                    # Get the rest of the day from the start of the peak
+                    diffCum = np.cumsum(diffN)
+                    
+                    # from plotly.graph_objs import Figure, Scatter
+                    # fig = Figure()
+                    # fig.add_trace(Scatter(y=swingT, mode='lines', name='SwingT'))
+                    # fig.add_trace(Scatter(y=hw_out_from_swing, mode='lines', name='hw_out_from_swing'))
+                    # fig.add_trace(Scatter(y=hw_out, mode='lines', name='hw_out'))
+                    # fig.add_trace(Scatter(y=diffCum, mode='lines', name='diffCum'))
+                    # fig.add_trace(Scatter(y=genrate_min, mode='lines', name='genrate'))
+                    # fig.show()
+                    
+                runV_G = max(runV_G, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
 
+
+                
+                    
         # adjust for cdf_shift
         if cdf_shift == 1: # meaing 100% of days covered by load shift
             percent_total_vol = 1
@@ -244,7 +301,7 @@ class PrimarySystem_SP:
         else:
             percent_total_vol = hpwhDataFetch.getCDF(cdf_shift)
 
-        runV_G = runV_G*percent_total_vol
+        runV_G *= percent_total_vol
 
         return runV_G
 
@@ -548,29 +605,3 @@ def getPeakIndices(diff1):
     diff1 = np.insert(diff1, 0, 0)
     return np.where(np.diff(np.sign(diff1))<0)[0]
 
-
-def mixVolume(vol, hotT, coldT, outT):
-    """
-    Adjusts the volume of water such that the hotT water and outT water have the
-    same amount of energy, meaning different volumes.
-
-    Parameters
-    ----------
-    vol : float
-        The reference volume to convert.
-    hotT : float
-        The hot water temperature used for mixing.
-    coldT : float
-        The cold water tempeature used for mixing.
-    outT : float
-        The out water temperature from mixing.
-
-    Returns
-    -------
-    float
-        Temperature adjusted volume.
-
-    """
-    fraction = (outT - coldT) / (hotT - coldT)
-
-    return vol * fraction

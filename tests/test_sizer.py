@@ -26,7 +26,8 @@ import numpy as np
 import os
 import HPWHsizer
 import dataFetch
-from HPWHComponents import getPeakIndices, mixVolume
+from HPWHComponents import getPeakIndices
+from cfg import mixVolume
 
 
 def file_regression(fileRef, fileResults):
@@ -55,9 +56,7 @@ def people_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 36, 22.,
-                      [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
-                       0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
-                       0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
+                      "stream",
                     120, 50, 150., 18., 0.9, 0.4,
                     "swingtank", 0.9 )
     hpwh.initTempMaint(100)
@@ -76,7 +75,7 @@ def primary_sizer():
 @pytest.fixture
 def CA_sizer(): # Returns the hpwh sizer object designed for Cali options
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByUnits([6,12,12,6,0,0], "CA", "CA", "stream",
+    hpwh.initPrimaryByUnits([8,40,32,8,0,0], "CA", "CA", "stream",
                     125, 50, 150., 16., .8, 0.4,
                     "swingtank")
     hpwh.initTempMaint(100)
@@ -141,7 +140,7 @@ def test_AF_sizing_error(empty_sizer):
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                 120, 50, 150., 16., .9, 0.11,
                 "primary", .9)
-    with pytest.raises(Exception, match="The aquastat fraction is too low in the storge system recommend increasing to a minimum of: 0.209"):
+    with pytest.raises(Exception, match="ERR ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: 0.209"):
         empty_sizer.build_size()
 
 def test_primary_AF_over_1_Error(primary_sizer):
@@ -237,7 +236,7 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime
     # Size the system
     primary_sizer.build_size()
     # Check the simulation plot is all >= 0
-    [ V, G_hw, D_hw, run, _, _ ] = primary_sizer.runStorage_Load_Sim()
+    [ V, G_hw, D_hw, run, _, _, _ ] = primary_sizer.runStorage_Load_Sim()
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
 
 
@@ -250,7 +249,7 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime
     20, 100, 2000
     ])
 @pytest.mark.parametrize("nApt", [
-    12, 100, 1200
+    12, 100, 1000
     ])
 def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt):
     # Reset inputs
@@ -263,8 +262,10 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt):
     # Size the system
     CA_sizer.build_size()
     # Check the simulation plot is all >= 0
-    [ V, G_hw, D_hw, run, _, _ ] = CA_sizer.runStorage_Load_Sim()
+    [ V, G_hw, D_hw, run, swingT, _, _ ] = CA_sizer.runStorage_Load_Sim()
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
+    print((swingT[0:24*60]) )
+    assert min(swingT) >= nSupplyT-1
 
 ##############################################################################
 # Init Tests
@@ -311,7 +312,7 @@ def test_trimtank(people_sizer):
     with pytest.raises(Exception, match="Trim tanks are not supported yet"):
         assert people_sizer.build_size()
 
-##############################################################################
+#############################################################################
 # Full model and file tests!
 @pytest.mark.parametrize("file1", [
     "tests/test_60UnitSwing.txt",
@@ -324,7 +325,7 @@ def test_hpwh_from_file(empty_sizer, file1):
     empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
 
     assert file_regression("tests/ref/"+os.path.basename(file1),
-                           "tests/output/"+os.path.basename(file1))
+                            "tests/output/"+os.path.basename(file1))
 
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
@@ -339,7 +340,7 @@ def test_primarySizer(primary_sizer):
         assert primary_sizer.sizePrimaryTankVolume(100)
     primary_sizer.writeToFile("tests/output/primary_sizer.txt")
     assert file_regression("tests/ref/primary_sizer.txt",
-                           "tests/output/primary_sizer.txt")
+                            "tests/output/primary_sizer.txt")
 
 def test_initPrimaryByPeople(people_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
@@ -355,7 +356,7 @@ def test_initPrimaryByPeople(people_sizer):
 
     people_sizer.writeToFile("tests/output/people_sizer.txt")
     assert file_regression("tests/ref/people_sizer.txt",
-                           "tests/output/people_sizer.txt")
+                            "tests/output/people_sizer.txt")
 
 def test_initPrimaryByUnits(units_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
@@ -370,14 +371,14 @@ def test_initPrimaryByUnits(units_sizer):
         assert units_sizer.sizePrimaryTankVolume(100)
     units_sizer.writeToFile("tests/output/units_sizer.txt")
     assert file_regression("tests/ref/units_sizer.txt",
-                           "tests/output/units_sizer.txt")
+                            "tests/output/units_sizer.txt")
 
 def test_CA_sizing_settings(CA_sizer):
     results = CA_sizer.build_size()
     assert len(results) == 4
     CA_sizer.writeToFile("tests/output/ca_sizer.txt")
     assert file_regression("tests/ref/ca_sizer.txt",
-                           "tests/output/ca_sizer.txt")
+                            "tests/output/ca_sizer.txt")
 
 ##############################################################################
 # Load Shift tests
@@ -444,10 +445,10 @@ def test_plot_simSwing(CA_sizer):
                            "tests/output/test_plot_simSwing.txt")
     
 @pytest.mark.parametrize("file1, LS", [
-   ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ( "test_plot_simLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
-   ( "test_plot_simLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+    ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_simLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
+    ( "test_plot_simLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
 ])
 def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.setLoadShiftforPrimary(LS)
@@ -460,11 +461,11 @@ def test_plot_LS(primary_sizer, file1, LS):
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/"+os.path.basename(file1),
-                           "tests/output/"+os.path.basename(file1))
+                            "tests/output/"+os.path.basename(file1))
 
 @pytest.mark.parametrize("file1, LS", [
-   ( "test_plot_swingLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-   ( "test_plot_swingLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_swingLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_swingLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
 ])
 def test_swing_LS(CA_sizer, file1, LS):
     CA_sizer.setLoadShiftforPrimary(LS)
@@ -477,4 +478,4 @@ def test_swing_LS(CA_sizer, file1, LS):
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
         file.write(str(fig))
     assert file_regression("tests/ref/"+os.path.basename(file1),
-                           "tests/output/"+os.path.basename(file1))
+                            "tests/output/"+os.path.basename(file1))
