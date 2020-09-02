@@ -204,9 +204,10 @@ def test_loadgpdpp_errs():
 @pytest.mark.parametrize("x, nBR, expected", [
     (30 , 0, 30),
     ("ashLow", 0, 20),
-    ("CA", [50, 50, 0, 0, 0, 0], 34),
-    ("CA", [6, 12, 12, 6, 0, 0], 28),
-    ("CA", [10, 10, 10, 10, 10, 10], 26),
+    ("CA", [50, 50, 0, 0, 0, 0], 31),
+    ("CA", [6, 12, 12, 6, 0, 0], 26),
+    ("CA", [10, 10, 10, 10, 10, 10], 24),
+    ("CA", [8, 34, 40, 6, 0, 0], 27),
     ])
 def test_loadgpdpp(x, nBR, expected):
     assert HPWHsizer.loadgpdpp(x,nBR) == expected
