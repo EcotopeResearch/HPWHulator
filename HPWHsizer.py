@@ -21,7 +21,7 @@ import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank 
 from ashraesizer import ASHRAEsizer
-from cfg import compMinimumRunTime, rhoCp, W_TO_BTUHR, mixVolume, HRLIST_to_MINLIST
+from cfg import compMinimumRunTime, rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
@@ -608,7 +608,7 @@ class HPWHsizer:
             #         "\n Comp Run Time: " +str(round(np.count_nonzero(run)/60/2,2))
             
             fig.add_trace(Scatter(x=x_data, y=swingT, 
-                                  name= 'Swing Tank Temperature',
+                                  name= 'Swing Tank Temperature, Vol='+self.tempmaintSystem.TMVol_G.split()[-1],
                                   mode = 'lines', line_shape='hv',
                                   opacity=0.8, marker_color='purple',yaxis="y2"), 
                           row=2,col=1,
@@ -761,7 +761,7 @@ class HPWHsizer:
                                 Tstorage = self.primarySystem.storageT_F,
                                 Tsupply = self.primarySystem.supplyT_F,
                                 schematic = self.inputs.schematic,
-                                swing_V0 = int(self.tempmaintSystem.TMVol_G.split()[0]),
+                                swing_V0 = int(self.tempmaintSystem.TMVol_G.split()[-1]),
                                 swing_Ttrig = self.primarySystem.supplyT_F,
                                 Qrecirc_W = self.tempmaintSystem.Wapt*self.tempmaintSystem.nApt,
                                 Swing_Elem_kW = self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR )

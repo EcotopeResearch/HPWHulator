@@ -92,7 +92,9 @@ class PrimarySystem_SP:
             swingTankLoad_W = swingTank.getSwingLoadOnPrimary_W()
             self.extraLoad_GPH = W_TO_BTUHR * swingTankLoad_W / rhoCp / \
                 (self.storageT_F - self.incomingT_F) # Converts the extra load from the swing tank in Watts to GPH
-       
+            
+            
+            
         else:
             self.swingTank = None
             self.extraLoad_GPH = 0
@@ -189,14 +191,11 @@ class PrimarySystem_SP:
         # Get total volume from max of primary method or load shift method
         totalVolMax = max(runningVol_G, LSrunningVol_G)
 
-        # If the swing tank is not being used
-        if self.extraLoad_GPH == 0:
+        if self.extraLoad_GPH == 0: # If the swing tank is not being used
             totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
-        else:
-            totalVolMax = totalVolMax / (1-self.aquaFract)
-
-        #totalVolMax = self.__SUPPLYV_TO_STORAGEV(totalVolMax) / (1-self.aquaFract)
-
+        else: # For a swing tank the storage volume is found at the appropriate temperature in __calcRunningVol
+            totalVolMax = totalVolMax / (1-self.aquaFract) 
+            
         # Check the Cycling Volume ##############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
         minRunVol_G     = compMinimumRunTime * (self.totalHWLoad / heatHrs) # (generation rate - no usage)
@@ -204,9 +203,9 @@ class PrimarySystem_SP:
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             if min_AF < 1:
-                raise ValueError ("ERR ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: %.3f." % round(min_AF,3))
+                raise ValueError ("Error ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: %.3f." % round(min_AF,3))
             else:
-                raise ValueError ("The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
+                raise ValueError ("Error ID 02: The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
         # Return the temperature adjusted total volume ########################
         return totalVolMax
@@ -267,12 +266,12 @@ class PrimarySystem_SP:
                                 Tstorage = self.storageT_F,
                                 Tsupply = self.supplyT_F,
                                 schematic = "swingtank",
-                                swing_V0 = int(self.swingTank.TMVol_G.split()[0]),
+                                swing_V0 = int(self.swingTank.TMVol_G.split()[-1]), # -1 grabs the last element of list
                                 swing_Ttrig = self.supplyT_F,
                                 Qrecirc_W = self.swingTank.Wapt*self.swingTank.nApt,
                                 Swing_Elem_kW = self.swingTank.TMCap_kBTUhr/W_TO_BTUHR )
                     # Get the volume removed for the primary adjusted by the swing tank
-                    [swingT, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F+1)
+                    [swingT, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F)
                   
                     # Get the new difference in generation and demand
                     diffN =  genrate_min - hw_out_from_swing
@@ -549,8 +548,8 @@ class SwingTank:
         if CA:
             self.TMVol_G = self.sizingTable_CA[ind]
         else:
-            self.TMVol_G = self.sizingTable_EMASHRAE[ind]
-
+            self.TMVol_G = self.sizingTable_EMASHRAE[ind] ##
+           #self.TMVol_G =str(int(80 + self.nApt/.5)) 
         self.TMCap_kBTUhr = TMSafetyFactor * Wapt75 * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
 
     def getSizingResults(self):

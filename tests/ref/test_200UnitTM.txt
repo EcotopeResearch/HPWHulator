@@ -10,7 +10,8 @@ defrostFactor, 1.000
 percentUseable, 0.800
 compRuntime_hr, 16.000
 aquaFract, 0.400
-extraLoad_GPH, 0.000
+swingTank, None
+extraLoad_GPH, 0
 maxDayRun_hr, 16.000
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False

@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
 from cfg import rhoCp, W_TO_BTUHR, mixVolume, roundList
 
 
@@ -37,10 +38,47 @@ class Simulator:
     and that the system loses the recirculation loop losses as a constant Watts. 
     Since the swing tank is in series with the primary system the temperature needs
     to be tracked to inform inputs for primary step, unlike the parallel loop tank
-    which is seperated from the primary system.
+    which is separated  from the primary system.
     
     The swing tank is also assumed to have an 8 °F deadband from the swing heating trigger temperature.
     
+    Attributes
+    ----------
+    G_hw : list
+        The primary hot water generation rate in gallons per minute .
+        
+    D_hw : list
+        The hot water draw rate at the supply temperature.
+        
+    V0 : float
+        The storage volume of the primary system at the storage temperature
+        
+    Vtrig : float
+        The remaining volume of the primary storage volume when heating is triggered, note this equals V0*(1 - aquaFract)
+        
+    Tcw : float
+        The cold makeup water temperature
+        
+    Tstorage : float
+        The hot water storage temperature 
+        
+    Tsupply : float
+        The hot water supply temperature to occupants.
+        
+    schematic : string
+        The schematic string, either "primary", "paralleltank", or "swingtank". Controls the model run. Defaults to "primary".
+        
+    swing_V0 : float
+        The storage volume of the swing tank. Is not need unless schematic is set to "swingtank". Defaults to None.
+        
+    swing_Ttrig : float
+        The swing tank tempeature when the swing tank resistance elements turn on. Is not need unless schematic is set to "swingtank". Defaults to None.
+
+    Qrecirc_W : float
+        The recirculation loop losses in Watts. Is not need unless schematic is set to "swingtank". Defaults to None.
+
+    Swing_Elem_kW : float
+        The swing tank resistance elements power output in kWatts. Is not need unless schematic is set to "swingtank". Defaults to None.
     
     Examples
     --------
@@ -49,7 +87,8 @@ class Simulator:
     First make sure the hot water draws are in gpm. For examples starting with gph for each hour of the day, 
     a list can be converted to gpm for each minute oof the day following:
         
-    
+    >>> import numpy as np
+    >>> from cfg import HRLIST_to_MINLIST
     >>> D_hw_gph = [ 27, 12, 8, 8, 24, 40, 74, 87, 82, 67, 40, 34, 29, 27, 
                     29, 34, 40, 48, 51, 55, 59, 51, 38, 36]
     
@@ -260,25 +299,25 @@ class Simulator:
         did_run = 0
         Vnew = 0
         if self.pheating:
-                Vnew = Vcurr + hw_in - hw_out # If heating, generate HW and lose HW
-                did_run = hw_in
+            Vnew = Vcurr + hw_in - hw_out # If heating, generate HW and lose HW
+            did_run = hw_in
 
         else:  # Else not heating,
             Vnew = Vcurr - hw_out # So lose HW
             if Vnew < self.Vtrig: # If should heat
-                time_missed = (self.Vtrig - Vnew)/hw_out#Volume below turn on / rate of draw gives time below tigger
+                time_missed = (self.Vtrig - Vnew)/hw_out # Volume below turn on / rate of draw gives time below tigger
                 Vnew += hw_in * time_missed # Start heating
-                did_run = hw_in*time_missed
+                did_run = hw_in * time_missed
                 self.pheating = True
 
         if Vnew > self.V0: # If overflow
             time_over = (Vnew - self.V0) / (hw_in - hw_out) # Volume over generated / rate of generation gives time above full
-            Vnew = self.V0 - hw_out * time_over # Make full with miss volume
+            Vnew = self.V0 - hw_out * time_over # Make full with missing volume
             did_run = hw_in * (1-time_over)
             self.pheating = False # Stop heating
         
-        # if Vnew < 0:
-        #     raise Exception ( "Primary storage ran out of Volume!")
+        if Vnew < 0:
+            raise Exception ( "Primary storage ran out of Volume!")
         
         return Vnew, did_run
 
@@ -316,17 +355,25 @@ class Simulator:
             Tnew += self.element_dT #If heating, generate HW and lose HW
             did_run = 1
             
-            # Check if the should be off
-            if Tnew >= self.swing_Ttrig + self.element_deadband_F: # If should heat
+            # Check if the element should turn off
+            if Tnew > self.swing_Ttrig + self.element_deadband_F: # If too hot
+                time_over = (Tnew - (self.swing_Ttrig + self.element_deadband_F)) / self.element_dT # Temp below turn on / rate of element heating gives time above trigger plus deadband
+                Tnew -= self.element_dT * time_over # Make full with miss volume
+                did_run = (1-time_over)
+    
                 self.swingheating = False
-
-        if Tnew <= self.swing_Ttrig: # If the element should turn on
-            self.swingheating = True # Stop heating
-            
-       # if Tnew < self.Tsupply: # Check for errors
-        #    raise Exception("The swing tank dropped below the supply temperature! The system is undersized")
+        else:
+            if Tnew <= self.swing_Ttrig: # If the element should turn on
+                time_missed = (self.swing_Ttrig - Tnew)/self.element_dT # Temp below turn on / rate of element heating gives time below tigger
+                Tnew += self.element_dT * time_missed # Start heating
+                
+                did_run = time_missed
+                self.swingheating = True # Start heating
         
-        #print(Tnew, Tcurr, hw_out, hw_outSwing, hw_outSwing * (self.Tstorage - Tcurr),self.swing_Ttrig, self.swingheating, did_run )
+        if Tnew < self.Tsupply: # Check for errors
+            raise Exception("The swing tank dropped below the supply temperature! The system is undersized")
+        
+        #print(Tnew, Tcurr, self.swing_Ttrig, self.swingheating, did_run )
 
         return Tnew, did_run 
 
