@@ -216,7 +216,6 @@ class Simulator:
         """
         Inputs
         ------
-        
         initPV : float
             Primary volume at start of the simulation
         initST : float

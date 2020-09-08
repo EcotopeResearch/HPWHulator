@@ -587,7 +587,7 @@ class HPWHsizer:
         fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand at Supply Temperature',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='blue'))
-        fig.update_yaxes(range=[0, np.ceil(max(V)/100)*100])
+        fig.update_yaxes(range=[0, np.ceil(max( np.append(V,D_hw))/100)*100])
 
         fig.update_layout(title="Hot Water Simulation",
                           xaxis_title= "Minute of Day",
@@ -692,7 +692,6 @@ class HPWHsizer:
             return plot_div
         else:
             return fig
-
 
     def writeToFile(self,fileName):
         primaryWriter = writeClassAtts(self.primarySystem, fileName, 'w+')

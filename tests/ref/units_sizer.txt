@@ -11,7 +11,7 @@ percentUseable, 0.800
 compRuntime_hr, 16
 aquaFract, 0.400
 swingTank, None
-extraLoad_GPH, 0
+effSwingFract, 1.000
 maxDayRun_hr, 16
 LS_on_off, [1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]
 loadShift, False

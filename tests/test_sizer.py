@@ -213,32 +213,32 @@ def test_loadgpdpp(x, nBR, expected):
     assert HPWHsizer.loadgpdpp(x,nBR) == expected
     
 
-# @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
-#     (120, 120),
-#     (120, 160),
-#     (150, 150),
-#     ])
-# @pytest.mark.parametrize("nPercentUseable, nAF", [
-#     (1., .8),
-#     (.4, .9),
-#     (.05, .99),
-#     ])
-# @pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
-# def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime_hr,
-#                               nPercentUseable, nAF):
-#     # Reset inputs
-#     primary_sizer.inputs.supplyT_F = nSupplyT
-#     primary_sizer.inputs.storageT_F = nStorageT_F
-#     primary_sizer.inputs.percentUseable = nPercentUseable
-#     primary_sizer.inputs.aquaFract = nAF
-#     primary_sizer.inputs.compRuntime_hr = ncompRuntime_hr
-#     # Recalc inputs
-#     primary_sizer.inputs.calcedVariables()
-#     # Size the system
-#     primary_sizer.build_size()
-#     # Check the simulation plot is all >= 0
-#     [ V, G_hw, D_hw, run, _, _, _ ] = primary_sizer.runStorage_Load_Sim()
-#     assert all(i >= 0 for i in V + G_hw + D_hw + run)
+@pytest.mark.parametrize("nSupplyT, nStorageT_F", [
+    (120, 120),
+    (120, 160),
+    (150, 150),
+    ])
+@pytest.mark.parametrize("nPercentUseable, nAF", [
+    (1., .8),
+    (.4, .9),
+    (.05, .99),
+    ])
+@pytest.mark.parametrize('ncompRuntime_hr',[(9.6),(14.1)])
+def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime_hr,
+                              nPercentUseable, nAF):
+    # Reset inputs
+    primary_sizer.inputs.supplyT_F = nSupplyT
+    primary_sizer.inputs.storageT_F = nStorageT_F
+    primary_sizer.inputs.percentUseable = nPercentUseable
+    primary_sizer.inputs.aquaFract = nAF
+    primary_sizer.inputs.compRuntime_hr = ncompRuntime_hr
+    # Recalc inputs
+    primary_sizer.inputs.calcedVariables()
+    # Size the system
+    primary_sizer.build_size()
+    # Check the simulation plot is all >= 0
+    [ V, G_hw, D_hw, run, _, _, _ ] = primary_sizer.runStorage_Load_Sim()
+    assert all(i >= 0 for i in V + G_hw + D_hw + run)
 
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
@@ -246,18 +246,16 @@ def test_loadgpdpp(x, nBR, expected):
     (135, 150),
     ])
 @pytest.mark.parametrize("nPep", [
-    #20, 
-    340,
-    #2000
-    #2000
+    #20, 340, 
+    1000
     ])
 @pytest.mark.parametrize("nApt", [
    # 12, 100, 1000
-    160,
+    1000,
     ])
 @pytest.mark.parametrize("Wapt", [
     #30, 
-    300
+    175
     ])
 def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     # Reset inputs
@@ -326,172 +324,170 @@ def test_trimtank(people_sizer):
     with pytest.raises(Exception, match="Trim tanks are not supported yet"):
         assert people_sizer.build_size()
 
-# #############################################################################
-# # Full model and file tests!
-# @pytest.mark.parametrize("file1", [
-#     "tests/test_60UnitSwing.txt",
-#     "tests/test_200UnitTM.txt"
-# ])
-# def test_hpwh_from_file(empty_sizer, file1):
-#     empty_sizer.initializeFromFile(file1)
-#     results = empty_sizer.build_size()
-#     assert len(results) == 4
-#     empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
+#############################################################################
+# Full model and file tests!
+@pytest.mark.parametrize("file1", [
+    "tests/test_60UnitSwing.txt",
+    "tests/test_200UnitTM.txt"
+])
+def test_hpwh_from_file(empty_sizer, file1):
+    empty_sizer.initializeFromFile(file1)
+    results = empty_sizer.build_size()
+    assert len(results) == 4
+    empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
 
-#     assert file_regression("tests/ref/"+os.path.basename(file1),
-#                             "tests/output/"+os.path.basename(file1))
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                            "tests/output/"+os.path.basename(file1))
 
-# def test_primarySizer(primary_sizer):
-#     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
-#         assert primary_sizer.sizeSystem()
+def test_primarySizer(primary_sizer):
+    with pytest.raises(Exception, match="The system can not be sized without a valid build"):
+        assert primary_sizer.sizeSystem()
 
-#     results = primary_sizer.build_size()
-#     assert len(results) == 2
+    results = primary_sizer.build_size()
+    assert len(results) == 2
 
-#     with pytest.raises(Exception):
-#         assert primary_sizer.sizePrimaryTankVolume(-10)
-#     with pytest.raises(Exception):
-#         assert primary_sizer.sizePrimaryTankVolume(100)
-#     primary_sizer.writeToFile("tests/output/primary_sizer.txt")
-#     assert file_regression("tests/ref/primary_sizer.txt",
-#                             "tests/output/primary_sizer.txt")
+    with pytest.raises(Exception):
+        assert primary_sizer.sizePrimaryTankVolume(-10)
+    with pytest.raises(Exception):
+        assert primary_sizer.sizePrimaryTankVolume(100)
+    primary_sizer.writeToFile("tests/output/primary_sizer.txt")
+    assert file_regression("tests/ref/primary_sizer.txt",
+                            "tests/output/primary_sizer.txt")
 
-# def test_initPrimaryByPeople(people_sizer):
-#     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
-#         assert people_sizer.sizeSystem()
+def test_initPrimaryByPeople(people_sizer):
+    with pytest.raises(Exception, match="The system can not be sized without a valid build"):
+        assert people_sizer.sizeSystem()
 
-#     results = people_sizer.build_size()
-#     assert len(results) == 4
+    results = people_sizer.build_size()
+    assert len(results) == 4
 
-#     with pytest.raises(Exception):
-#         assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
-#     with pytest.raises(Exception):
-#         assert people_sizer.primarySystem.sizePrimaryTankVolume(100)
+    with pytest.raises(Exception):
+        assert people_sizer.primarySystem.sizePrimaryTankVolume(-10)
+    with pytest.raises(Exception):
+        assert people_sizer.primarySystem.sizePrimaryTankVolume(100)
 
-#     people_sizer.writeToFile("tests/output/people_sizer.txt")
-#     assert file_regression("tests/ref/people_sizer.txt",
-#                             "tests/output/people_sizer.txt")
+    people_sizer.writeToFile("tests/output/people_sizer.txt")
+    assert file_regression("tests/ref/people_sizer.txt",
+                            "tests/output/people_sizer.txt")
 
-# def test_initPrimaryByUnits(units_sizer):
-#     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
-#         assert units_sizer.sizeSystem()
+def test_initPrimaryByUnits(units_sizer):
+    with pytest.raises(Exception, match="The system can not be sized without a valid build"):
+        assert units_sizer.sizeSystem()
 
-#     results = units_sizer.build_size()
-#     assert len(results) == 4
+    results = units_sizer.build_size()
+    assert len(results) == 4
 
-#     with pytest.raises(Exception):
-#         assert units_sizer.sizePrimaryTankVolume(-10)
-#     with pytest.raises(Exception):
-#         assert units_sizer.sizePrimaryTankVolume(100)
-#     units_sizer.writeToFile("tests/output/units_sizer.txt")
-#     assert file_regression("tests/ref/units_sizer.txt",
-#                             "tests/output/units_sizer.txt")
+    with pytest.raises(Exception):
+        assert units_sizer.sizePrimaryTankVolume(-10)
+    with pytest.raises(Exception):
+        assert units_sizer.sizePrimaryTankVolume(100)
+    units_sizer.writeToFile("tests/output/units_sizer.txt")
+    assert file_regression("tests/ref/units_sizer.txt",
+                            "tests/output/units_sizer.txt")
 
-# def test_CA_sizing_settings(CA_sizer):
-#     results = CA_sizer.build_size()
-#     assert len(results) == 4
-#     CA_sizer.writeToFile("tests/output/ca_sizer.txt")
-#     assert file_regression("tests/ref/ca_sizer.txt",
-#                             "tests/output/ca_sizer.txt")
+def test_CA_sizing_settings(CA_sizer):
+    results = CA_sizer.build_size()
+    assert len(results) == 4
+    CA_sizer.writeToFile("tests/output/ca_sizer.txt")
+    assert file_regression("tests/ref/ca_sizer.txt",
+                            "tests/output/ca_sizer.txt")
 
-# ##############################################################################
-# # Load Shift tests
-# @pytest.mark.parametrize("file1, LS", [
-#    ( "test_primaryLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-#    ( "test_primaryLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-#    ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1]),
-#    ( "test_primaryLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
-# ])
-# def test_size_LS(primary_sizer, file1, LS):
-#     primary_sizer.setLoadShiftforPrimary(LS)
-#     primary_sizer.build_size()
+##############################################################################
+# Load Shift tests
+@pytest.mark.parametrize("file1, LS", [
+    ( "test_primaryLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_primaryLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_primaryLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1]),
+    ( "test_primaryLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+])
+def test_size_LS(primary_sizer, file1, LS):
+    primary_sizer.setLoadShiftforPrimary(LS)
+    primary_sizer.build_size()
 
-#     primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
-#     assert file_regression("tests/ref/"+os.path.basename(file1),
-#                            "tests/output/"+os.path.basename(file1))
+    primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                            "tests/output/"+os.path.basename(file1))
     
     
 
-# ##############################################################################
-# ## Test ploting outputs stay same
-# def test_plot_primaryCurve(primary_sizer):
-#     primary_sizer.build_size()
-#     fig = primary_sizer.plotSizingCurve(return_as_div=False)
-#     fig.write_html("tests/output/test_plot_primaryCurve.html")
-#     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+##############################################################################
+## Test ploting outputs stay same
+def test_plot_primaryCurve(primary_sizer):
+    primary_sizer.build_size()
+    fig = primary_sizer.plotSizingCurve(return_as_div=False)
+    fig.write_html("tests/output/test_plot_primaryCurve.html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-#     with open('tests/output/test_plot_primaryCurve.txt', 'w') as file:
-#         file.write(str(fig))
-#     assert file_regression("tests/ref/test_plot_primaryCurve.txt",
-#                            "tests/output/test_plot_primaryCurve.txt")
+    with open('tests/output/test_plot_primaryCurve.txt', 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/test_plot_primaryCurve.txt",
+                            "tests/output/test_plot_primaryCurve.txt")
 
-# def test_parallel_curve(units_sizer):
-#     units_sizer.build_size()
-#     fig = units_sizer.plotParallelTankCurve(return_as_div=False)
-#     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+def test_parallel_curve(units_sizer):
+    units_sizer.build_size()
+    fig = units_sizer.plotParallelTankCurve(return_as_div=False)
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-#     with open('tests/output/test_plot_parallelCurve.txt', 'w') as file:
-#         file.write(str(fig))
-#     fig.write_html("tests/output/test_plot_parallelCurve.html")
-#     assert file_regression("tests/ref/test_plot_parallelCurve.txt",
-#                            "tests/output/test_plot_parallelCurve.txt")
+    with open('tests/output/test_plot_parallelCurve.txt', 'w') as file:
+        file.write(str(fig))
+    fig.write_html("tests/output/test_plot_parallelCurve.html")
+    assert file_regression("tests/ref/test_plot_parallelCurve.txt",
+                            "tests/output/test_plot_parallelCurve.txt")
 
-# def test_plot_simPrimary(primary_sizer):
-#     primary_sizer.build_size()
-#     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-#     fig.write_html("tests/output/test_plot_simPrimary.html")
-#     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+def test_plot_simPrimary(primary_sizer):
+    primary_sizer.build_size()
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simPrimary.html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-#     with open('tests/output/test_plot_simPrimary.txt', 'w') as file:
-#         file.write(str(fig))
-#     assert file_regression("tests/ref/test_plot_simPrimary.txt",
-#                            "tests/output/test_plot_simPrimary.txt")
+    with open('tests/output/test_plot_simPrimary.txt', 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/test_plot_simPrimary.txt",
+                            "tests/output/test_plot_simPrimary.txt")
 
-# def test_plot_simSwing(CA_sizer):
-#     CA_sizer.build_size()
-#     fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-#     fig.write_html("tests/output/test_plot_simSwing.html")
-#     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+def test_plot_simSwing(CA_sizer):
+    CA_sizer.build_size()
+    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/test_plot_simSwing.html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-#     with open('tests/output/test_plot_simSwing.txt', 'w') as file:
-#         file.write(str(fig))
-#     assert file_regression("tests/ref/test_plot_simSwing.txt",
-#                            "tests/output/test_plot_simSwing.txt")
+    with open('tests/output/test_plot_simSwing.txt', 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/test_plot_simSwing.txt",
+                            "tests/output/test_plot_simSwing.txt")
     
-# @pytest.mark.parametrize("file1, LS", [
-#     ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-#     ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-#     ( "test_plot_simLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
-#     ( "test_plot_simLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
-# ])
-# def test_plot_LS(primary_sizer, file1, LS):
-#     primary_sizer.setLoadShiftforPrimary(LS)
-#     primary_sizer.build_size()
+@pytest.mark.parametrize("file1, LS", [
+    ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_simLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
+    ( "test_plot_simLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
+])
+def test_plot_LS(primary_sizer, file1, LS):
+    primary_sizer.setLoadShiftforPrimary(LS)
+    primary_sizer.build_size()
 
-#     fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-#     fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
-#     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-#     with open("tests/output/"+os.path.basename(file1), 'w') as file:
-#         file.write(str(fig))
-#     assert file_regression("tests/ref/"+os.path.basename(file1),
-#                             "tests/output/"+os.path.basename(file1))
+    with open("tests/output/"+os.path.basename(file1), 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                            "tests/output/"+os.path.basename(file1))
 
-# @pytest.mark.parametrize("file1, LS", [
-#     ( "test_plot_swingLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-#     ( "test_plot_swingLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
-#     ( "test_plot_swingLSTOU.txt",[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1]),
-#     ( "test_plot_swingLSSolarDream.txt", [0,0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0])
-# ])
-# def test_swing_LS(CA_sizer, file1, LS):
-#     CA_sizer.setLoadShiftforPrimary(LS)
-#     CA_sizer.build_size()
+@pytest.mark.parametrize("file1, LS", [
+    ( "test_plot_swingLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+    ( "test_plot_swingLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
+])
+def test_swing_LS(CA_sizer, file1, LS):
+    CA_sizer.setLoadShiftforPrimary(LS)
+    CA_sizer.build_size()
 
-#     fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
-#     fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
-#     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
+    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+    fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-#     with open("tests/output/"+os.path.basename(file1), 'w') as file:
-#         file.write(str(fig))
-#     assert file_regression("tests/ref/"+os.path.basename(file1),
-#                             "tests/output/"+os.path.basename(file1))
+    # with open("tests/output/"+os.path.basename(file1), 'w') as file:
+    #     file.write(str(fig))
+    # assert file_regression("tests/ref/"+os.path.basename(file1),
+    #                         "tests/output/"+os.path.basename(file1))
