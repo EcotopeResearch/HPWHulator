@@ -20,7 +20,7 @@ Figure({
               'name': 'Recommended Size',
               'opacity': 0.8,
               'type': 'scatter',
-              'x': [411.52482140000006],
+              'x': [411.5248213999999],
               'y': [89.33641597222223]}],
     'layout': {'template': '...'}
 })
