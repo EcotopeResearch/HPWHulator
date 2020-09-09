@@ -192,6 +192,7 @@ class Simulator:
         self.swingT = None
         self.srun = None
         self.hw_outSwing = None
+        
         # If swing tank gather all of the swing tank inputs.
         if self.schematic == "swingtank":
             self.swing_V0 = swing_V0
@@ -326,7 +327,7 @@ class Simulator:
         the temperature needs to be tracked to inform inputs for primary step. The driving assumptions here
         are that the swing tank is well mixed and can be tracked by the average tank temperature 
         and that the system loses the recirculation loop losses as a constant Watts and thus the 
-        actual flow rate and return temperature from the loop do not matter. 
+        actual flow rate and return temperature from the loop are irrelevant. 
         
         Parameters
         ----------

@@ -303,7 +303,7 @@ class PrimarySystem_SP:
                             Qrecirc_W = self.swingTank.Wapt*self.swingTank.nApt,
                             Swing_Elem_kW = self.swingTank.TMCap_kBTUhr/W_TO_BTUHR )
                 # Get the volume removed for the primary adjusted by the swing tank
-                [swingT, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F)
+                [swingT, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F + 0.1)
               
                 # Get the effective adjusted hot water demand on the primary system at the storage temperature.
                 temp_eff_HW_mix_faction = sum(hw_out_from_swing)/self.totalHWLoad #/2 because the sim goes for two days
