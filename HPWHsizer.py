@@ -608,7 +608,7 @@ class HPWHsizer:
             #         "\n Comp Run Time: " +str(round(np.count_nonzero(run)/60/2,2))
             
             fig.add_trace(Scatter(x=x_data, y=swingT, 
-                                  name= 'Swing Tank Temperature, Vol='+self.tempmaintSystem.TMVol_G.split()[-1],
+                                  name= 'Swing Tank Temperature',
                                   mode = 'lines', line_shape='hv',
                                   opacity=0.8, marker_color='purple',yaxis="y2"), 
                           row=2,col=1,
