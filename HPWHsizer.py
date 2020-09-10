@@ -43,7 +43,7 @@ class HPWHsizer:
     This tool provides the minimum heating capacity and storage volume to meet the load determined by user inputs. 
     The coldest weather conditions should be used for sizing. With the results, users need to select HPWHs according to
     their heating capacity at the weather condition used for sizing. Note that many HPWHs have defrost cycles and
-    therefore a derated output capacity when ambient tempeatures are below 50°F. Users should also consider the
+    therefore a derated output capacity when ambient temperatures  are below 50°F. Users should also consider the
     HPWH refrigerant when considering the hot water storage temperature, not all HPWH's can produce hot water > 150°F.
     Users should also pay attention to the advanced input for the storage aquastat fraction and make sure the input value 
     properly reflects the location of the aquastat sensor port in the primary storage system.
@@ -71,7 +71,7 @@ class HPWHsizer:
     array is defined and checked with the arguement *setLoadShiftforPrimary(args)*. 
         
     The system is sized with the function* build_size()*, and further information 
-    is availalbe by pulling the size following the ASHRAE "more accurate" method with *getASHRAEResult()*. 
+    is available  by pulling the size following the ASHRAE "more accurate" method with *getASHRAEResult()*. 
     Plots for the sizing curves can be pulled from the sized system with *plotSizingCurve()*. 
     Additionally, a plot simulating the design day can be created with *plotStorageLoadSim()*.
 
