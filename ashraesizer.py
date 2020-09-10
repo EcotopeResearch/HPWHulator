@@ -17,7 +17,7 @@
 
 """
 import numpy as np
-from cfg import rhoCp, TONS_TO_KBTUHR, mixVolume
+from cfg import rhoCp, TONS_TO_KBTUHR
 
 class ASHRAEsizer:
     """
@@ -197,8 +197,8 @@ class ASHRAEsizer:
 
         Returns
         -------:
-            list: [primaryVolArr_atStorageT, accurateRecoveryKBTUHr]. A list of the 
-            primary storage options in gallons at the storage temperature with the 
+            [primaryVolArr_atStorageT, accurateRecoveryKBTUHr] : list
+            The primary storage options in gallons at the storage temperature with the 
             corresponding list of heating capacity options in kBTU/hr
 
         """
@@ -263,7 +263,7 @@ class ASHRAEsizer:
         Returns
         -------
         minStorage_gal : float 
-            The minimum storage volume in .
+            The minimum storage volume in gallons.
 
         """
         minStorage_gal = np.interp(heatCap_Ton, 
@@ -276,8 +276,10 @@ class ASHRAEsizer:
         Function sizes the system following the ASHRAE "more accurate" methodolgy
 
         Returns
-        -------:
-            list: [PCap_KBTUHR, PVol_G_atStorageT]. The primary heating capacity on the design day in kBTU/hr and the primary volume at the storage temperature.
+        -------
+        [PCap_KBTUHR, PVol_G_atStorageT] : list
+            The primary heating capacity on the design day in kBTU/hr and the 
+            primary volume in gallons at the storage temperature.
 
         """
  
