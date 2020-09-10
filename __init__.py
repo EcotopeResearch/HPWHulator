@@ -18,5 +18,5 @@
 """
 
 
-__all__ = ['HPWHsizer', 'HPWHComponents', 'ashraesizer', 'dataFetch', 'cfg']
+__all__ = ['HPWHsizer', 'HPWHComponents', 'ashraesizer', 'dataFetch', 'cfg', 'Simulator']
 from HPWHsizer.py import *

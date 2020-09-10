@@ -21,9 +21,10 @@ from cfg import rhoCp, TONS_TO_KBTUHR
 
 class ASHRAEsizer:
     """
-    Class containing attributes and methods to describe and size the parrallel loop tank arrangement. Unlike a swing tank, a parrallel loop tank \
-    will have equipment to provide heat for periods of low or no hot water use.
-
+    Class containing attributes and methods to describe and size the primary system
+    according the \ "More Accurate Method" referred to in the 
+    2015 ASHRAE HVAC Applications handbook pages 50.15 - 50.16.
+    
     Attributes
     ----------
     ashraeMediumLU : array_like
@@ -196,8 +197,8 @@ class ASHRAEsizer:
 
         Returns
         -------:
-            list: [primaryVolArr_atStorageT, accurateRecoveryKBTUHr]. A list of the 
-            primary storage options in gallons at the storage temperature with the 
+            [primaryVolArr_atStorageT, accurateRecoveryKBTUHr] : list
+            The primary storage options in gallons at the storage temperature with the 
             corresponding list of heating capacity options in kBTU/hr
 
         """
@@ -262,7 +263,7 @@ class ASHRAEsizer:
         Returns
         -------
         minStorage_gal : float 
-            The minimum storage volume in .
+            The minimum storage volume in gallons.
 
         """
         minStorage_gal = np.interp(heatCap_Ton, 
@@ -275,8 +276,10 @@ class ASHRAEsizer:
         Function sizes the system following the ASHRAE "more accurate" methodolgy
 
         Returns
-        -------:
-            list: [PCap_KBTUHR, PVol_G_atStorageT]. The primary heating capacity on the design day in kBTU/hr and the primary volume at the storage temperature.
+        -------
+        [PCap_KBTUHR, PVol_G_atStorageT] : list
+            The primary heating capacity on the design day in kBTU/hr and the 
+            primary volume in gallons at the storage temperature.
 
         """
  
