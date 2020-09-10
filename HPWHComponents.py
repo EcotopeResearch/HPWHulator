@@ -475,12 +475,13 @@ class ParallelLoopTank:
         """
         Sizes the volume in gallons and heat capactiy in kBTU/h
 
-        Calculates:
+        Returns:
         ----------
         TMVol_G : float
             Dedicated loop tank volume.
         TMCap_kBTUhr : float
             Calculated temperature maintenance equipment capacity in kBTU/h.
+            
         Raises:
         -------
         Exceptions : If the system is sized too small and 
@@ -579,7 +580,8 @@ class SwingTank:
         """
         Sizes the volume in gallons and heat capactiy in kBTU/hr
 
-        Calculates:
+        Returns
+        -------
         TMVol_G
             Calculated swing tank volume.
         TMCap_kBTUhr

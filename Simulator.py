@@ -23,10 +23,10 @@ from cfg import rhoCp, W_TO_BTUHR, mixVolume, roundList
 ###############################################################################
 class Simulator:
     """
-    Simulator class to check the primary and swing tank systems.
-    The Simulator class to run a simple simulation .
+    Simulator class runs a simplified simulation to check the primary and swing tank systems.
 
-    This class will run the primary simulation (schematic = "primary") or primary with swing tank simulation (schematic = "swingtank"). Both are run
+    This class will run the primary simulation (schematic = "primary") or primary with swing tank 
+    simulation (schematic = "swingtank"). Both are run
     on a minute timestep to approximate the available storage volume in the primary system
     and the average tank temperature in the swing tank, if applicable. 
     
@@ -38,7 +38,7 @@ class Simulator:
     and that the system loses the recirculation loop losses as a constant Watts. 
     Since the swing tank is in series with the primary system the temperature needs
     to be tracked to inform inputs for primary step, unlike the parallel loop tank
-    which is separated  from the primary system.
+    which is separated from the primary system.
     
     The swing tank is also assumed to have an 8 °F deadband from the swing heating trigger temperature.
     

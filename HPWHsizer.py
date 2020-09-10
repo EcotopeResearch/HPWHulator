@@ -33,13 +33,66 @@ from plotly.subplots import make_subplots
 ##############################################################################
 class HPWHsizer:
     """
-    The main class to organize a primary and temperature maintenance HPWH system and size it using the Ecotope Modified ASHRAE Method.
+    The main class to organize a primary and temperature maintenance HPWH system and size it using the 
+    Ecotope Modified ASHRAE Method (EMASHRAE) and the "More Accurate Method" referred to in the 2015 
+    ASHRAE HVAC Applications handbook pages 50.15 - 50.16.
+    The EMASHRAE approach accounts for the water heating equipment being able to produce hot water as it is being 
+    used by building occupants, allowing the system to be sized smaller. Detailed 
+    documentation on the methodology can be found at https://ecosizer.ecotope.com/sizer/docs/
 
-    The class uses the initialization functions, initializeFromFile(), initPrimaryByUnits(), and initPrimaryByPeople() to pass the variables
-    to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs by checking the variables and calculates extra variables. The
-    loadshift array is also defined and check with setLoadShiftforPrimary(). The system is sized with the function build_size(), and further
-    information is availalbe by pulling the size following the ASHRAE "more accurate" method with getASHRAEResult(). Plots for the sizing curves
-    can be pulled from the sized system with plotSizingCurve(). Additionally, a plot simulating the design day can be created with plotPrimaryStorageLoadSim().
+    This tool provides the minimum heating capacity and storage volume to meet the load determined by user inputs. 
+    The coldest weather conditions should be used for sizing. With the results, users need to select HPWHs according to
+    their heating capacity at the weather condition used for sizing. Note that many HPWHs have defrost cycles and
+    therefore a derated output capacity when ambient temperatures  are below 50°F. Users should also consider the
+    HPWH refrigerant when considering the hot water storage temperature, not all HPWH's can produce hot water > 150°F.
+    Users should also pay attention to the advanced input for the storage aquastat fraction and make sure the input value 
+    properly reflects the location of the aquastat sensor port in the primary storage system.
+
+    Two schematics are provided in for sizing in the tool, a "parallel loop tank" and a "swing tank."
+    
+    A "Swing Tank" design is a proven technique to use the primary heat pumps to support the temperature maintenance load,
+    while keeping the heat pump equipment isolated from the warm water returning from the recirculation loop. 
+    This design strategy is best suited for buildings with low temperature maintenance loop losses (< 60W/apt) and
+    relies on increased storage volume (with tanks piped in series) to ensure storage stratification. 
+    Swing tank systems have an electric resistance element in the temperature maintenance tank as a back-up safety factor. 
+    Sizing a swing tank system also means increasing the heating capacity and storage volume of the primary system. 
+    The temperature maintenance storage volume for the swing tank can be small.
+    
+    Single-pass heat pump water heaters are most efficient when heating cool city water to hot storage temperatures, 
+    whereas multi-pass equipment can still operate efficiently when incoming water temperatures are around 120°F. 
+    A parallel loop configuration is one strategy used to isolate the temperature maintenance task from the task of 
+    heating the primary storage. A "Parallel Loop Tank" is an electric resistance element or a multi-pass heat pump 
+    that is piped in parallel with the primary system, specifically to handle the temperature maintenance load.
+
+    The class uses the initialization functions, *initializeFromFile(args)*, 
+    *initPrimaryByUnits(args)*, and *initPrimaryByPeople(args)* to pass the variables
+    to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs 
+    by checking the variables and calculating extra variables. The loadshift 
+    array is defined and checked with the arguement *setLoadShiftforPrimary(args)*. 
+        
+    The system is sized with the function *build_size()*, and further information 
+    is available  by pulling the size following the ASHRAE "more accurate" method with *getASHRAEResult()*. 
+    Plots for the sizing curves can be pulled from the sized system with *plotSizingCurve()*. 
+    Additionally, a plot simulating the design day can be created with *plotStorageLoadSim()*.
+
+    When initializing the system there are some presets users can use. 
+    
+    When initializing with *initPrimaryByUnits(args)* the ratio of people can be input 
+    as a string not a list of 6 entries. The sting key access the presets, the keys 
+    include "CA" and "ASHSTD" for standard market rate buildings or "CTCAC" and "ASHLOW"
+    for low income buildings. 
+    
+    The presets for *gpdpp* include 'ashLow' (20gpdpp), 'ashMed' (49 gpdpp), the 
+    recomended 'ecoMark' (25 gpdpp). When using the *initPrimaryByUnits(args)* function 
+    gpdpp_BR can also use the preset "CA" which calculates the gpdpp from hot water 
+    draws used in CBECC-Res, as well as the other options. However the ASHRAE and Ecotope 
+    numbers repeat for each unit size. 
+    
+    The load shape input *loadShapeNorm* has a preset recommended to be used, accessed by
+    setting *loadShapeNorm* = "stream" in the initilization function, shown in the examples below.
+    If a user knows their load shape they can also enter a load shape normalized by the 
+    total daily use, as a list of length 24, where each entry corresponds to the hour of the day. 
+    
 
     Attributes
     ----------
@@ -104,7 +157,7 @@ class HPWHsizer:
     plotSizingCurve( return_as_div = True)
          Returns the primary sizing curve, storage volume vs. heating capacity for the
 
-    plotPrimaryStorageLoadSim(return_as_div = True)
+    plotStorageLoadSim(return_as_div = True)
          Runs and returns a plot for the primary system simulating storage volume with HPWH heating agains the design load shape
 
     writeToFile(fileName)
@@ -112,10 +165,9 @@ class HPWHsizer:
 
     Examples
     --------
-    Example 1:
-    An example usage to find the recommended size is:
+    **Example 1: Find the recommended size for a parallel loop tank schematic.**
 
-    To inialize the system:
+    First to initialize the system:
 
     >>> from HPWHsizer import HPWHsizer
     >>> hpwh = HPWHsizer()
@@ -146,7 +198,7 @@ class HPWHsizer:
 
     And to see the how the system performs in a simple simulation:
 
-    >>> fig = hpwh.plotPrimaryStorageLoadSim(return_as_div=False)
+    >>> fig = hpwh.plotStorageLoadSim(return_as_div=False)
     >>> fig.show()
 
     Plotly figures can also be saved as html with write_html():
@@ -154,7 +206,48 @@ class HPWHsizer:
     >>> fig.write_html("output.html")
 
 
-    Example 2:
+
+    **Example 2: Use a custom ratio of bedrooms and gallons per day per person for each bedroom type.**
+
+    Start by initilizing the system, here the example just uses a primary system. 
+    The example uses a 100 apartment unit building with 25 studios, 1, 2, and 3 Bedroom units.
+    The ratio of people in each unit size is customly defined in rBR as 1, 1.5, 1.9, and 2.5 respectively.
+    Other presets include "CA" and "ASHSTD" for standard market rate buildings or "CTCAC" and "ASHLOW"
+    for low income buildings. 
+    
+    This example also uses differing peak gallons per day per person for each unit size. Here the numbers are
+    26, 22, 20, and 19 gallons per day for each unit size. The presets for gpdpp_BR include 'ashLow' (20gpdpp),
+    'ashMed' (49 gpdpp), 'ecoMark' (recommended, 25 gpdpp), or "CA" which calculates the gpdpp from 
+    hot water draws used in CBECC-Res. 
+    
+    >>> from HPWHsizer import HPWHsizer
+    >>> hpwh = HPWHsizer()
+    >>> hpwh.initPrimaryByUnits(nBR = [25, 25, 25, 25, 0, 0],
+                                rBR = [1, 1.5, 1.9, 2.5, 0, 0],
+                                gpdpp_BR = [26, 22, 20, 19, 0, 0],
+                                loadShapeNorm = "stream",
+                                supplyT_F = 125,
+                                incomingT_F = 50,
+                                storageT_F= 150.,
+                                compRuntime_hr = 16.,
+                                percentUseable = .8,
+                                aquaFract = 0.4,
+                                schematic = "primary")
+
+    Then construct the system by building the connections between the components and size it. 
+    To find proper sizing for the system in the order of primary storage volume, primary heating capacity:
+
+    >>> hpwh.build_size()
+    [724.0097811562501, 141.45536806640627]
+
+    To get the primary sizing curve to find solutions for the primary system at higher heating capacities
+    and lower storage volumes and save it to an html:
+
+    >>> fig = hpwh.plotSizingCurve(return_as_div=False)
+    >>> fig.write_html("output.html")
+
+
+    **Example 3: Use CA Title24 software Hot Water Draws.**
 
     If a user wants to align their sizing with the CA Title24 software use the initPrimaryByUnits() function follow:
 
@@ -186,7 +279,52 @@ class HPWHsizer:
     >>> fig = hpwh.plotSizingCurve(return_as_div=False)
     >>> fig.show()
 
-    Unfortunately the simulation of the primary system is yet built out for the swing tank.
+    And to see the how the system performs in a simple simulation:
+
+    >>> fig = hpwh.plotStorageLoadSim(return_as_div=False)
+    >>> fig.show()
+
+    **Example 4: Load shifting a swing tank system.**
+    
+    Start by initilizing a swing tank system as before:
+ 
+    >>> from HPWHsizer import HPWHsizer
+    >>> hpwh = HPWHsizer()
+    >>> hpwh.initPrimaryByPeople(nPeople = 100,
+                                nApt = 36,
+                                gpdpp = 22.,
+                                loadShapeNorm = "stream",
+                                supplyT_F = 120,
+                                incomingT_F = 50,
+                                storageT_F= 150.,
+                                compRuntime_hr = 16.,
+                                percentUseable = .8,
+                                aquaFract = 0.4,
+                                schematic = "swingtank")
+    
+    And create the temperature maintenance load as before with:
+
+    >>> hpwh.initTempMaint( Wapt = 100 )
+    
+    Then create the load shift array, where 0's are off and 1's represent run freely. 
+    The array must be of length 24 for each hour of the day. The example given is 
+    off between 5 and 9 PM. Then add it to the system:
+        
+    >>> loadshift = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 0,0,0,0, 1,1,1]
+    >>> hpwh.setLoadShiftforPrimary(loadshift)
+
+    >>> hpwh.build_size()
+    [843.657112791371, 94.1487558229551, '80', 21.4964946]
+
+    And to see the how the system performs with loadshift in a simple simulation 
+    by saving the file to an html:
+
+    >>> fig = hpwh.plotStorageLoadSim(return_as_div=False)
+    >>> fig.write_html("output.html")
+    
+    Of course load shifting can be set for primary no-recirculation system and 
+    parallel loop systems as well. Those systems must be initialized properly
+    as shown in previous examples. 
 
     """
     def __init__(self):
@@ -359,10 +497,9 @@ class HPWHsizer:
 
         Raises
         ----------
-            Exception: If schematic is trim tank throws erros
-            Exception: If am invalid schematic string is passed here throws error
-            Exception: If trying to use multipass heat pumps for the primary system throws erros
-            Exception: If the system does not build correctly.
+        Exception: If am invalid schematic string is passed here throws error
+        Exception: If trying to use multipass heat pumps for the primary system throws erros
+        Exception: If the system does not build correctly.
 
 
         """
@@ -452,10 +589,11 @@ class HPWHsizer:
     def build_size(self):
         """
         One function to build and size the HPWH system after initalization, that returns minimum results
+        
         Returns
         -------
         list
-            [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G, TMCap_kBTUhr]
+            [PVol_G_atStorageT, PCap_kBTUhr, TMVol_G, TMCap_kBTUhr] - The sized volume and heating capacacity for the primary then temperature maintenance systems
         """
         self.buildSystem()
         return self.sizeSystem()
@@ -467,7 +605,7 @@ class HPWHsizer:
         Returns
         -------
         list
-            [PVol_G_atStorageT, PCap_kBTUhr]
+            [PVol_G_atStorageT, PCap_kBTUhr] - The sized volume and heating capacacity
         """
 
         if self.validbuild:
@@ -535,7 +673,7 @@ class HPWHsizer:
         else:
             return fig
 
-    def plotPrimaryStorageLoadSim(self, return_as_div = True):
+    def plotStorageLoadSim(self, return_as_div = True):
         """
         Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the minute level simulation
 

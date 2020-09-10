@@ -273,7 +273,7 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     # Check the simulation plot is all >= 0
     [ V, G_hw, D_hw, run, swingT, _, _ ] = CA_sizer.runStorage_Load_Sim()
     
-    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/" + str(nSupplyT) + "_"+ str(nStorageT_F)+"_"+str(nPep) +"_"+str(nApt)+ "_"+ str(Wapt)+ "_"  +".html")
     
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
@@ -436,7 +436,7 @@ def test_parallel_curve(units_sizer):
 
 def test_plot_simPrimary(primary_sizer):
     primary_sizer.build_size()
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig = primary_sizer.plotStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/test_plot_simPrimary.html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
@@ -447,7 +447,7 @@ def test_plot_simPrimary(primary_sizer):
 
 def test_plot_simSwing(CA_sizer):
     CA_sizer.build_size()
-    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/test_plot_simSwing.html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
@@ -466,7 +466,7 @@ def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.setLoadShiftforPrimary(LS)
     primary_sizer.build_size()
 
-    fig = primary_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig = primary_sizer.plotStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
@@ -483,7 +483,7 @@ def test_swing_LS(CA_sizer, file1, LS):
     CA_sizer.setLoadShiftforPrimary(LS)
     CA_sizer.build_size()
 
-    fig = CA_sizer.plotPrimaryStorageLoadSim(return_as_div=False)
+    fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
     fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
