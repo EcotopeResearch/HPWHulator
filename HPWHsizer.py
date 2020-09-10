@@ -70,7 +70,7 @@ class HPWHsizer:
     by checking the variables and calculating extra variables. The loadshift 
     array is defined and checked with the arguement *setLoadShiftforPrimary(args)*. 
         
-    The system is sized with the function* build_size()*, and further information 
+    The system is sized with the function *build_size()*, and further information 
     is available  by pulling the size following the ASHRAE "more accurate" method with *getASHRAEResult()*. 
     Plots for the sizing curves can be pulled from the sized system with *plotSizingCurve()*. 
     Additionally, a plot simulating the design day can be created with *plotStorageLoadSim()*.
