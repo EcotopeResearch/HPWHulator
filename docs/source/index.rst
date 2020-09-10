@@ -8,6 +8,9 @@ Heat Pump Water Heater Sizer, Documentation
 .. automodule:: HPWHsizer
     :members:
 
+.. automodule:: Simulator
+    :members:
+
 .. automodule:: HPWHComponents
     :members:
 	

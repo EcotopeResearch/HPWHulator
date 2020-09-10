@@ -70,7 +70,7 @@ class hpwhDataFetch():
         try:
             return self.dataDict['rpeople'][key.upper()]
         except KeyError:
-            raise KeyError("Mapping key not found for ratio of people per bedroom, valid keys are CA, ASHSTD, ASHLOW")
+            raise KeyError("Mapping key not found for ratio of people per bedroom, valid keys are CA, CTCAC, ASHSTD, ASHLOW")
 
     def getCDF(self, cdf_shift):
         params = self.dataDict['gpdppfit']

@@ -21,9 +21,10 @@ from cfg import rhoCp, TONS_TO_KBTUHR, mixVolume
 
 class ASHRAEsizer:
     """
-    Class containing attributes and methods to describe and size the parrallel loop tank arrangement. Unlike a swing tank, a parrallel loop tank \
-    will have equipment to provide heat for periods of low or no hot water use.
-
+    Class containing attributes and methods to describe and size the primary system
+    according the \ "More Accurate Method" referred to in the 
+    2015 ASHRAE HVAC Applications handbook pages 50.15 - 50.16.
+    
     Attributes
     ----------
     ashraeMediumLU : array_like
