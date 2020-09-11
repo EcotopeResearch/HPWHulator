@@ -204,7 +204,8 @@ class PrimarySystem_SP:
         if self.swingTank: # For a swing tank the storage volume is found at the appropriate temperature in __calcRunningVol
             totalVolMax = runningVol_G / (1-self.aquaFract) 
         else: # If the swing tank is not being used
-            totalVolMax = self.__SUPPLYV_TO_STORAGEV(runningVol_G) / (1-self.aquaFract)
+            totalVolMax = mixVolume(runningVol_G, self.storageT_F, self.incomingT_F, self.supplyT_F) / (1-self.aquaFract) 
+            
 
         # Check the Cycling Volume ############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
@@ -213,9 +214,9 @@ class PrimarySystem_SP:
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             if min_AF < 1:
-                raise ValueError ("Error ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: %.3f." % round(min_AF,3))
+                raise ValueError ("01", "The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: ", round(min_AF,3))
             else:
-                raise ValueError ("Error ID 02: The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
+                raise ValueError ("02", "The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
         # Return the temperature adjusted total volume ########################
         return totalVolMax, effMixFract
@@ -249,7 +250,7 @@ class PrimarySystem_SP:
         diffN *= self.totalHWLoad
         # Get the running volume ##############################################
         if len(diffInd) == 0:
-            raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
+            raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day", )
         else:
             runV_G = 0
             for peakInd in diffInd:
@@ -267,16 +268,18 @@ class PrimarySystem_SP:
 
         Parameters
         ----------
-            heatHrs (float): The number of hours primary heating equipment can run in a day.
-            onOffArr (np.array): array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
+        heatHrs : float
+            The number of hours primary heating equipment can run in a day.
+        onOffArr : ndarray
+            array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
 
         Raises
         ------
-            Exception: Error if oversizeing system.
+        Exception: Error if oversizeing system.
 
         Returns
         -------
-            runV_G : float
+        runV_G : float
             The running volume in gallons
 
         """
@@ -286,7 +289,7 @@ class PrimarySystem_SP:
 
         # Get the running volume ##############################################
         if len(diffInd) == 0:
-            raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
+            raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day",)
         else:
             runV_G = 0
             for peakInd in diffInd:
@@ -343,41 +346,6 @@ class PrimarySystem_SP:
 
         vol *= percent_total_vol
         return vol
-
-    def __SUPPLYV_TO_STORAGEV(self, vol):
-        """
-        Converts the volume of water at the supply temperature to an equivalent volume at the storage temperature
-
-        Parameters
-        ----------
-        vol : float
-            Volume at the supply temperature.
-
-        Returns
-        -------
-        float
-            Volume at storage temperature.
-
-        """
-        return mixVolume(vol, self.storageT_F, self.incomingT_F, self.supplyT_F)
-
-    def __STORAGEV_TO_SUPPLYV(self, vol):
-        """
-        Converts the volume of water at the storage temperature to an equivalent volume at the supply temperature
-
-        Parameters
-        ----------
-        vol : float
-            Volume at the storage temperature.
-
-        Returns
-        -------
-        float
-            Volume at supply temperature.
-
-        """
-        return mixVolume(vol, self.supplyT_F,  self.incomingT_F, self.storageT_F)
-
 
     def primaryCurve(self):
         """
