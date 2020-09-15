@@ -1,4 +1,4 @@
-""" 
+"""
 	HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
@@ -80,7 +80,7 @@ def CA_sizer(): # Returns the hpwh sizer object designed for Cali options
                     "swingtank")
     hpwh.initTempMaint(100)
     return hpwh
-    
+
 @pytest.fixture
 def fetcher():
     fetch = dataFetch.hpwhDataFetch()
@@ -202,7 +202,7 @@ def test_CDFShift_error( primary_sizer ):
         assert primary_sizer.setLoadShiftforPrimary([1]*24, 0)
 
 
-    
+
 #@pytest.mark.parametrize("x, s, expected", [
 #    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
 #    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
@@ -219,8 +219,8 @@ def test_loadgpdpp_errs():
         assert HPWHsizer.loadgpdpp('CA',1)
     with pytest.raises(Exception):
         assert HPWHsizer.loadgpdpp('CA',[12,12,12,12])
-        
-# Test on the loadgpdpp function utilizing fetcher it operates as expected        
+
+# Test on the loadgpdpp function utilizing fetcher it operates as expected
 @pytest.mark.parametrize("x, nBR, expected", [
     (30 , 0, 30),
     ("ashLow", 0, 20),
@@ -231,7 +231,7 @@ def test_loadgpdpp_errs():
     ])
 def test_loadgpdpp(x, nBR, expected):
     assert HPWHsizer.loadgpdpp(x,nBR) == expected
-    
+
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 120),
@@ -280,8 +280,8 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     CA_sizer.inputs.storageT_F = nStorageT_F
     CA_sizer.inputs.nPeople = nPep
     CA_sizer.inputs.nApt = nApt
-    CA_sizer.inputs.Wapt = Wapt 
-    
+    CA_sizer.inputs.Wapt = Wapt
+
     # Recalc inputs
     CA_sizer.inputs.calcedVariables()
 
@@ -289,10 +289,10 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     CA_sizer.build_size()
     # Check the simulation plot is all >= 0
     [ V, G_hw, D_hw, run, swingT, _, _ ] = CA_sizer.runStorage_Load_Sim()
-    
+
     # fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
     # fig.write_html("tests/output/" + str(nSupplyT) + "_"+ str(nStorageT_F)+"_"+str(nPep) +"_"+str(nApt)+ "_"+ str(Wapt)+ "_"  +".html")
-    
+
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
     assert min(swingT) >= nSupplyT
 
@@ -420,7 +420,7 @@ def test_size_LS(primary_sizer, file1, LS):
     primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                             "tests/output/"+os.path.basename(file1))
-    
+
 ##############################################################################
 ## Test ploting outputs stay same
 def test_plot_primaryCurve(primary_sizer):
@@ -466,7 +466,7 @@ def test_plot_simSwing(CA_sizer):
         file.write(str(fig))
     assert file_regression("tests/ref/test_plot_simSwing.txt",
                             "tests/output/test_plot_simSwing.txt")
-    
+
 @pytest.mark.parametrize("file1, LS", [
     ( "test_plot_simLS8.txt", [1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),
     ( "test_plot_simLS4.txt", [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1]),

@@ -1,4 +1,4 @@
-""" 
+"""
 	HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank 
+from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank
 from ashraesizer import ASHRAEsizer
 from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
@@ -34,66 +34,66 @@ hpwhData = hpwhDataFetch()
 ##############################################################################
 class HPWHsizer:
     """
-    The main class to organize a primary and temperature maintenance HPWH system and size it using the 
-    Ecotope Modified ASHRAE Method (EMASHRAE) and the "More Accurate Method" referred to in the 2015 
+    The main class to organize a primary and temperature maintenance HPWH system and size it using the
+    Ecotope Modified ASHRAE Method (EMASHRAE) and the "More Accurate Method" referred to in the 2015
     ASHRAE HVAC Applications handbook pages 50.15 - 50.16.
-    The EMASHRAE approach accounts for the water heating equipment being able to produce hot water as it is being 
-    used by building occupants, allowing the system to be sized smaller. Detailed 
+    The EMASHRAE approach accounts for the water heating equipment being able to produce hot water as it is being
+    used by building occupants, allowing the system to be sized smaller. Detailed
     documentation on the methodology can be found at https://ecosizer.ecotope.com/sizer/docs/
 
-    This tool provides the minimum heating capacity and storage volume to meet the load determined by user inputs. 
+    This tool provides the minimum heating capacity and storage volume to meet the load determined by user inputs.
     The coldest weather conditions should be used for sizing. With the results, users need to select HPWHs according to
     their heating capacity at the weather condition used for sizing. Note that many HPWHs have defrost cycles and
     therefore a derated output capacity when ambient temperatures  are below 50°F. Users should also consider the
     HPWH refrigerant when considering the hot water storage temperature, not all HPWH's can produce hot water > 150°F.
-    Users should also pay attention to the advanced input for the storage aquastat fraction and make sure the input value 
+    Users should also pay attention to the advanced input for the storage aquastat fraction and make sure the input value
     properly reflects the location of the aquastat sensor port in the primary storage system.
 
     Two schematics are provided in for sizing in the tool, a "parallel loop tank" and a "swing tank."
-    
+
     A "Swing Tank" design is a proven technique to use the primary heat pumps to support the temperature maintenance load,
-    while keeping the heat pump equipment isolated from the warm water returning from the recirculation loop. 
+    while keeping the heat pump equipment isolated from the warm water returning from the recirculation loop.
     This design strategy is best suited for buildings with low temperature maintenance loop losses (< 60W/apt) and
-    relies on increased storage volume (with tanks piped in series) to ensure storage stratification. 
-    Swing tank systems have an electric resistance element in the temperature maintenance tank as a back-up safety factor. 
-    Sizing a swing tank system also means increasing the heating capacity and storage volume of the primary system. 
+    relies on increased storage volume (with tanks piped in series) to ensure storage stratification.
+    Swing tank systems have an electric resistance element in the temperature maintenance tank as a back-up safety factor.
+    Sizing a swing tank system also means increasing the heating capacity and storage volume of the primary system.
     The temperature maintenance storage volume for the swing tank can be small.
-    
-    Single-pass heat pump water heaters are most efficient when heating cool city water to hot storage temperatures, 
-    whereas multi-pass equipment can still operate efficiently when incoming water temperatures are around 120°F. 
-    A parallel loop configuration is one strategy used to isolate the temperature maintenance task from the task of 
-    heating the primary storage. A "Parallel Loop Tank" is an electric resistance element or a multi-pass heat pump 
+
+    Single-pass heat pump water heaters are most efficient when heating cool city water to hot storage temperatures,
+    whereas multi-pass equipment can still operate efficiently when incoming water temperatures are around 120°F.
+    A parallel loop configuration is one strategy used to isolate the temperature maintenance task from the task of
+    heating the primary storage. A "Parallel Loop Tank" is an electric resistance element or a multi-pass heat pump
     that is piped in parallel with the primary system, specifically to handle the temperature maintenance load.
 
-    The class uses the initialization functions, *initializeFromFile(args)*, 
+    The class uses the initialization functions, *initializeFromFile(args)*,
     *initPrimaryByUnits(args)*, and *initPrimaryByPeople(args)* to pass the variables
-    to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs 
-    by checking the variables and calculating extra variables. The loadshift 
-    array is defined and checked with the arguement *setLoadShiftforPrimary(args)*. 
-        
-    The system is sized with the function *build_size()*, and further information 
-    is available  by pulling the size following the ASHRAE "more accurate" method with *getASHRAEResult()*. 
-    Plots for the sizing curves can be pulled from the sized system with *plotSizingCurve()*. 
+    to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs
+    by checking the variables and calculating extra variables. The loadshift
+    array is defined and checked with the arguement *setLoadShiftforPrimary(args)*.
+
+    The system is sized with the function *build_size()*, and further information
+    is available  by pulling the size following the ASHRAE "more accurate" method with *getASHRAEResult()*.
+    Plots for the sizing curves can be pulled from the sized system with *plotSizingCurve()*.
     Additionally, a plot simulating the design day can be created with *plotStorageLoadSim()*.
 
-    When initializing the system there are some presets users can use. 
-    
-    When initializing with *initPrimaryByUnits(args)* the ratio of people can be input 
-    as a string not a list of 6 entries. The sting key access the presets, the keys 
+    When initializing the system there are some presets users can use.
+
+    When initializing with *initPrimaryByUnits(args)* the ratio of people can be input
+    as a string not a list of 6 entries. The sting key access the presets, the keys
     include "CA" and "ASHSTD" for standard market rate buildings or "CTCAC" and "ASHLOW"
-    for low income buildings. 
-    
-    The presets for *gpdpp* include 'ashLow' (20gpdpp), 'ashMed' (49 gpdpp), the 
-    recomended 'ecoMark' (25 gpdpp). When using the *initPrimaryByUnits(args)* function 
-    gpdpp_BR can also use the preset "CA" which calculates the gpdpp from hot water 
-    draws used in CBECC-Res, as well as the other options. However the ASHRAE and Ecotope 
-    numbers repeat for each unit size. 
-    
+    for low income buildings.
+
+    The presets for *gpdpp* include 'ashLow' (20gpdpp), 'ashMed' (49 gpdpp), the
+    recomended 'ecoMark' (25 gpdpp). When using the *initPrimaryByUnits(args)* function
+    gpdpp_BR can also use the preset "CA" which calculates the gpdpp from hot water
+    draws used in CBECC-Res, as well as the other options. However the ASHRAE and Ecotope
+    numbers repeat for each unit size.
+
     The load shape input *loadShapeNorm* has a preset recommended to be used, accessed by
     setting *loadShapeNorm* = "stream" in the initilization function, shown in the examples below.
-    If a user knows their load shape they can also enter a load shape normalized by the 
-    total daily use, as a list of length 24, where each entry corresponds to the hour of the day. 
-    
+    If a user knows their load shape they can also enter a load shape normalized by the
+    total daily use, as a list of length 24, where each entry corresponds to the hour of the day.
+
 
     Attributes
     ----------
@@ -210,17 +210,17 @@ class HPWHsizer:
 
     **Example 2: Use a custom ratio of bedrooms and gallons per day per person for each bedroom type.**
 
-    Start by initilizing the system, here the example just uses a primary system. 
+    Start by initilizing the system, here the example just uses a primary system.
     The example uses a 100 apartment unit building with 25 studios, 1, 2, and 3 Bedroom units.
     The ratio of people in each unit size is customly defined in rBR as 1, 1.5, 1.9, and 2.5 respectively.
     Other presets include "CA" and "ASHSTD" for standard market rate buildings or "CTCAC" and "ASHLOW"
-    for low income buildings. 
-    
+    for low income buildings.
+
     This example also uses differing peak gallons per day per person for each unit size. Here the numbers are
     26, 22, 20, and 19 gallons per day for each unit size. The presets for gpdpp_BR include 'ashLow' (20gpdpp),
-    'ashMed' (49 gpdpp), 'ecoMark' (recommended, 25 gpdpp), or "CA" which calculates the gpdpp from 
-    hot water draws used in CBECC-Res. 
-    
+    'ashMed' (49 gpdpp), 'ecoMark' (recommended, 25 gpdpp), or "CA" which calculates the gpdpp from
+    hot water draws used in CBECC-Res.
+
     >>> from HPWHsizer import HPWHsizer
     >>> hpwh = HPWHsizer()
     >>> hpwh.initPrimaryByUnits(nBR = [25, 25, 25, 25, 0, 0],
@@ -235,7 +235,7 @@ class HPWHsizer:
                                 aquaFract = 0.4,
                                 schematic = "primary")
 
-    Then construct the system by building the connections between the components and size it. 
+    Then construct the system by building the connections between the components and size it.
     To find proper sizing for the system in the order of primary storage volume, primary heating capacity:
 
     >>> hpwh.build_size()
@@ -286,9 +286,9 @@ class HPWHsizer:
     >>> fig.show()
 
     **Example 4: Load shifting a swing tank system.**
-    
+
     Start by initilizing a swing tank system as before:
- 
+
     >>> from HPWHsizer import HPWHsizer
     >>> hpwh = HPWHsizer()
     >>> hpwh.initPrimaryByPeople(nPeople = 100,
@@ -302,34 +302,34 @@ class HPWHsizer:
                                 percentUseable = .8,
                                 aquaFract = 0.4,
                                 schematic = "swingtank")
-    
+
     And create the temperature maintenance load as before with:
 
     >>> hpwh.initTempMaint( Wapt = 100 )
-    
-    Then create the load shift array, where 0's are off and 1's represent run freely. 
-    The array must be of length 24 for each hour of the day. The example given is 
+
+    Then create the load shift array, where 0's are off and 1's represent run freely.
+    The array must be of length 24 for each hour of the day. The example given is
     off between 5 and 9 PM. Then add it to the system:
-        
+
     >>> loadshift = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 0,0,0,0, 1,1,1]
     >>> hpwh.setLoadShiftforPrimary(loadshift)
 
     >>> hpwh.build_size()
     [843.657112791371, 94.1487558229551, '80', 21.4964946]
 
-    And to see the how the system performs with loadshift in a simple simulation 
+    And to see the how the system performs with loadshift in a simple simulation
     by saving the file to an html:
 
     >>> fig = hpwh.plotStorageLoadSim(return_as_div=False)
     >>> fig.write_html("output.html")
-    
-    Of course load shifting can be set for primary no-recirculation system and 
+
+    Of course load shifting can be set for primary no-recirculation system and
     parallel loop systems as well. Those systems must be initialized properly
-    as shown in previous examples. 
+    as shown in previous examples.
 
     """
     def __init__(self):
-        
+
         print( " HPWHulator Copyright (C) 2020  Ecotope Inc. ")
         print("This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute under certain conditions; details check GNU AFFERO GENERAL PUBLIC LICENSE_08102020.docx.")
 
@@ -343,8 +343,8 @@ class HPWHsizer:
         self.ashraeSize = None
 
         self.swingTankLoad_W = 0.
-		
-		
+
+
 
 
     def initializeFromFile(self, fileName):
@@ -448,14 +448,14 @@ class HPWHsizer:
     def initTempMaint(self, Wapt, safetyTM = 1.75, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 0.333):
         """
         Initializes the temperature maintanence system after the primary system
-        was initialized with either "swingtank" or "paralleltank". 
+        was initialized with either "swingtank" or "paralleltank".
 
         Attributes
         ----------
         Wapt : float
             The recicuplation loop losses in terms of Watts per apartment.
         safetyTM : float
-            The saftey factor for the temperature maintenance system. 
+            The saftey factor for the temperature maintenance system.
         setpointTM_F : float
             The setpoint of the temprature maintence tank. Defaults to 130 °F.
         TMonTemp_F : float
@@ -570,23 +570,23 @@ class HPWHsizer:
             #Check for a temp maint system
             if self.tempmaintSystem :
                 self.tempmaintSystem.sizeVol_Cap()
-            
+
             self.primarySystem.sizeVol_Cap()
             self.systemSized = True
-            
+
             #Check for a temp maint system
             if self.tempmaintSystem :
                 return self.primarySystem.getSizingResults() + self.tempmaintSystem.getSizingResults()
             else:
                 return self.primarySystem.getSizingResults()
-            
+
         else:
             raise Exception("The system can not be sized without a valid build")
 
     def build_size(self):
         """
         One function to build and size the HPWH system after initalization, that returns minimum results
-        
+
         Returns
         -------
         list
@@ -686,9 +686,9 @@ class HPWHsizer:
         if not self.systemSized:
             raise Exception("System must be sized first")
 
-        
+
         [ V, G_hw, D_hw, run, swingT, srun, _ ] = self.runStorage_Load_Sim();
-        
+
         hrind_fromback = 24 # Look at the last 24 hours of the simulation not the whole thing
         run = np.array(run[-(60*hrind_fromback):])*60
         G_hw = np.array(G_hw[-(60*hrind_fromback):])*60
@@ -702,17 +702,17 @@ class HPWHsizer:
         else:
             fig = Figure()
 
-            
+
         # Do primary components
         x_data = list(range(len(V)))
-        
+
         if self.doLoadShift:
-            ls_off = [ int(not x)* max(V)*2 for x in G_hw] 
+            ls_off = [ int(not x)* max(V)*2 for x in G_hw]
             fig.add_trace(Scatter(x=x_data, y=ls_off, name='Load Shift Off Period',
                                   mode = 'lines', line_shape='hv',
                                   opacity=0.5, marker_color='grey',
                                   fill='tonexty'))
-        
+
         fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume at Storage Temperature',
                               mode = 'lines', line_shape='hv',
                               opacity=0.8, marker_color='green'))
@@ -729,42 +729,42 @@ class HPWHsizer:
                           yaxis_title="Gallons or\nGallons per Hour",
                           width=900,
                           height=700)
-                          
+
         # Do Swing Tank components:
         if swingT:
             swingT = np.array(swingT[-(60*hrind_fromback):])
             srun = np.array(srun[-(60*hrind_fromback):]) * self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR #srun is logical so convert to kW
-            
-            # heatin_kWh = sum(srun)/60*self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR 
+
+            # heatin_kWh = sum(srun)/60*self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR
             # recircLoss = self.tempmaintSystem.Wapt*self.tempmaintSystem.nApt/1000 * 48
-            
+
             # strname = "Swing Temp,\nEnergy in Swing: " + str(round(heatin_kWh)) + \
             #     "\nRecircL: " + str(round(recircLoss)) + "\nRatio: " + str(round(heatin_kWh/recircLoss*100)) + \
             #         "\n Comp Run Time: " +str(round(np.count_nonzero(run)/60/2,2))
-            
-            fig.add_trace(Scatter(x=x_data, y=swingT, 
+
+            fig.add_trace(Scatter(x=x_data, y=swingT,
                                   name= 'Swing Tank Temperature',
                                   mode = 'lines', line_shape='hv',
-                                  opacity=0.8, marker_color='purple',yaxis="y2"), 
+                                  opacity=0.8, marker_color='purple',yaxis="y2"),
                           row=2,col=1,
                          secondary_y=False )
-            
-            fig.add_trace(Scatter(x=x_data, y=srun, 
+
+            fig.add_trace(Scatter(x=x_data, y=srun,
                                   name= 'Swing Tank Resistance Element',
                                   mode = 'lines', line_shape='hv',
-                                  opacity=0.8, marker_color='goldenrod'), 
+                                  opacity=0.8, marker_color='goldenrod'),
                          row=2,col=1,
                          secondary_y=True)
 
-            fig.update_yaxes(title_text="Swing Tank\nTemperature (\N{DEGREE SIGN}F)", 
+            fig.update_yaxes(title_text="Swing Tank\nTemperature (\N{DEGREE SIGN}F)",
                              showgrid=False, row=2, col=1,
                              secondary_y=False, range=[self.inputs.supplyT_F-5, self.inputs.storageT_F])
 
-            fig.update_yaxes(title_text="Resistance Element\nOutput (kW)", 
+            fig.update_yaxes(title_text="Resistance Element\nOutput (kW)",
                              showgrid=False, row=2, col=1,
                              secondary_y=True, range=[0,np.ceil(max(srun)/10)*10])
 
-            
+
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
                         include_plotlyjs = False)
@@ -818,7 +818,7 @@ class HPWHsizer:
         fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (tmCompMinimumRunTime*60),
                           xaxis_title="Parallel Loop Tank Volume (Gallons)",
                           yaxis_title="Parallel Loop Heating Capacity (kBTU/hr)")
-        
+
         xtop = round(self.tempmaintSystem.TMVol_G*3/10)
         ytop = round(self.tempmaintSystem.TMCap_kBTUhr*3/10)
         fig.update_xaxes(range=[0, xtop])
@@ -843,7 +843,7 @@ class HPWHsizer:
             TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
             TMWriter.writeLine('schematic, '+ self.inputs.schematic)
             TMWriter.writeToFile()
-           
+
     def runStorage_Load_Sim(self, Pcapacity = None, Pvolume = None):
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
@@ -856,7 +856,7 @@ class HPWHsizer:
         Returns
         -------
         list [ V, G_hw, D_hw, run ]
-        V - Volume of HW in the tank with time at the strorage temperature. 
+        V - Volume of HW in the tank with time at the strorage temperature.
         G_hw - The generation of HW with time at the supply temperature
         D_hw - The hot water demand with time at the tsupply temperature
         run - The actual output in gallons of the HPWH with time
@@ -872,12 +872,12 @@ class HPWHsizer:
                 Pvolume =  self.primarySystem.PVol_G_atStorageT
             else:
                 raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
-            
+
 
         # Get the generation rate from the primary capacity
         G_hw = 1000 * Pcapacity / rhoCp / (self.primarySystem.supplyT_F - self.primarySystem.incomingT_F) \
                * self.primarySystem.defrostFactor * np.tile(self.primarySystem.LS_on_off,3)
-               
+
         # Define the use of DHW with the normalized load shape
         D_hw = self.primarySystem.totalHWLoad * self.primarySystem.fractDHW * np.tile(self.primarySystem.loadShapeNorm,3)
 
@@ -888,9 +888,9 @@ class HPWHsizer:
         # Init the "simulation"
         V0 = Pvolume* self.primarySystem.percentUseable
         Vtrig = Pvolume* (1 - self.primarySystem.aquaFract)
-        
-        if self.inputs.schematic == "swingtank" : 
-            hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,                                
+
+        if self.inputs.schematic == "swingtank" :
+            hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,
                                 Tcw = self.primarySystem.incomingT_F,
                                 Tstorage = self.primarySystem.storageT_F,
                                 Tsupply = self.primarySystem.supplyT_F,
@@ -901,7 +901,7 @@ class HPWHsizer:
                                 Swing_Elem_kW = self.tempmaintSystem.TMCap_kBTUhr/W_TO_BTUHR )
 
         else:
-           # hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig) 
+           # hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig)
            hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,
                                Tcw = self.primarySystem.incomingT_F,
                                Tstorage = self.primarySystem.storageT_F,
@@ -1051,11 +1051,11 @@ class HPWHsizerRead:
                     raise Exception("The temperature maintenance setpoint temperature must be greater than the city cold water temperature ")
                 if TMonTemp_F <= self.incomingT_F:
                     raise Exception("The temperature maintenance turn on temperature must be greater than the city cold water temperature ")
-                
+
                 self.setpointTM_F     = setpointTM_F
                 self.TMonTemp_F       = TMonTemp_F
                 self.offTime_hr       = offTime_hr
-                
+
 
 
 
@@ -1086,7 +1086,7 @@ class HPWHsizerRead:
         self.cdf_shift = cdf_shift # percent of days for load shifting
         self.fract_total_vol = self.__cdfShift(cdf_shift) # fraction of total volume for for load shifting
 
-    def __cdfShift(self, cdf_shift = 1):  
+    def __cdfShift(self, cdf_shift = 1):
         # adjust for cdf_shift
         if cdf_shift == 1: # meaing 100% of days covered by load shift
             percent_total_vol = 1
