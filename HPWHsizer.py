@@ -21,7 +21,7 @@ import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank 
 from ashraesizer import ASHRAEsizer
-from cfg import compMinimumRunTime, rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST
+from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
@@ -803,7 +803,7 @@ class HPWHsizer:
 
         fig.add_trace(Scatter(x=(x_data[0],x_data[-1]),
                               y=(self.tempmaintSystem.TMCap_kBTUhr,self.tempmaintSystem.TMCap_kBTUhr),
-                              mode='lines', name='Capacity',
+                              mode='lines', name='Operable Range',
                               opacity=0.8, marker_color='grey',
                               fill='tonexty' # fill area between trace0 and trace1
                               ))
@@ -814,11 +814,14 @@ class HPWHsizer:
                               name='System Size',
                               opacity=0.8, marker_color='blue'))
 
-        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (compMinimumRunTime*60),
+        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (tmCompMinimumRunTime*60),
                           xaxis_title="Parallel Loop Tank Volume (Gallons)",
                           yaxis_title="Parallel Loop Heating Capacity (kBTU/hr)")
-        fig.update_xaxes(range=[0, x_data[-1]])
-        fig.update_yaxes(range=[0, y_data[-1]])
+        
+        xtop = round(self.tempmaintSystem.TMVol_G*3/10)
+        ytop = round(self.tempmaintSystem.TMCap_kBTUhr*3/10)
+        fig.update_xaxes(range=[0, xtop])
+        fig.update_yaxes(range=[0, ytop])
 
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
@@ -1033,8 +1036,8 @@ class HPWHsizerRead:
         elif self.schematic == "paralleltank":
             if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
                 raise Exception("Error in initTempMaintInputs, paralleltank needs inputs != 0")
-            elif compMinimumRunTime >= offTime_hr/(safetyTM - 1):
-                raise Exception("The expected run time of the parallel tank is less time the minimum runtime for a HPWH of " + str(compMinimumRunTime*60)+ "minutes.")
+            elif tmCompMinimumRunTime >= offTime_hr/(safetyTM - 1):
+                raise Exception("The expected run time of the parallel tank is less time the minimum runtime for a HPWH of " + str(tmCompMinimumRunTime*60)+ " minutes.")
             else:
                 # Quick Check the inputs makes sense
                 if not self.__checkLiqudWater(setpointTM_F):

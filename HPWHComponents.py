@@ -18,8 +18,8 @@
 """
 import numpy as np
 
-from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, HRLIST_to_MINLIST, \
-                compMinimumRunTime, mixVolume
+from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
+                pCompMinimumRunTime, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
@@ -209,7 +209,7 @@ class PrimarySystem_SP:
 
         # Check the Cycling Volume ############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
-        minRunVol_G     = compMinimumRunTime * (self.totalHWLoad * effMixFract / heatHrs) # (generation rate - no usage)
+        minRunVol_G     = pCompMinimumRunTime * (self.totalHWLoad * effMixFract / heatHrs) # (generation rate - no usage)
 
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
@@ -478,7 +478,7 @@ class ParallelLoopTank:
         """
         return [ self.TMVol_G, self.TMCap_kBTUhr ]
 
-    def tempMaintCurve(self, runtime = compMinimumRunTime):
+    def tempMaintCurve(self, runtime = tmCompMinimumRunTime):
         """
         Returns the sizing curve for a parallel loop tank
 
@@ -490,7 +490,7 @@ class ParallelLoopTank:
 
         volN_G = np.linspace(0 , round(self.TMVol_G*4/100)*100, 100)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
-                    self.nApt * self.Wapt * 0.66 * W_TO_BTUHR #0.66 comes from the lower limit of the distrubution losses. 
+                    self.nApt * self.Wapt  * W_TO_BTUHR #0.66 comes from the lower limit of the distrubution losses. 
         capacity /= 1000.
 
         keep = capacity >= self.TMCap_kBTUhr

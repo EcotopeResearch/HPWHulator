@@ -140,7 +140,8 @@ def test_AF_sizing_error(empty_sizer):
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
                 120, 50, 150., 16., .9, 0.11,
                 "primary", .9)
-    with pytest.raises(Exception, match="Error ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: 0.209"):
+    with pytest.raises(Exception, match =
+                       "('01', 'The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: ', 0.209)"):
         empty_sizer.build_size()
 
 def test_primary_AF_over_1_Error(primary_sizer):
@@ -153,16 +154,22 @@ def test_primary_AF_over_1_Error(primary_sizer):
     # Recalc inputs
     primary_sizer.inputs.calcedVariables()
     # Size the system
-    with pytest.raises(Exception, match="The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low"):
+    with pytest.raises(Exception, match =
+                       "The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low"):
         primary_sizer.build_size()
 
+def test_parallel_min_size(units_sizer):
+    with pytest.raises(Exception, match="The expected run time of the parallel tank is less time the minimum runtime for a HPWH of 20.0 minutes."):
+        units_sizer.initTempMaint( 100, safetyTM = 1.75, offTime_hr = .1)
+    with pytest.raises(Exception, match="The expected run time of the parallel tank is less time the minimum runtime for a HPWH of 20.0 minutes."):
+        units_sizer.initTempMaint( 100, safetyTM = 5, offTime_hr = .5)
 
 # Test the Fetcher
 def test_getLoadshape(fetcher):
     assert fetcher.getLoadshape() == [0.015197568,
-			0.006079027,0.003039514,0.003039514,0.003039514,0.009118541,0.075987842,
-			0.151975684,0.100303951,0.082066869,0.021276596,0.024316109, 0.021276596,
-			0.024316109,	0.012158055,	0.006079027,	0.009118541,	0.036474164, 0.054711246,
+ 			0.006079027,0.003039514,0.003039514,0.003039514,0.009118541,0.075987842,
+ 			0.151975684,0.100303951,0.082066869,0.021276596,0.024316109, 0.021276596,
+ 			0.024316109,	0.012158055,	0.006079027,	0.009118541,	0.036474164, 0.054711246,
             0.072948328, 0.088145897, 0.09118541 , 0.063829787,0.024316109]
 def test_getGPDPP(fetcher):
     with pytest.raises(Exception):
@@ -250,7 +257,7 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime
     1000
     ])
 @pytest.mark.parametrize("nApt", [
-   # 12, 100, 1000
+    # 12, 100, 1000
     1000,
     ])
 @pytest.mark.parametrize("Wapt", [
@@ -483,7 +490,7 @@ def test_swing_LS(CA_sizer, file1, LS):
     fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
-    # with open("tests/output/"+os.path.basename(file1), 'w') as file:
-    #     file.write(str(fig))
-    # assert file_regression("tests/ref/"+os.path.basename(file1),
-    #                         "tests/output/"+os.path.basename(file1))
+    with open("tests/output/"+os.path.basename(file1), 'w') as file:
+        file.write(str(fig))
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                            "tests/output/"+os.path.basename(file1))
