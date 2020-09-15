@@ -1,4 +1,4 @@
-""" 
+"""
 	HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
