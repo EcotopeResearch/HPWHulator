@@ -20,8 +20,8 @@ import numpy as np
 
 from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
                 pCompMinimumRunTime, tmCompMinimumRunTime
-from dataFetch import hpwhDataFetch
 from Simulator import Simulator
+
 
 ##############################################################################
 ## Components of a HPWH system given below:
@@ -44,7 +44,7 @@ class PrimarySystem_SP:
         Storage temperature of the primary hot water storage tanks. [°F]
     supplyT_F : float
         Supply hot water temperature to occupants, typically 120°F. [°F]
-     percentUsable : float
+    percentUsable : float
         Percent of primary hot water storage that is usable due to sufficient thermal stratification.
     aquaFract: float
         The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
@@ -52,7 +52,7 @@ class PrimarySystem_SP:
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
     defrostFactor: float
         A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
-     PCap_kBTUhr : float
+    PCap_kBTUhr : float
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT : float
         Primary storage tank volume [gals]
@@ -62,7 +62,10 @@ class PrimarySystem_SP:
         The swing tank object associated with the primary system if there is one.
     swingTankLoad_W : float
         Extra load in Watts that is added to the primary system.
-
+    fractDHW : float
+        Fraction describing the decreased total volume to be met for load shift based on the total number of days to meet.
+    LSconstrained : boolean
+        If the load shift requirement for the recommended system is larger than the system without load shift recommended. 
     """
 
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
@@ -96,13 +99,14 @@ class PrimarySystem_SP:
         # Internal variables
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
-        self.loadShift = False;
+        self.loadShift = False
+        self.fractDHW = 1.
         
         # Outputs
         self.PCap_kBTUhr       = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-    def setLoadShift(self, schedule, percent_days = 1):
+    def setLoadShift(self, schedule, fractDHW = 1):
         """
         Sets the load shifting schedule from input schedule
 
@@ -111,13 +115,13 @@ class PrimarySystem_SP:
         schedule : array_like
             List or array of 0's and 1's for don't run and run.
         
-        percent_days : float
-            Percent of days to be shifted in a load shift scenario
+        fractDHW : float
+            Fraction of DHW load corresponding to percent of days to be shifted in a load shift scenario
 
         """
         # Coerce to 0s and 1s
         self.LS_on_off = np.where(schedule > 0, 1, 0)
-        self.LS_cdf = percent_days
+        self.fractDHW = fractDHW
         self.loadShift = True
         # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
         self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
@@ -164,7 +168,7 @@ class PrimarySystem_SP:
                 (self.supplyT_F - self.incomingT_F) / self.defrostFactor /1000.
         return heatCap
 
-    def sizePrimaryTankVolume(self, heatHrs, cdf_shift=1):
+    def sizePrimaryTankVolume(self, heatHrs):
         """
         Calculates the primary storage using the Ecotope sizing methodology
 
@@ -181,6 +185,8 @@ class PrimarySystem_SP:
         self._checkHeatHours(heatHrs)
 
         effMixFract = 1. # Fraction used for adjusting swing tank volume. 
+        largerLS = False # If the system is sized for load shift days or the load shift requirement is less than required
+
         # Running vol
         if self.swingTank:
             runningVol_G, effMixFract = self.__calcRunningVolSwingTank(heatHrs,np.ones(24))
@@ -195,11 +201,13 @@ class PrimarySystem_SP:
                 LSrunningVol_G, LSeffMixFract = self.__calcRunningVolSwingTank(heatHrs, self.LS_on_off)
             else:
                 LSrunningVol_G = self.__calcRunningVol(heatHrs, self.LS_on_off)
-            LSrunningVol_G = self.__cdfShift(LSrunningVol_G, self.LS_cdf)
-
+            LSrunningVol_G *= self.fractDHW
+            
             # Get total volume from max of primary method or load shift method
-            runningVol_G = max(runningVol_G, LSrunningVol_G)
-            effMixFract = max(effMixFract, LSeffMixFract)
+            if LSrunningVol_G > runningVol_G:
+                runningVol_G = LSrunningVol_G
+                effMixFract = LSeffMixFract
+                largerLS = True
 
         if self.swingTank: # For a swing tank the storage volume is found at the appropriate temperature in __calcRunningVol
             totalVolMax = runningVol_G / (1-self.aquaFract) 
@@ -219,7 +227,7 @@ class PrimarySystem_SP:
                 raise ValueError ("02", "The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
         # Return the temperature adjusted total volume ########################
-        return totalVolMax, effMixFract
+        return totalVolMax, effMixFract, largerLS
 
     def __calcRunningVol(self, heatHrs, onOffArr):
         """
@@ -335,17 +343,7 @@ class PrimarySystem_SP:
         return runV_G, eff_HW_mix_faction
     
     
-    def __cdfShift(self, vol, cdf_shift = 1):  
-        # adjust for cdf_shift
-        if cdf_shift == 1: # meaing 100% of days covered by load shift
-            percent_total_vol = 1
-        elif cdf_shift == 0: # meaning no days covered by load shift
-            raise Exception("0 percent load shift indicated")
-        else:
-            percent_total_vol = hpwhDataFetch.getCDF(cdf_shift)
 
-        vol *= percent_total_vol
-        return vol
 
     def primaryCurve(self):
         """
@@ -367,7 +365,7 @@ class PrimarySystem_SP:
         effMixFract = np.ones(len(heatHours))
         for ii in range(0,len(heatHours)):
             try:
-                volN[ii], effMixFract[ii] = self.sizePrimaryTankVolume(heatHours[ii])
+                volN[ii], effMixFract[ii], _ = self.sizePrimaryTankVolume(heatHours[ii])
             except ValueError:
                 break
         # Cut to the point the aquastat fraction was too small
@@ -381,7 +379,7 @@ class PrimarySystem_SP:
         """
         Calculates the minimum primary volume and heating capacity for the primary system: PVol_G_atStorageT and PCap_kBTUhr
         """
-        self.PVol_G_atStorageT, self.effSwingFract = self.sizePrimaryTankVolume(self.maxDayRun_hr)
+        self.PVol_G_atStorageT, self.effSwingFract, self.LSconstrained = self.sizePrimaryTankVolume(self.maxDayRun_hr)
         self.PCap_kBTUhr = self.primaryHeatHrs2kBTUHR(self.maxDayRun_hr, self.effSwingFract )
 
     def getSizingResults(self):
