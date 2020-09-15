@@ -311,7 +311,7 @@ and lower storage volumes and save it to an html:</p>
 </pre></div>
 </div>
 <p>Which will use the California occupancy ratios and the California daily hot water draws. Then create the temperature maintenance load with:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initTempMaint</span><span class="p">(</span> <span class="n">Wapt</span> <span class="o">=</span> <span class="mi">100</span> <span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initTempMaint</span><span class="p">(</span> <span class="n">Wapt</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">safetyTM</span> <span class="o">=</span> <span class="mf">1.75</span> <span class="p">)</span>
 </pre></div>
 </div>
 <p>Construct the system by building the connections between the components and size it. To find proper sizing for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:</p>
@@ -565,28 +565,24 @@ If aligning the sizing requriements with CA this is the method that should be us
 
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.initTempMaint">
-<code class="sig-name descname">initTempMaint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">setpointTM_F</span><span class="o">=</span><span class="default_value">130</span></em>, <em class="sig-param"><span class="n">TMonTemp_F</span><span class="o">=</span><span class="default_value">120</span></em>, <em class="sig-param"><span class="n">offTime_hr</span><span class="o">=</span><span class="default_value">0.333</span></em>, <em class="sig-param"><span class="n">TMRuntime_hr</span><span class="o">=</span><span class="default_value">0.333</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.initTempMaint" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">initTempMaint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">safetyTM</span><span class="o">=</span><span class="default_value">1.75</span></em>, <em class="sig-param"><span class="n">setpointTM_F</span><span class="o">=</span><span class="default_value">130</span></em>, <em class="sig-param"><span class="n">TMonTemp_F</span><span class="o">=</span><span class="default_value">120</span></em>, <em class="sig-param"><span class="n">offTime_hr</span><span class="o">=</span><span class="default_value">0.333</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.initTempMaint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initializes the temperature maintanence system after the primary system
-with either “swingtank” or “paralleltank”. Recommend to leave offtime_hr
-and TMRuntime_hr as defaulted, since they’re setup for a minimum runtime of
-10 minutes at the lower end of the design criteria for loop losses.</p>
-<dl class="field-list">
+was initialized with either “swingtank” or “paralleltank”.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><dl class="simple">
-<dt>Exception: Error if primary system hasn’t been sized yet.</dt><dd></dd>
+<dt>Exception: Error if primary system hasn’t been created yet.</dt><dd></dd>
 </dl>
 </dd>
 <dt class="field-even">Attributes</dt>
-<dd class="field-even"><dl>
-<dt><strong>Wapt</strong><span class="classifier">float</span></dt><dd><blockquote>
-<div><p>The recicuplation loop losses in terms of Watts per apartment.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>setpointTM_F<span class="classifier">float</span></dt><dd><p>The setpoint of the temprature maintence tank. Defaults to 130 °F.</p>
+<dd class="field-even"><dl class="simple">
+<dt><strong>Wapt</strong><span class="classifier">float</span></dt><dd><p>The recicuplation loop losses in terms of Watts per apartment.</p>
 </dd>
-<dt>TMonTemp_F :float</dt><dd><p>The temperature where parallel loop tank will turn on. Defaults to 120 °F.</p>
+<dt><strong>safetyTM</strong><span class="classifier">float</span></dt><dd><p>The saftey factor for the temperature maintenance system.</p>
 </dd>
-</dl>
+<dt><strong>setpointTM_F</strong><span class="classifier">float</span></dt><dd><p>The setpoint of the temprature maintence tank. Defaults to 130 °F.</p>
+</dd>
+<dt><strong>TMonTemp_F</strong><span class="classifier">float</span></dt><dd><p>The temperature where parallel loop tank will turn on. Defaults to 120 °F.</p>
 </dd>
 </dl>
 </dd>
@@ -731,7 +727,7 @@ and TMRuntime_hr as defaulted, since they’re setup for a minimum runtime of
 <tr class="row-even"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.checkInputs" title="HPWHsizer.HPWHsizerRead.checkInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkInputs</span></code></a>(gpdpp, loadShapeNorm, supplyT_F, …)</p></td>
 <td><p>Checks inputs are all valid</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.initTempMaintInputs" title="HPWHsizer.HPWHsizerRead.initTempMaintInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initTempMaintInputs</span></code></a>(Wapt[, setpointTM_F, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.initTempMaintInputs" title="HPWHsizer.HPWHsizerRead.initTempMaintInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initTempMaintInputs</span></code></a>(Wapt, safetyTM, …)</p></td>
 <td><p>Assign temperature maintenance variables with either “swingtank” or “paralleltank”</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#HPWHsizer.HPWHsizerRead.initializeFromFile" title="HPWHsizer.HPWHsizerRead.initializeFromFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initializeFromFile</span></code></a>(fileName)</p></td>
@@ -770,7 +766,7 @@ and TMRuntime_hr as defaulted, since they’re setup for a minimum runtime of
 
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizerRead.initTempMaintInputs">
-<code class="sig-name descname">initTempMaintInputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">setpointTM_F</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">TMonTemp_F</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">offTime_hr</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">TMRuntime_hr</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.initTempMaintInputs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">initTempMaintInputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">safetyTM</span></em>, <em class="sig-param"><span class="n">setpointTM_F</span></em>, <em class="sig-param"><span class="n">TMonTemp_F</span></em>, <em class="sig-param"><span class="n">offTime_hr</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizerRead.initTempMaintInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Assign temperature maintenance variables with either “swingtank” or “paralleltank”</p>
 </dd></dl>
 
@@ -1013,7 +1009,7 @@ GNU General Public License for more details.</p>
 along with this program.  If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
 <dl class="py class">
 <dt id="HPWHComponents.ParallelLoopTank">
-<em class="property">class </em><code class="sig-prename descclassname">HPWHComponents.</code><code class="sig-name descname">ParallelLoopTank</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nApt</span></em>, <em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">setpointTM_F</span></em>, <em class="sig-param"><span class="n">TMonTemp_F</span></em>, <em class="sig-param"><span class="n">offTime_hr</span></em>, <em class="sig-param"><span class="n">TMRuntime_hr</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.ParallelLoopTank" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">HPWHComponents.</code><code class="sig-name descname">ParallelLoopTank</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nApt</span></em>, <em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">safetyTM</span></em>, <em class="sig-param"><span class="n">setpointTM_F</span></em>, <em class="sig-param"><span class="n">TMonTemp_F</span></em>, <em class="sig-param"><span class="n">offTime_hr</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.ParallelLoopTank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class containing attributes and methods to describe and size the parrallel loop tank arrangement. Unlike a swing tank, a parrallel loop tank     will have equipment to provide heat for periods of low or no hot water use.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
@@ -1077,7 +1073,7 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 
 <dl class="py method">
 <dt id="HPWHComponents.ParallelLoopTank.tempMaintCurve">
-<code class="sig-name descname">tempMaintCurve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">runtime</span><span class="o">=</span><span class="default_value">0.16666666666666666</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.ParallelLoopTank.tempMaintCurve" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">tempMaintCurve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">runtime</span><span class="o">=</span><span class="default_value">0.3333333333333333</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.ParallelLoopTank.tempMaintCurve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the sizing curve for a parallel loop tank</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -1095,9 +1091,9 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 <dt id="HPWHComponents.PrimarySystem_SP">
 <em class="property">class </em><code class="sig-prename descclassname">HPWHComponents.</code><code class="sig-name descname">PrimarySystem_SP</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">totalHWLoad</span></em>, <em class="sig-param"><span class="n">loadShapeNorm</span></em>, <em class="sig-param"><span class="n">nPeople</span></em>, <em class="sig-param"><span class="n">incomingT_F</span></em>, <em class="sig-param"><span class="n">supplyT_F</span></em>, <em class="sig-param"><span class="n">storageT_F</span></em>, <em class="sig-param"><span class="n">percentUseable</span></em>, <em class="sig-param"><span class="n">compRuntime_hr</span></em>, <em class="sig-param"><span class="n">aquaFract</span></em>, <em class="sig-param"><span class="n">defrostFactor</span></em>, <em class="sig-param"><span class="n">swingTank</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.PrimarySystem_SP" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class containing attributes and methods to describe and size the primary heat pump and storage for single pass systems.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl>
+<dd class="field-odd"><dl class="simple">
 <dt><strong>totalHWLoad</strong><span class="classifier">float</span></dt><dd><p>Total hot water load [btu/hr]</p>
 </dd>
 <dt><strong>loadShapeNorm</strong><span class="classifier">numpy array</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load.</p>
@@ -1108,25 +1104,17 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 </dd>
 <dt><strong>storageT_F: float</strong></dt><dd><p>Storage temperature of the primary hot water storage tanks. [°F]</p>
 </dd>
-<dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><blockquote>
-<div><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
-</div></blockquote>
-<dl class="simple">
-<dt>percentUsable<span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+<dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
 </dd>
-</dl>
+<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
 </dd>
 <dt><strong>aquaFract: float</strong></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.</p>
 </dd>
 <dt><strong>compRuntime_hr</strong><span class="classifier">float</span></dt><dd><p>Hour per day central heat pump equipment can run, duty cycle [hrs/day]</p>
 </dd>
-<dt><strong>defrostFactor: float</strong></dt><dd><blockquote>
-<div><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>PCap_kBTUhr<span class="classifier">float</span></dt><dd><p>Primary heat pump water heater capacity [kBtu]</p>
+<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.</p>
 </dd>
-</dl>
+<dt><strong>PCap_kBTUhr</strong><span class="classifier">float</span></dt><dd><p>Primary heat pump water heater capacity [kBtu]</p>
 </dd>
 <dt><strong>PVol_G_atStorageT</strong><span class="classifier">float</span></dt><dd><p>Primary storage tank volume [gals]</p>
 </dd>
@@ -1135,6 +1123,10 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 <dt><strong>SwingTank</strong><span class="classifier">swingtank</span></dt><dd><p>The swing tank object associated with the primary system if there is one.</p>
 </dd>
 <dt><strong>swingTankLoad_W</strong><span class="classifier">float</span></dt><dd><p>Extra load in Watts that is added to the primary system.</p>
+</dd>
+<dt><strong>fractDHW</strong><span class="classifier">float</span></dt><dd><p>Fraction describing the decreased total volume to be met for load shift based on the total number of days to meet.</p>
+</dd>
+<dt><strong>LSconstrained</strong><span class="classifier">boolean</span></dt><dd><p>If the load shift requirement for the recommended system is larger than the system without load shift recommended.</p>
 </dd>
 </dl>
 </dd>
@@ -1155,10 +1147,10 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 <tr class="row-odd"><td><p><a class="reference internal" href="#HPWHComponents.PrimarySystem_SP.primaryHeatHrs2kBTUHR" title="HPWHComponents.PrimarySystem_SP.primaryHeatHrs2kBTUHR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">primaryHeatHrs2kBTUHR</span></code></a>(heathours[, …])</p></td>
 <td><p>Converts from hours of heating in a day to heating capacity.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#HPWHComponents.PrimarySystem_SP.setLoadShift" title="HPWHComponents.PrimarySystem_SP.setLoadShift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setLoadShift</span></code></a>(schedule[, percent_days])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#HPWHComponents.PrimarySystem_SP.setLoadShift" title="HPWHComponents.PrimarySystem_SP.setLoadShift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setLoadShift</span></code></a>(schedule[, fractDHW])</p></td>
 <td><p>Sets the load shifting schedule from input schedule</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume" title="HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sizePrimaryTankVolume</span></code></a>(heatHrs[, cdf_shift])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume" title="HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sizePrimaryTankVolume</span></code></a>(heatHrs)</p></td>
 <td><p>Calculates the primary storage using the Ecotope sizing methodology</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#HPWHComponents.PrimarySystem_SP.sizeVol_Cap" title="HPWHComponents.PrimarySystem_SP.sizeVol_Cap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sizeVol_Cap</span></code></a>()</p></td>
@@ -1221,14 +1213,14 @@ fraction is too small for system and cuts the return arrays to match cutoff poin
 
 <dl class="py method">
 <dt id="HPWHComponents.PrimarySystem_SP.setLoadShift">
-<code class="sig-name descname">setLoadShift</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">schedule</span></em>, <em class="sig-param"><span class="n">percent_days</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.PrimarySystem_SP.setLoadShift" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">setLoadShift</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">schedule</span></em>, <em class="sig-param"><span class="n">fractDHW</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.PrimarySystem_SP.setLoadShift" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the load shifting schedule from input schedule</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>schedule</strong><span class="classifier">array_like</span></dt><dd><p>List or array of 0’s and 1’s for don’t run and run.</p>
 </dd>
-<dt><strong>percent_days</strong><span class="classifier">float</span></dt><dd><p>Percent of days to be shifted in a load shift scenario</p>
+<dt><strong>fractDHW</strong><span class="classifier">float</span></dt><dd><p>Fraction of DHW load corresponding to percent of days to be shifted in a load shift scenario</p>
 </dd>
 </dl>
 </dd>
@@ -1237,7 +1229,7 @@ fraction is too small for system and cuts the return arrays to match cutoff poin
 
 <dl class="py method">
 <dt id="HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume">
-<code class="sig-name descname">sizePrimaryTankVolume</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">heatHrs</span></em>, <em class="sig-param"><span class="n">cdf_shift</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">sizePrimaryTankVolume</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">heatHrs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.PrimarySystem_SP.sizePrimaryTankVolume" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the primary storage using the Ecotope sizing methodology</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1265,7 +1257,7 @@ fraction is too small for system and cuts the return arrays to match cutoff poin
 
 <dl class="py class">
 <dt id="HPWHComponents.SwingTank">
-<em class="property">class </em><code class="sig-prename descclassname">HPWHComponents.</code><code class="sig-name descname">SwingTank</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nApt</span></em>, <em class="sig-param"><span class="n">Wapt</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.SwingTank" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">HPWHComponents.</code><code class="sig-name descname">SwingTank</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nApt</span></em>, <em class="sig-param"><span class="n">Wapt</span></em>, <em class="sig-param"><span class="n">safetyTM</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.SwingTank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class containing attributes and methods to describe and size the swing tank. Unlike a temperature maintenance tank, the swing tank is sized so
 the primary system heat adds heat to cover about up to 70% of the reciculation losses.</p>
 <dl class="field-list simple">

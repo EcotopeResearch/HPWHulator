@@ -1,4 +1,4 @@
-""" 
+"""
 	HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
@@ -78,10 +78,10 @@ class hpwhDataFetch():
         norm_mean = params[0] # mean of normalized stream data
         norm_std = params[1] # standard deviation of normalized stream data
 
-        # calculate fraction of strorage required to meet load shift days
-        storage_fract = norm_mean + norm_std*norm.ppf(cdf_shift)
+        # calculate fraction required to meet load shift days
+        fract = norm_mean + norm_std*norm.ppf(cdf_shift)
 
-        return(storage_fract)
+        return fract if fract <= 1. else 1.
 
     def getCAGPDPPYearly(self, nBR_key):
         try:

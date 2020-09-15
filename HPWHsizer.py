@@ -29,6 +29,7 @@ from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
 from plotly.subplots import make_subplots
 
+hpwhData = hpwhDataFetch()
 
 ##############################################################################
 class HPWHsizer:
@@ -543,7 +544,7 @@ class HPWHsizer:
                                                  self.inputs.defrostFactor,
                                                  self.tempmaintSystem if self.inputs.schematic == "swingtank" else None)
             if self.doLoadShift:
-                self.primarySystem.setLoadShift(self.inputs.loadshift, self.inputs.cdf_shift)
+                self.primarySystem.setLoadShift(self.inputs.loadshift, self.inputs.fract_total_vol)
 
         elif not self.inputs.singlePass:
             # Multipass systems not yet supported
@@ -878,8 +879,9 @@ class HPWHsizer:
                * self.primarySystem.defrostFactor * np.tile(self.primarySystem.LS_on_off,3)
                
         # Define the use of DHW with the normalized load shape
-        D_hw = self.primarySystem.totalHWLoad * np.tile(self.primarySystem.loadShapeNorm,3)
+        D_hw = self.primarySystem.totalHWLoad * self.primarySystem.fractDHW * np.tile(self.primarySystem.loadShapeNorm,3)
 
+        # To per minute from per hour
         G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
         D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
 
@@ -918,7 +920,6 @@ class HPWHsizerRead:
 
     """
     schematicNames = ["primary", "swingtank", "paralleltank"]
-    hpwhData = hpwhDataFetch()
 
     def __init__(self):
         """Initialize the sizer object with 0's for the inputs"""
@@ -965,7 +966,7 @@ class HPWHsizerRead:
 
         # Check if rBR is a string input
         if type(rBR) is str: # if the input here is a string get the loadshape.
-            self.rBR = self.hpwhData.getRPepperBR(rBR)
+            self.rBR = hpwhData.getRPepperBR(rBR)
         else:
             self.rBR = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
         #Now get the number of people
@@ -993,7 +994,7 @@ class HPWHsizerRead:
         loadShapeNorm = np.array(loadShapeNorm)
         # loadShapeNorm have been coeerced to np.arrays so check these for string inputs
         if loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
-            loadShapeNorm = self.hpwhData.getLoadshape()
+            loadShapeNorm = hpwhData.getLoadshape()
 
         gpdpp =  loadgpdpp(gpdpp)
 
@@ -1083,6 +1084,17 @@ class HPWHsizerRead:
         #    raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
         self.cdf_shift = cdf_shift # percent of days for load shifting
+        self.fract_total_vol = self.__cdfShift(cdf_shift) # fraction of total volume for for load shifting
+
+    def __cdfShift(self, cdf_shift = 1):  
+        # adjust for cdf_shift
+        if cdf_shift == 1: # meaing 100% of days covered by load shift
+            percent_total_vol = 1
+        elif cdf_shift == 0: # meaning no days covered by load shift
+            raise Exception("0 percent load shift indicated")
+        else:
+            percent_total_vol = hpwhData.getCDF(cdf_shift = cdf_shift)
+        return percent_total_vol
 
     def checkInputs(self, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable,  aquaFract,
@@ -1282,7 +1294,6 @@ def loadgpdpp( gpdpp, nBR = None):
     """
     # Check if gpdpp is a string and look up by key
     if isinstance(gpdpp, str): # if the input here is a string get the get the gpdpp
-        hpwhData = hpwhDataFetch()
 
         if gpdpp.lower() == "ca" :
             if nBR is None or sum(nBR) == 0:

@@ -185,11 +185,24 @@ def test_getRPepperBR(fetcher):
     (0.25, 0.6497449987474476),
     (0.5, 0.7052988591269841),
     (0.75, 0.7608527195065206),
-    (0.9, 0.8108529268066542),
+    (0.99, 0.8969068189975757),
+    (0.999999, 1),
     ])
 def test_getCDF(fetcher, x, expected):
     assert fetcher.getCDF(x) == expected
 
+def test_CDFShift_error( primary_sizer ):
+    with pytest.raises(Exception):
+        assert primary_sizer.setLoadShiftforPrimary([1]*24, 1.1)
+    with pytest.raises(Exception):
+        assert primary_sizer.setLoadShiftforPrimary([1]*24, .24)
+    with pytest.raises(Exception):
+        assert primary_sizer.setLoadShiftforPrimary([1]*24, -1)
+    with pytest.raises(Exception):
+        assert primary_sizer.setLoadShiftforPrimary([1]*24, 0)
+
+
+    
 #@pytest.mark.parametrize("x, s, expected", [
 #    ([1,19,22,25,28],0,[0.0, 0.405, 0.837, 0.986, 1.0]),
 #    ([1,19,22,25,28],3,[0.0, 0.071, 0.405, 0.837, 0.986]),
@@ -250,19 +263,16 @@ def test_primary_sim_positive(primary_sizer, nSupplyT, nStorageT_F, ncompRuntime
 
 @pytest.mark.parametrize("nSupplyT, nStorageT_F", [
     (120, 185),
-    (135, 150),
+    (130, 150),
     ])
 @pytest.mark.parametrize("nPep", [
-    #20, 340, 
-    1000
+    20, 1000
     ])
 @pytest.mark.parametrize("nApt", [
-    # 12, 100, 1000
-    1000,
+    12, 1000
     ])
 @pytest.mark.parametrize("Wapt", [
-    #30, 
-    175
+    30, 175
     ])
 def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     # Reset inputs
@@ -280,8 +290,8 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     # Check the simulation plot is all >= 0
     [ V, G_hw, D_hw, run, swingT, _, _ ] = CA_sizer.runStorage_Load_Sim()
     
-    fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/" + str(nSupplyT) + "_"+ str(nStorageT_F)+"_"+str(nPep) +"_"+str(nApt)+ "_"+ str(Wapt)+ "_"  +".html")
+    # fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
+    # fig.write_html("tests/output/" + str(nSupplyT) + "_"+ str(nStorageT_F)+"_"+str(nPep) +"_"+str(nApt)+ "_"+ str(Wapt)+ "_"  +".html")
     
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
     assert min(swingT) >= nSupplyT
@@ -411,8 +421,6 @@ def test_size_LS(primary_sizer, file1, LS):
     assert file_regression("tests/ref/"+os.path.basename(file1),
                             "tests/output/"+os.path.basename(file1))
     
-    
-
 ##############################################################################
 ## Test ploting outputs stay same
 def test_plot_primaryCurve(primary_sizer):
@@ -487,7 +495,7 @@ def test_swing_LS(CA_sizer, file1, LS):
     CA_sizer.build_size()
 
     fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+    fig.write_html("tests/output/" + os.path.splitext(file1)[0] + ".html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
