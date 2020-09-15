@@ -17,8 +17,9 @@
 
 """
 import numpy as np
-from cfg import rhoCp, W_TO_BTUHR, Wapt75, Wapt25, TMSafetyFactor, HRLIST_to_MINLIST, \
-                compMinimumRunTime, mixVolume
+
+from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
+                pCompMinimumRunTime, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
@@ -203,18 +204,19 @@ class PrimarySystem_SP:
         if self.swingTank: # For a swing tank the storage volume is found at the appropriate temperature in __calcRunningVol
             totalVolMax = runningVol_G / (1-self.aquaFract) 
         else: # If the swing tank is not being used
-            totalVolMax = self.__SUPPLYV_TO_STORAGEV(runningVol_G) / (1-self.aquaFract)
+            totalVolMax = mixVolume(runningVol_G, self.storageT_F, self.incomingT_F, self.supplyT_F) / (1-self.aquaFract) 
+            
 
         # Check the Cycling Volume ############################################
         cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
-        minRunVol_G     = compMinimumRunTime * (self.totalHWLoad * effMixFract / heatHrs) # (generation rate - no usage)
+        minRunVol_G     = pCompMinimumRunTime * (self.totalHWLoad * effMixFract / heatHrs) # (generation rate - no usage)
 
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             if min_AF < 1:
-                raise ValueError ("Error ID 01: The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: %.3f." % round(min_AF,3))
+                raise ValueError ("01", "The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: ", round(min_AF,3))
             else:
-                raise ValueError ("Error ID 02: The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
+                raise ValueError ("02", "The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
         # Return the temperature adjusted total volume ########################
         return totalVolMax, effMixFract
@@ -248,7 +250,7 @@ class PrimarySystem_SP:
         diffN *= self.totalHWLoad
         # Get the running volume ##############################################
         if len(diffInd) == 0:
-            raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
+            raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day", )
         else:
             runV_G = 0
             for peakInd in diffInd:
@@ -266,16 +268,18 @@ class PrimarySystem_SP:
 
         Parameters
         ----------
-            heatHrs (float): The number of hours primary heating equipment can run in a day.
-            onOffArr (np.array): array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
+        heatHrs : float
+            The number of hours primary heating equipment can run in a day.
+        onOffArr : ndarray
+            array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
 
         Raises
         ------
-            Exception: Error if oversizeing system.
+        Exception: Error if oversizeing system.
 
         Returns
         -------
-            runV_G : float
+        runV_G : float
             The running volume in gallons
 
         """
@@ -285,7 +289,7 @@ class PrimarySystem_SP:
 
         # Get the running volume ##############################################
         if len(diffInd) == 0:
-            raise Exception("The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day")
+            raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day",)
         else:
             runV_G = 0
             for peakInd in diffInd:
@@ -342,41 +346,6 @@ class PrimarySystem_SP:
 
         vol *= percent_total_vol
         return vol
-
-    def __SUPPLYV_TO_STORAGEV(self, vol):
-        """
-        Converts the volume of water at the supply temperature to an equivalent volume at the storage temperature
-
-        Parameters
-        ----------
-        vol : float
-            Volume at the supply temperature.
-
-        Returns
-        -------
-        float
-            Volume at storage temperature.
-
-        """
-        return mixVolume(vol, self.storageT_F, self.incomingT_F, self.supplyT_F)
-
-    def __STORAGEV_TO_SUPPLYV(self, vol):
-        """
-        Converts the volume of water at the storage temperature to an equivalent volume at the supply temperature
-
-        Parameters
-        ----------
-        vol : float
-            Volume at the storage temperature.
-
-        Returns
-        -------
-        float
-            Volume at supply temperature.
-
-        """
-        return mixVolume(vol, self.supplyT_F,  self.incomingT_F, self.storageT_F)
-
 
     def primaryCurve(self):
         """
@@ -457,16 +426,17 @@ class ParallelLoopTank:
         Volume of parrallel loop tank.
     """
 
-    def __init__(self, nApt, Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr):
+    def __init__(self, nApt, Wapt, safetyTM, setpointTM_F, TMonTemp_F, offTime_hr):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt # W/ apartment
 
+        self.safetyTM  = safetyTM # Safety factor
+        
         self.setpointTM_F = setpointTM_F
         self.TMonTemp_F    = TMonTemp_F
         self.offTime_hr  = offTime_hr # Hour
-        self.TMRuntime_hr  = TMRuntime_hr # Hour
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
         self.TMVol_G = 0 # Gallons
@@ -491,19 +461,11 @@ class ParallelLoopTank:
         # self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
         #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
 
-        TMVol_G =  TMSafetyFactor * self.Wapt * self.nApt / rhoCp * \
+        self.TMVol_G  =  self.Wapt * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
-        tempCap_kBTUhr =   TMSafetyFactor * self.Wapt * self.nApt * W_TO_BTUHR * \
-            (1. + self.offTime_hr/self.TMRuntime_hr) / 1000
+        self.TMCap_kBTUhr = self.safetyTM * self.Wapt * self.nApt * W_TO_BTUHR/1000 
 
-        # Check if the heating capacity is greater than the upper bound of recirc losses.
-        if tempCap_kBTUhr*1000/W_TO_BTUHR > self.Wapt * Wapt75 * self.nApt :
-            self.TMCap_kBTUhr = tempCap_kBTUhr
-            self.TMVol_G = TMVol_G
-        else:
-            raise Exception("The parallel loop tank run time is long relative to the off time and does not meet the safety factor of 1.75."+\
-                            "The run time should be less or equal to: 1.3 x off time.")       
                             
     def getSizingResults(self):
         """
@@ -516,7 +478,7 @@ class ParallelLoopTank:
         """
         return [ self.TMVol_G, self.TMCap_kBTUhr ]
 
-    def tempMaintCurve(self, runtime = compMinimumRunTime):
+    def tempMaintCurve(self, runtime = tmCompMinimumRunTime):
         """
         Returns the sizing curve for a parallel loop tank
 
@@ -528,7 +490,7 @@ class ParallelLoopTank:
 
         volN_G = np.linspace(0 , round(self.TMVol_G*4/100)*100, 100)
         capacity = rhoCp * volN_G / runtime * (self.setpointTM_F - self.TMonTemp_F) + \
-                    self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR
+                    self.nApt * self.Wapt  * W_TO_BTUHR #0.66 comes from the lower limit of the distrubution losses. 
         capacity /= 1000.
 
         keep = capacity >= self.TMCap_kBTUhr
@@ -560,11 +522,13 @@ class SwingTank:
 
     #swingLoadToPrimary_Wapt = 50.
 
-    def __init__(self, nApt, Wapt):
+    def __init__(self, nApt, Wapt, safetyTM):
         # Inputs from primary system
         self.nApt       = nApt
         # Inputs for temperature maintenance sizing
         self.Wapt       = Wapt #W/ apartment
+        self.safetyTM   = safetyTM # Safety factor
+        
 
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
@@ -592,9 +556,10 @@ class SwingTank:
         if CA:
             self.TMVol_G = self.sizingTable_CA[ind]
         else:
-            self.TMVol_G = self.sizingTable_EMASHRAE[ind] ##
-        self.TMCap_kBTUhr = TMSafetyFactor * Wapt75 * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
+            self.TMVol_G = self.sizingTable_EMASHRAE[ind]
 
+        self.TMCap_kBTUhr = self.safetyTM * self.Wapt * self.nApt * W_TO_BTUHR / 1000.
+      
     def getSizingResults(self):
         """
         Returns sizing results as array

@@ -12,6 +12,6 @@ nApt 200
 Wapt 90   
 setpointTM_F 130
 offTime_hr .2
-TMRuntime_hr .2
 defrostFactor 1
 aquaFract 0.4
+safetytm 1.75

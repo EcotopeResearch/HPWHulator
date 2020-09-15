@@ -21,7 +21,7 @@ import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank 
 from ashraesizer import ASHRAEsizer
-from cfg import compMinimumRunTime, rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST
+from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
@@ -267,7 +267,7 @@ class HPWHsizer:
 
     Which will use the California occupancy ratios and the California daily hot water draws. Then create the temperature maintenance load with:
 
-    >>> hpwh.initTempMaint( Wapt = 100 )
+    >>> hpwh.initTempMaint( Wapt = 100, safetyTM = 1.75 )
 
     Construct the system by building the connections between the components and size it. To find proper sizing for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:
 
@@ -399,7 +399,7 @@ class HPWHsizer:
         """
         self.inputs.initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
-                     schematic, defrostFactor, singlePass)
+                    schematic, defrostFactor, singlePass)
 
     def initPrimaryByPeople(self,  nPeople, nApt,  gpdpp, loadShapeNorm, supplyT_F, incomingT_F,
                     storageT_F, compRuntime_hr, percentUseable,  aquaFract,
@@ -444,27 +444,25 @@ class HPWHsizer:
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
                     schematic, defrostFactor, singlePass )
 
-    def initTempMaint(self, Wapt, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 0.333, TMRuntime_hr = 0.333 ):
-    #def initTempMaint(self, Wapt, setpointTM_F = 135, TMonTemp_F = 0 ):
+    def initTempMaint(self, Wapt, safetyTM = 1.75, setpointTM_F = 130, TMonTemp_F = 120, offTime_hr = 0.333):
         """
-
         Initializes the temperature maintanence system after the primary system
-        with either "swingtank" or "paralleltank". Recommend to leave offtime_hr
-        and TMRuntime_hr as defaulted, since they're setup for a minimum runtime of
-        10 minutes at the lower end of the design criteria for loop losses.
+        was initialized with either "swingtank" or "paralleltank". 
 
         Attributes
         ----------
-            Wapt : float
-                The recicuplation loop losses in terms of Watts per apartment.
-            setpointTM_F : float
-                The setpoint of the temprature maintence tank. Defaults to 130 °F.
-            TMonTemp_F :float
-                The temperature where parallel loop tank will turn on. Defaults to 120 °F.
+        Wapt : float
+            The recicuplation loop losses in terms of Watts per apartment.
+        safetyTM : float
+            The saftey factor for the temperature maintenance system. 
+        setpointTM_F : float
+            The setpoint of the temprature maintence tank. Defaults to 130 °F.
+        TMonTemp_F : float
+            The temperature where parallel loop tank will turn on. Defaults to 120 °F.
 
         Raises
         ----------
-            Exception: Error if primary system hasn't been sized yet.
+        Exception: Error if primary system hasn't been created yet.
 
         """
         if self.inputs.totalHWLoad_G is None or self.inputs.totalHWLoad_G == 0:
@@ -473,8 +471,7 @@ class HPWHsizer:
         if self.inputs.schematic == "swingtank" or self.inputs.schematic == "paralleltank":
             if TMonTemp_F == 0:
                 TMonTemp_F = self.inputs.supplyT_F + 2;
-            #self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F)
-            self.inputs.initTempMaintInputs(Wapt, setpointTM_F, TMonTemp_F, offTime_hr, TMRuntime_hr)
+            self.inputs.initTempMaintInputs(Wapt, safetyTM, setpointTM_F, TMonTemp_F, offTime_hr)
 
 
     def setLoadShiftforPrimary(self, ls_arr, cdf_shift=1):
@@ -520,16 +517,15 @@ class HPWHsizer:
         elif self.inputs.schematic == "paralleltank":
             self.tempmaintSystem = ParallelLoopTank(self.inputs.nApt,
                                      self.inputs.Wapt,
+                                     self.inputs.safetyTM,
                                      self.inputs.setpointTM_F,
                                      self.inputs.TMonTemp_F,
-                                     self.inputs.offTime_hr,
-                                     self.inputs.TMRuntime_hr)
+                                     self.inputs.offTime_hr)
         elif self.inputs.schematic == "swingtank":
             self.tempmaintSystem = SwingTank(self.inputs.nApt,
-                                     self.inputs.Wapt)
+                                     self.inputs.Wapt,
+                                     self.inputs.safetyTM)
 
-        elif self.inputs.schematic == "trimtank":
-            raise Exception("Trim tanks are not supported yet")
         else:
             raise Exception ("Invalid schematic set up: " + self.inputs.schematic)
 
@@ -807,7 +803,7 @@ class HPWHsizer:
 
         fig.add_trace(Scatter(x=(x_data[0],x_data[-1]),
                               y=(self.tempmaintSystem.TMCap_kBTUhr,self.tempmaintSystem.TMCap_kBTUhr),
-                              mode='lines', name='Capacity',
+                              mode='lines', name='Operable Range',
                               opacity=0.8, marker_color='grey',
                               fill='tonexty' # fill area between trace0 and trace1
                               ))
@@ -818,11 +814,14 @@ class HPWHsizer:
                               name='System Size',
                               opacity=0.8, marker_color='blue'))
 
-        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (compMinimumRunTime*60),
+        fig.update_layout(title="Parallel Loop Tank Sizing Curve, with a minimum runtime of %i minutes"% (tmCompMinimumRunTime*60),
                           xaxis_title="Parallel Loop Tank Volume (Gallons)",
                           yaxis_title="Parallel Loop Heating Capacity (kBTU/hr)")
-        fig.update_xaxes(range=[0, x_data[-1]])
-        fig.update_yaxes(range=[0, y_data[-1]])
+        
+        xtop = round(self.tempmaintSystem.TMVol_G*3/10)
+        ytop = round(self.tempmaintSystem.TMCap_kBTUhr*3/10)
+        fig.update_xaxes(range=[0, xtop])
+        fig.update_yaxes(range=[0, ytop])
 
         if return_as_div:
             plot_div = plot(fig,  output_type='div', show_link=False, link_text="",
@@ -843,11 +842,7 @@ class HPWHsizer:
             TMWriter.writeLine('\ntemperatureMaintenanceSystem:')
             TMWriter.writeLine('schematic, '+ self.inputs.schematic)
             TMWriter.writeToFile()
-            if self.inputs.schematic == "paralleltank":
-                TMCurve = self.tempmaintSystem.tempMaintCurve()
-                TMWriter.writeLine('TMCurve_vol, ' +np.array2string(TMCurve[0], precision = 2, separator=",", max_line_width = 300.))
-                TMWriter.writeLine('TMCurve_heatCap_kBTUhr, ' +np.array2string(TMCurve[1], precision = 2, separator=",", max_line_width = 300.))
-
+           
     def runStorage_Load_Sim(self, Pcapacity = None, Pvolume = None):
         """
         Returns sizing storage depletion and load results for water volumes at the supply temperature
@@ -952,8 +947,8 @@ class HPWHsizerRead:
         self.setpointTM_F   = 0. # The setpoint of the temperature maintenance tank.
         self.TMonTemp_F     = 0. # The temperature the temperature maintenance heat pump or resistance element turns on
 
-        self.offTime_hr         = 0.
-        self.TMRuntime_hr       = 0.
+        self.offTime_hr     = 0.
+        self.safetyTM       = 0.
 
         self.loadshift      = np.ones(24) # The load shift array
 
@@ -1026,19 +1021,23 @@ class HPWHsizerRead:
 
         self.calcedVariables()
 
-    def initTempMaintInputs(self, Wapt, setpointTM_F = 0, TMonTemp_F = 0, offTime_hr = 0, TMRuntime_hr = 0):
+    def initTempMaintInputs(self, Wapt, safetyTM, setpointTM_F, TMonTemp_F, offTime_hr):
         """
         Assign temperature maintenance variables with either "swingtank" or "paralleltank"
         """
         self.Wapt = Wapt
+
+        if safetyTM <= 1.:
+            raise Exception("The saftey factor for the temperature maintenance system must be greater than 1 or the system will never keep up with the losses.")
+        self.safetyTM = safetyTM
 
         if self.schematic == "swingtank":
             pass
         elif self.schematic == "paralleltank":
             if any(x==0 for x in [setpointTM_F,TMonTemp_F]):
                 raise Exception("Error in initTempMaintInputs, paralleltank needs inputs != 0")
-            elif TMRuntime_hr < compMinimumRunTime:
-                raise Exception("TMRuntime_hr is less time the minimum runtime for a HPWH of " + str(compMinimumRunTime*60)+ "minutes.")
+            elif tmCompMinimumRunTime >= offTime_hr/(safetyTM - 1):
+                raise Exception("The expected run time of the parallel tank is less time the minimum runtime for a HPWH of " + str(tmCompMinimumRunTime*60)+ " minutes.")
             else:
                 # Quick Check the inputs makes sense
                 if not self.__checkLiqudWater(setpointTM_F):
@@ -1051,11 +1050,12 @@ class HPWHsizerRead:
                     raise Exception("The temperature maintenance setpoint temperature must be greater than the city cold water temperature ")
                 if TMonTemp_F <= self.incomingT_F:
                     raise Exception("The temperature maintenance turn on temperature must be greater than the city cold water temperature ")
-
+                
                 self.setpointTM_F     = setpointTM_F
                 self.TMonTemp_F       = TMonTemp_F
                 self.offTime_hr       = offTime_hr
-                self.TMRuntime_hr     = TMRuntime_hr
+                
+
 
 
     def setLoadShift(self, ls_arr, cdf_shift):
@@ -1210,15 +1210,14 @@ class HPWHsizerRead:
 
             elif temp[0] == "napt":
                 self.nApt       = float(temp[1])
-
+            elif temp[0] == "safetytm":
+                self.safetyTM = float(temp[1])
             elif temp[0] == "setpointtm_f":
                 self.setpointTM_F  = float(temp[1])
             elif temp[0] == "tmontemp_f":
                 self.TMonTemp_F   = float(temp[1])
             elif temp[0] == "offtime_hr":
                 self.offTime_hr  = float(temp[1])
-            elif temp[0] == "tmruntime_hr":
-                self.TMRuntime_hr   = float(temp[1])
             elif temp[0] == "wapt":
                 self.Wapt      = float(temp[1])
             else:

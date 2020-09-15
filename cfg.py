@@ -25,13 +25,8 @@ W_TO_BTUMIN = W_TO_BTUHR/60.
 W_TO_TONS = 0.000284345
 TONS_TO_KBTUHR = 12.
 
-
-Wapt75 = 1.75 # Real saftey factor used
-Wapt25 = 0.66
-TMSafetyFactor = 1
-compMinimumRunTime = 10./60.
-
-
+pCompMinimumRunTime = 10./60.
+tmCompMinimumRunTime  = 20./60.
 
 def mixVolume(vol, hotT, coldT, outT):
     """
