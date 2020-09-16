@@ -153,7 +153,8 @@
 <h1>Heat Pump Water Heater Sizer, Documentation<a class="headerlink" href="#heat-pump-water-heater-sizer-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<p>Copyright (C) 2020  Ecotope Inc.</p>
+<span class="target" id="module-HPWHsizer"></span><p>HPWHulator
+Copyright (C) 2020  Ecotope Inc.</p>
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -167,55 +168,74 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 <dl class="py class">
 <dt id="HPWHsizer.HPWHsizer">
 <em class="property">class </em><code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">HPWHsizer</code><a class="headerlink" href="#HPWHsizer.HPWHsizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>The main class to organize a primary and temperature maintenance HPWH system and size it using the
-Ecotope Modified ASHRAE Method (EMASHRAE) and the “More Accurate Method” referred to in the 2015
+<dd><p>The main class to organize a primary and temperature maintenance HPWH
+system and size it using the Ecotope Modified ASHRAE Method (EMASHRAE) and
+the “More Accurate Method” referred to in the 2015
 ASHRAE HVAC Applications handbook pages 50.15 - 50.16.
-The EMASHRAE approach accounts for the water heating equipment being able to produce hot water as it is being
-used by building occupants, allowing the system to be sized smaller. Detailed
-documentation on the methodology can be found at <a class="reference external" href="https://ecosizer.ecotope.com/sizer/docs/">https://ecosizer.ecotope.com/sizer/docs/</a></p>
-<p>This tool provides the minimum heating capacity and storage volume to meet the load determined by user inputs.
-The coldest weather conditions should be used for sizing. With the results, users need to select HPWHs according to
-their heating capacity at the weather condition used for sizing. Note that many HPWHs have defrost cycles and
-therefore a derated output capacity when ambient temperatures  are below 50°F. Users should also consider the
-HPWH refrigerant when considering the hot water storage temperature, not all HPWH’s can produce hot water &gt; 150°F.
-Users should also pay attention to the advanced input for the storage aquastat fraction and make sure the input value
-properly reflects the location of the aquastat sensor port in the primary storage system.</p>
-<p>Two schematics are provided in for sizing in the tool, a “parallel loop tank” and a “swing tank.”</p>
-<p>A “Swing Tank” design is a proven technique to use the primary heat pumps to support the temperature maintenance load,
-while keeping the heat pump equipment isolated from the warm water returning from the recirculation loop.
-This design strategy is best suited for buildings with low temperature maintenance loop losses (&lt; 60W/apt) and
-relies on increased storage volume (with tanks piped in series) to ensure storage stratification.
-Swing tank systems have an electric resistance element in the temperature maintenance tank as a back-up safety factor.
-Sizing a swing tank system also means increasing the heating capacity and storage volume of the primary system.
-The temperature maintenance storage volume for the swing tank can be small.</p>
-<p>Single-pass heat pump water heaters are most efficient when heating cool city water to hot storage temperatures,
-whereas multi-pass equipment can still operate efficiently when incoming water temperatures are around 120°F.
-A parallel loop configuration is one strategy used to isolate the temperature maintenance task from the task of
-heating the primary storage. A “Parallel Loop Tank” is an electric resistance element or a multi-pass heat pump
-that is piped in parallel with the primary system, specifically to handle the temperature maintenance load.</p>
+The EMASHRAE approach accounts for the water heating equipment being able
+to produce hot water as it is being used by building occupants, allowing
+the system to be sized smaller. Detailed documentation on the methodology
+can be found at <a class="reference external" href="https://ecosizer.ecotope.com/sizer/docs/">https://ecosizer.ecotope.com/sizer/docs/</a></p>
+<p>This tool provides the minimum heating capacity and storage volume to meet
+the load determined by user inputs. The coldest weather conditions should
+be used for sizing. With the results, users need to select HPWHs according
+to their heating capacity at the weather condition used for sizing.
+Note that many HPWHs have defrost cycles and therefore a derated output
+capacity when ambient temperatures are below 50°F. Users should also
+consider the HPWH refrigerant when considering the hot water storage
+temperature, not all HPWH’s can produce hot water &gt; 150°F. Users should
+also pay attention to the advanced input for the storage aquastat fraction
+and make sure the input value properly reflects the location of the
+aquastat sensor port in the primary storage system.</p>
+<p>Two schematics are provided in for sizing in the tool, a
+“parallel loop tank” and a “swing tank.”</p>
+<p>A “Swing Tank” design is a proven technique to use the primary heat pumps
+to support the temperature maintenance load,
+while keeping the heat pump equipment isolated from the warm water
+returning from the recirculation loop. This design strategy is best suited
+for buildings with low temperature maintenance loop losses (&lt; 60W/apt) and
+relies on increased storage volume (with tanks piped in series) to ensure
+storage stratification. Swing tank systems have an electric resistance
+element in the temperature maintenance tank as a back-up safety factor.
+Sizing a swing tank system also means increasing the heating capacity and
+storage volume of the primary system. The temperature maintenance storage
+volume for the swing tank can be small.</p>
+<p>Single-pass heat pump water heaters are most efficient when heating cool
+city water to hot storage temperatures, whereas multi-pass equipment can
+still operate efficiently when incoming water temperatures are around
+120°F. A parallel loop configuration is one strategy used to isolate the
+temperature maintenance task from the task of heating the primary storage.
+A “Parallel Loop Tank” is an electric resistance element or a multi-pass
+heat pump that is piped in parallel with the primary system, specifically
+to handle the temperature maintenance load.</p>
 <p>The class uses the initialization functions, <em>initializeFromFile(args)</em>,
-<em>initPrimaryByUnits(args)</em>, and <em>initPrimaryByPeople(args)</em> to pass the variables
-to a HPWHsizerRead class. The HPWHsizerRead object proccesses the inputs
-by checking the variables and calculating extra variables. The loadshift
-array is defined and checked with the arguement <em>setLoadShiftforPrimary(args)</em>.</p>
-<p>The system is sized with the function <em>build_size()</em>, and further information
-is available  by pulling the size following the ASHRAE “more accurate” method with <em>getASHRAEResult()</em>.
-Plots for the sizing curves can be pulled from the sized system with <em>plotSizingCurve()</em>.
-Additionally, a plot simulating the design day can be created with <em>plotStorageLoadSim()</em>.</p>
+<em>initPrimaryByUnits(args)</em>, and <em>initPrimaryByPeople(args)</em> to pass the
+variables to a HPWHsizerRead class. The HPWHsizerRead object proccesses
+the inputs by checking the variables and calculating extra variables. The
+loadshift array is defined and checked with the arguement
+<em>setLoadShiftforPrimary(args)</em>.</p>
+<p>The system is sized with the function <em>build_size()</em>, and further
+information is available  by pulling the size following the ASHRAE
+“more accurate” method with <em>getASHRAEResult()</em>. Plots for the sizing
+curves can be pulled from the sized system with <em>plotSizingCurve()</em>.
+Additionally, a plot simulating the design day can be created with
+<em>plotStorageLoadSim()</em>.</p>
 <p>When initializing the system there are some presets users can use.</p>
-<p>When initializing with <em>initPrimaryByUnits(args)</em> the ratio of people can be input
-as a string not a list of 6 entries. The sting key access the presets, the keys
-include “CA” and “ASHSTD” for standard market rate buildings or “CTCAC” and “ASHLOW”
-for low income buildings.</p>
-<p>The presets for <em>gpdpp</em> include ‘ashLow’ (20gpdpp), ‘ashMed’ (49 gpdpp), the
-recomended ‘ecoMark’ (25 gpdpp). When using the <em>initPrimaryByUnits(args)</em> function
-gpdpp_BR can also use the preset “CA” which calculates the gpdpp from hot water
-draws used in CBECC-Res, as well as the other options. However the ASHRAE and Ecotope
-numbers repeat for each unit size.</p>
-<p>The load shape input <em>loadShapeNorm</em> has a preset recommended to be used, accessed by
-setting <em>loadShapeNorm</em> = “stream” in the initilization function, shown in the examples below.
-If a user knows their load shape they can also enter a load shape normalized by the
-total daily use, as a list of length 24, where each entry corresponds to the hour of the day.</p>
+<p>When initializing with <em>initPrimaryByUnits(args)</em> the ratio of people can
+be inputas a string not a list of 6 entries. The sting key access the
+presets, the keys include “CA” and “ASHSTD” for standard market rate
+buildings or “CTCAC” and “ASHLOW” for low income buildings.</p>
+<p>The presets for <em>gpdpp</em> include ‘ashLow’ (20gpdpp), ‘ashMed’ (49 gpdpp),
+the recomended ‘ecoMark’ (25 gpdpp). When using the
+<em>initPrimaryByUnits(args)</em> function gpdpp_BR can also use the preset “CA”
+which calculates the gpdpp from hot water draws used in CBECC-Res, as well
+as the other options. However the ASHRAE and Ecotope numbers repeat for
+each unit size.</p>
+<p>The load shape input <em>loadShapeNorm</em> has a preset recommended to be used,
+accessed by setting <em>loadShapeNorm</em> = “stream” in the initilization
+function, shown in the examples below. If a user knows their load shape
+they can also enter a load shape normalized by the total daily use, as a
+list of length 24, where each entry corresponds to the hour of the day.</p>
 <p class="rubric">Examples</p>
 <p><strong>Example 1: Find the recommended size for a parallel loop tank schematic.</strong></p>
 <p>First to initialize the system:</p>
@@ -237,12 +257,15 @@ total daily use, as a list of length 24, where each entry corresponds to the hou
 <span class="go">                       TMonTemp_F = 125)</span>
 </pre></div>
 </div>
-<p>And then in order to find proper for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:</p>
+<p>And then in order to find proper for the system in the order of primary
+storage volume, primary heating capacity, temperature maintenance storage
+volume, temperature maintenance heating capacity:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">build_size</span><span class="p">()</span>
 <span class="go">[346.1021666666667, 114.86110625, 48.15823981105004, 32.244741899999994]</span>
 </pre></div>
 </div>
-<p>To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:</p>
+<p>To get the primary sizing curve to find solutions for the primary system
+at higher heating capacities and lower storage:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">hpwh</span><span class="o">.</span><span class="n">plotSizingCurve</span><span class="p">(</span><span class="n">return_as_div</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
@@ -256,16 +279,19 @@ total daily use, as a list of length 24, where each entry corresponds to the hou
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">write_html</span><span class="p">(</span><span class="s2">&quot;output.html&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Example 2: Use a custom ratio of bedrooms and gallons per day per person for each bedroom type.</strong></p>
-<p>Start by initilizing the system, here the example just uses a primary system.
-The example uses a 100 apartment unit building with 25 studios, 1, 2, and 3 Bedroom units.
-The ratio of people in each unit size is customly defined in rBR as 1, 1.5, 1.9, and 2.5 respectively.
-Other presets include “CA” and “ASHSTD” for standard market rate buildings or “CTCAC” and “ASHLOW”
-for low income buildings.</p>
-<p>This example also uses differing peak gallons per day per person for each unit size. Here the numbers are
-26, 22, 20, and 19 gallons per day for each unit size. The presets for gpdpp_BR include ‘ashLow’ (20gpdpp),
-‘ashMed’ (49 gpdpp), ‘ecoMark’ (recommended, 25 gpdpp), or “CA” which calculates the gpdpp from
-hot water draws used in CBECC-Res.</p>
+<p><strong>Example 2: Use a custom ratio of bedrooms and gallons per day per person
+for each bedroom type.</strong></p>
+<p>Start by initilizing the system, here the example just uses a primary
+system. The example uses a 100 apartment unit building with 25 studios,
+1, 2, and 3 Bedroom units. The ratio of people in each unit size is
+customly defined in rBR as 1, 1.5, 1.9, and 2.5 respectively.
+Other presets include “CA” and “ASHSTD” for standard market rate buildings
+or “CTCAC” and “ASHLOW” for low income buildings.</p>
+<p>This example also uses differing peak gallons per day per person for each
+unit size. Here the numbers are 26, 22, 20, and 19 gallons per day for each
+unit size. The presets for gpdpp_BR include ‘ashLow’ (20gpdpp),
+‘ashMed’ (49 gpdpp), ‘ecoMark’ (recommended, 25 gpdpp), or “CA” which
+calculates the gpdpp from hot water draws used in CBECC-Res.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">HPWHsizer</span> <span class="kn">import</span> <span class="n">HPWHsizer</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span> <span class="o">=</span> <span class="n">HPWHsizer</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initPrimaryByUnits</span><span class="p">(</span><span class="n">nBR</span> <span class="o">=</span> <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
@@ -281,20 +307,23 @@ hot water draws used in CBECC-Res.</p>
 <span class="go">                            schematic = &quot;primary&quot;)</span>
 </pre></div>
 </div>
-<p>Then construct the system by building the connections between the components and size it.
-To find proper sizing for the system in the order of primary storage volume, primary heating capacity:</p>
+<p>Then construct the system by building the connections between the components
+and size it. To find proper sizing for the system in the order of primary
+storage volume, primary heating capacity:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">build_size</span><span class="p">()</span>
 <span class="go">[724.0097811562501, 141.45536806640627]</span>
 </pre></div>
 </div>
-<p>To get the primary sizing curve to find solutions for the primary system at higher heating capacities
-and lower storage volumes and save it to an html:</p>
+<p>To get the primary sizing curve to find solutions for the primary system
+at higher heating capacities and lower storage volumes and save it to
+an html:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">hpwh</span><span class="o">.</span><span class="n">plotSizingCurve</span><span class="p">(</span><span class="n">return_as_div</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">write_html</span><span class="p">(</span><span class="s2">&quot;output.html&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Example 3: Use CA Title24 software Hot Water Draws.</strong></p>
-<p>If a user wants to align their sizing with the CA Title24 software use the initPrimaryByUnits() function follow:</p>
+<p>If a user wants to align their sizing with the CA Title24 software use the
+initPrimaryByUnits() function follow:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">HPWHsizer</span> <span class="kn">import</span> <span class="n">HPWHsizer</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span> <span class="o">=</span> <span class="n">HPWHsizer</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initPrimaryByUnits</span><span class="p">(</span><span class="n">nBR</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
@@ -310,16 +339,21 @@ and lower storage volumes and save it to an html:</p>
 <span class="go">                            schematic = &quot;swingtank&quot;)</span>
 </pre></div>
 </div>
-<p>Which will use the California occupancy ratios and the California daily hot water draws. Then create the temperature maintenance load with:</p>
+<p>Which will use the California occupancy ratios and the California daily
+hot water draws. Then create the temperature maintenance load with:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">initTempMaint</span><span class="p">(</span> <span class="n">Wapt</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">safetyTM</span> <span class="o">=</span> <span class="mf">1.75</span> <span class="p">)</span>
 </pre></div>
 </div>
-<p>Construct the system by building the connections between the components and size it. To find proper sizing for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:</p>
+<p>Construct the system by building the connections between the components
+and size it. To find proper sizing for the system in the order of primary
+storage volume, primary heating capacity, temperature maintenance storage
+volume, temperature maintenance heating capacity:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hpwh</span><span class="o">.</span><span class="n">build_size</span><span class="p">()</span>
 <span class="go">[275.08088575585305, 87.32317975282498, &#39;80&#39;, 21.4964946]</span>
 </pre></div>
 </div>
-<p>To get the primary sizing curve to find solutions for the primary system at higher heating capacities and lower storage:</p>
+<p>To get the primary sizing curve to find solutions for the primary system
+at higher heating capacities and lower storage:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">hpwh</span><span class="o">.</span><span class="n">plotSizingCurve</span><span class="p">(</span><span class="n">return_as_div</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
@@ -373,7 +407,8 @@ as shown in previous examples.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>validbuild</strong><span class="classifier">boolean</span></dt><dd><p>Initialized as false, is true if the system is created susccesfully on a call to buildSystem()</p>
+<dt><strong>validbuild</strong><span class="classifier">boolean</span></dt><dd><p>Initialized as false, is true if the system is created susccesfully on
+a call to buildSystem()</p>
 </dd>
 <dt><strong>systemSized</strong><span class="classifier">boolean</span></dt><dd><p>Initialized as false, is true if the system is successfully sized.</p>
 </dd>
@@ -383,11 +418,14 @@ as shown in previous examples.</p>
 </dd>
 <dt><strong>primarySystem</strong><span class="classifier">PrimarySystem_SP</span></dt><dd><p>The primary component of the HPWH system of class PrimarySystem_SP</p>
 </dd>
-<dt><strong>tempmaintSystem</strong><span class="classifier">ParallelLoopTank/SwingTank</span></dt><dd><p>The temperature maintenance component of the HPWH system of class ParallelLoopTank or SwingTank</p>
+<dt><strong>tempmaintSystem</strong><span class="classifier">ParallelLoopTank/SwingTank</span></dt><dd><p>The temperature maintenance component of the HPWH system of class
+ParallelLoopTank or SwingTank</p>
 </dd>
-<dt><strong>ashraeSize</strong><span class="classifier">ASHRAEsizer</span></dt><dd><p>The primary component of the HPWH system, which is sized using the ASHRAE method of class ASHRAEsizer</p>
+<dt><strong>ashraeSize</strong><span class="classifier">ASHRAEsizer</span></dt><dd><p>The primary component of the HPWH system, which is sized using the
+ASHRAE method of class ASHRAEsizer</p>
 </dd>
-<dt><strong>swingTankLoad_W</strong><span class="classifier">float</span></dt><dd><p>The fraction of the distrubution losses that the primary HPWH has to cover when using a swing tank schematic.</p>
+<dt><strong>swingTankLoad_W</strong><span class="classifier">float</span></dt><dd><p>The fraction of the distrubution losses that the primary HPWH has to
+cover when using a swing tank schematic.</p>
 </dd>
 </dl>
 </dd>
@@ -395,18 +433,18 @@ as shown in previous examples.</p>
 <p class="rubric">Methods</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 20%" />
-<col style="width: 80%" />
+<col style="width: 17%" />
+<col style="width: 83%" />
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>initializeFromFile(fileName)</strong></p></td>
 <td><p>Function to initialize a HPWHsystem from a file.</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,</strong></p></td>
-<td><p>storageT_F, compRuntime_hr, percentUseable, aquaFract, schematic, defrostFactor=1, singlePass=True) Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment. This is what users should use to align with CA Title24, see example 2.</p></td>
+<tr class="row-even"><td><p><strong>initPrimaryByUnits(nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F,</strong></p></td>
+<td><p>incomingT_F, storageT_F, compRuntime_hr, percentUseable, aquaFract, schematic, defrostFactor=1, singlePass=True) Function to initialize the primary component of a HPWH system from the list of inputs using a list of the number of apartments and a ratio of people per apartment. This is what users should use to align with CA Title24, see example 2.</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F, incomingT_F,</strong></p></td>
-<td><p>storageT_F, compRuntime_hr, percentUseable,  aquaFract, schematic, defrostFactor = 1, singlePass=True) Function to initialize the primary component of a HPWH system from the list of inputs using the full number of people and apartments.</p></td>
+<tr class="row-odd"><td><p><strong>initPrimaryByPeople(nPeople, nApt, gpdpp, loadShapeNorm, supplyT_F,</strong></p></td>
+<td><p>incomingT_F, storageT_F, compRuntime_hr, percentUseable,  aquaFract, schematic, defrostFactor = 1, singlePass=True) Function to initialize the primary component of a HPWH system from the list of inputs using the full number of people and apartments.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>initTempMaint( Wapt, setpointTM_F = 135, TMonTemp_F = 0 )</strong></p></td>
 <td><p>Function to initialize the temperature maintenence component of a HPWH system from the list of inputs.</p></td>
@@ -427,7 +465,7 @@ as shown in previous examples.</p>
 <td><p>Returns just the minimum result for the primary component of the HPWH system from the sized system following the “more accurate” method from ASHRAE</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>plotSizingCurve( return_as_div = True)</strong></p></td>
-<td><p>Returns the primary sizing curve, storage volume vs. heating capacity for the</p></td>
+<td><p>Returns the primary sizing curve, storage volume vs. heating capacity</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>plotStorageLoadSim(return_as_div = True)</strong></p></td>
 <td><p>Runs and returns a plot for the primary system simulating storage volume with HPWH heating agains the design load shape</p></td>
@@ -440,7 +478,8 @@ as shown in previous examples.</p>
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.buildSystem">
 <code class="sig-name descname">buildSystem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.buildSystem" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builds a single pass centralized HPWH plant. Organizes the inputs to the relevant classes and passes important constants between the classes.</p>
+<dd><p>Builds a single pass centralized HPWH plant. Organizes the inputs to
+the relevant classes and passes important constants between the classes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><dl class="simple">
@@ -455,11 +494,14 @@ as shown in previous examples.</p>
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.build_size">
 <code class="sig-name descname">build_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.build_size" title="Permalink to this definition">¶</a></dt>
-<dd><p>One function to build and size the HPWH system after initalization, that returns minimum results</p>
+<dd><p>One function to build and size the HPWH system after initalization,
+that returns minimum results</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><dl class="simple">
-<dt>list</dt><dd><p>[PVol_G_atStorageT, PCap_kBTUhr, TMVol_G, TMCap_kBTUhr] - The sized volume and heating capacacity for the primary then temperature maintenance systems</p>
+<dt>list</dt><dd><p>[PVol_G_atStorageT, PCap_kBTUhr, TMVol_G, TMCap_kBTUhr] - The sized
+volume and heating capacacity for the primary then temperature
+maintenance systems</p>
 </dd>
 </dl>
 </dd>
@@ -469,11 +511,13 @@ as shown in previous examples.</p>
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.getASHRAEResult">
 <code class="sig-name descname">getASHRAEResult</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.getASHRAEResult" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gets the results from the system using the “more accurate method” from ASHRAE after building the system.</p>
+<dd><p>Gets the results from the system using the “more accurate method” from
+ASHRAE after building the system.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><dl class="simple">
-<dt>list</dt><dd><p>[PVol_G_atStorageT, PCap_kBTUhr] - The sized volume and heating capacacity</p>
+<dt>list</dt><dd><p>[PVol_G_atStorageT, PCap_kBTUhr] - The sized volume and heating
+capacacity</p>
 </dd>
 </dl>
 </dd>
@@ -491,9 +535,13 @@ as shown in previous examples.</p>
 </dd>
 <dt><strong>nApt</strong><span class="classifier">flaot</span></dt><dd><p>The total number of apartment units in the project</p>
 </dd>
-<dt><strong>gpdpp</strong><span class="classifier">flaot</span></dt><dd><p>The design gallons per day per person at  120°F, or can be given as a string key to lookup values from ASHRAE low or medium or Ecotope design value</p>
+<dt><strong>gpdpp</strong><span class="classifier">flaot</span></dt><dd><p>The design gallons per day per person at  120°F, or can be given
+as a string key to lookup values from ASHRAE low or medium or
+Ecotope design value</p>
 </dd>
-<dt><strong>loadShapeNorm</strong><span class="classifier">array_like or str</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load. If string will lookup the loadshape data</p>
+<dt><strong>loadShapeNorm</strong><span class="classifier">array_like or str</span></dt><dd><p>A one dimensional array with length 24 that describes the hot
+water usage for each hour of the day as a fraction of the total
+daily load. If string will lookup the loadshape data</p>
 </dd>
 <dt><strong>incomingT_F</strong><span class="classifier">float</span></dt><dd><p>Incoming city water temperature (design temperature in winter). [°F]</p>
 </dd>
@@ -501,21 +549,28 @@ as shown in previous examples.</p>
 </dd>
 <dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
 </dd>
-<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to
+sufficient thermal stratification.</p>
 </dd>
 <dt><strong>compRuntime_hr</strong><span class="classifier">float</span></dt><dd><p>Hour per day central heat pump equipment can run, duty cycle [hrs/day]</p>
 </dd>
-<dt><strong>percentUseable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+<dt><strong>percentUseable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to
+sufficient thermal stratification.</p>
 </dd>
-<dt><strong>defrostFactor</strong><span class="classifier">float</span></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.</p>
+<dt><strong>defrostFactor</strong><span class="classifier">float</span></dt><dd><p>A factor that reduces heating capacity at low temperatures based
+on need for defrost cycles to remove ice from evaporator coils.</p>
 </dd>
-<dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.</p>
+<dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at
+which the Aquastat is located.</p>
 </dd>
 <dt><strong>schematic</strong><span class="classifier">float</span></dt><dd><p>The schematic used, options are “primary”, “paralleltank”, or “swingtank”</p>
 </dd>
-<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.</p>
+<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based
+on need for defrost cycles to remove ice from evaporator coils.
+Defaults to 1.</p>
 </dd>
-<dt><strong>singlePass</strong><span class="classifier">float</span></dt><dd><p>Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.</p>
+<dt><strong>singlePass</strong><span class="classifier">float</span></dt><dd><p>Whether sizing a single pass or multipass system. There is no
+support for multipass primary sytems right now. Defaults to True.</p>
 </dd>
 </dl>
 </dd>
@@ -530,13 +585,21 @@ If aligning the sizing requriements with CA this is the method that should be us
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>nBR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the number of units by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units.</p>
+<dt><strong>nBR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the number of units by size in the order 0 bedroom units,
+1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units,
+5 bedroom units.</p>
 </dd>
-<dt><strong>rBR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the average number people in each unit by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units.</p>
+<dt><strong>rBR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the average number people in each unit by size in the
+order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom
+units, 4 bedroom units, 5 bedroom units.</p>
 </dd>
-<dt><strong>gpdpp_BR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the design gallons used per unit by each unit by size in the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3 bedroom units, 4 bedroom units, 5 bedroom units. .</p>
+<dt><strong>gpdpp_BR</strong><span class="classifier">array_like</span></dt><dd><p>A list of the design gallons used per unit by each unit by size in
+the order 0 bedroom units, 1 bedroom units, 2 bedroom units, 3
+bedroom units, 4 bedroom units, 5 bedroom units. .</p>
 </dd>
-<dt><strong>loadShapeNorm</strong><span class="classifier">array_like or str</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load. If string will lookup the loadshape data</p>
+<dt><strong>loadShapeNorm</strong><span class="classifier">array_like or str</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water
+usage for each hour of the day as a fraction of the total daily
+load. If string will lookup the loadshape data</p>
 </dd>
 <dt><strong>incomingT_F</strong><span class="classifier">float</span></dt><dd><p>Incoming city water temperature (design temperature in winter). [°F]</p>
 </dd>
@@ -544,19 +607,25 @@ If aligning the sizing requriements with CA this is the method that should be us
 </dd>
 <dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
 </dd>
-<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to
+sufficient thermal stratification.</p>
 </dd>
 <dt><strong>compRuntime_hr</strong><span class="classifier">float</span></dt><dd><p>Hour per day central heat pump equipment can run, duty cycle [hrs/day]</p>
 </dd>
-<dt><strong>percentUseable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+<dt><strong>percentUseable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to
+sufficient thermal stratification.</p>
 </dd>
-<dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.</p>
+<dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at
+which the Aquastat is located.</p>
 </dd>
 <dt><strong>schematic</strong><span class="classifier">float</span></dt><dd><p>The schematic used, options are “primary”, “paralleltank”, or “swingtank”</p>
 </dd>
-<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils. Defaults to 1.</p>
+<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on
+need for defrost cycles to remove ice from evaporator coils.
+Defaults to 1.</p>
 </dd>
-<dt><strong>singlePass</strong><span class="classifier">float</span></dt><dd><p>Whether sizing a single pass or multipass system. There is no support for multipass primary sytems right now. Defaults to True.</p>
+<dt><strong>singlePass</strong><span class="classifier">float</span></dt><dd><p>Whether sizing a single pass or multipass system. There is no
+support for multipass primary sytems right now. Defaults to True.</p>
 </dd>
 </dl>
 </dd>
@@ -582,7 +651,8 @@ was initialized with either “swingtank” or “paralleltank”.</p>
 </dd>
 <dt><strong>setpointTM_F</strong><span class="classifier">float</span></dt><dd><p>The setpoint of the temprature maintence tank. Defaults to 130 °F.</p>
 </dd>
-<dt><strong>TMonTemp_F</strong><span class="classifier">float</span></dt><dd><p>The temperature where parallel loop tank will turn on. Defaults to 120 °F.</p>
+<dt><strong>TMonTemp_F</strong><span class="classifier">float</span></dt><dd><p>The temperature where parallel loop tank will turn on.
+Defaults to 120 °F.</p>
 </dd>
 </dl>
 </dd>
@@ -642,7 +712,8 @@ was initialized with either “swingtank” or “paralleltank”.</p>
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.plotStorageLoadSim">
 <code class="sig-name descname">plotStorageLoadSim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">return_as_div</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.plotStorageLoadSim" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a plot of the of the simulation for the minimum sized primary system as a div or plotly figure. Can plot the minute level simulation</p>
+<dd><p>Returns a plot of the of the simulation for the minimum sized primary
+system as a div or plotly figure. Can plot the minute level simulation</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -660,12 +731,17 @@ was initialized with either “swingtank” or “paralleltank”.</p>
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.runStorage_Load_Sim">
 <code class="sig-name descname">runStorage_Load_Sim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Pcapacity</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">Pvolume</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.runStorage_Load_Sim" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns sizing storage depletion and load results for water volumes at the supply temperature</p>
+<dd><p>Returns sizing storage depletion and load results for water volumes at
+the supply temperature</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>Pcapacity (float)</strong><span class="classifier">The primary heating capacity in kBTUhr to use for the simulation, default is the sized system</span></dt><dd></dd>
-<dt><strong>Pvolume (float)</strong><span class="classifier">The primary storage volume in gallons to  to use for the simulation, default is the sized system</span></dt><dd></dd>
+<dt><strong>Pcapacity</strong><span class="classifier">float</span></dt><dd><p>The primary heating capacity in kBTUhr to use for the simulation,
+default is the sized system</p>
+</dd>
+<dt><strong>Pvolume</strong><span class="classifier">float</span></dt><dd><p>The primary storage volume in gallons to  to use for the simulation,
+default is the sized system</p>
+</dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -683,11 +759,13 @@ was initialized with either “swingtank” or “paralleltank”.</p>
 <dl class="py method">
 <dt id="HPWHsizer.HPWHsizer.setLoadShiftforPrimary">
 <code class="sig-name descname">setLoadShiftforPrimary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ls_arr</span></em>, <em class="sig-param"><span class="n">cdf_shift</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.HPWHsizer.setLoadShiftforPrimary" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the load shift to user defined list of 0s of false for force HPWH not to run, and 1s or true for run.</p>
+<dd><p>Sets the load shift to user defined list of 0s of false for force
+HPWH not to run, and 1s or true for run.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>ls_arr</strong><span class="classifier">array_like</span></dt><dd><p>Array of zeros and ones of length 24 for each hour of the day to define when HPWH’s are allowed to run during a day for load shift.</p>
+<dt><strong>ls_arr</strong><span class="classifier">array_like</span></dt><dd><p>Array of zeros and ones of length 24 for each hour of the day to
+define when HPWH’s are allowed to run during a day for load shift.</p>
 </dd>
 </dl>
 </dd>
@@ -713,7 +791,8 @@ was initialized with either “swingtank” or “paralleltank”.</p>
 <dl class="py class">
 <dt id="HPWHsizer.HPWHsizerRead">
 <em class="property">class </em><code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">HPWHsizerRead</code><a class="headerlink" href="#HPWHsizer.HPWHsizerRead" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class for gathering hpwh sizing inputs and checking them. Will gather inputs by manual entry or from a file. A pulls data from string inputs.</p>
+<dd><p>Class for gathering hpwh sizing inputs and checking them. Will gather
+inputs by manual entry or from a file. A pulls data from string inputs.</p>
 <p class="rubric">Methods</p>
 <table class="longtable docutils align-default">
 <colgroup>
@@ -796,25 +875,49 @@ was initialized with either “swingtank” or “paralleltank”.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="HPWHsizer.checkLiqudWater">
+<code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">checkLiqudWater</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var_F</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.checkLiqudWater" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the variable has a temperuter with in the range of liquid water at atm pressure</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>var_F</strong> (<em>float</em>) – Temperature of water.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if liquid, False if solid or gas.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="HPWHsizer.loadgpdpp">
 <code class="sig-prename descclassname">HPWHsizer.</code><code class="sig-name descname">loadgpdpp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gpdpp</span></em>, <em class="sig-param"><span class="n">nBR</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHsizer.loadgpdpp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads data for the gpdpp inputs if it is of string type, but passes gpdpp thorugh if it’s not string and is just a number.
-Valid string keys are ‘ashLow’, ‘ashMed’, or ‘ecoMark’, and for the advanced processing of the California data
-use “CA”. If using the “CA” option the number of units by bedrooms (nBR) is needed. The CA data has assumtions about the ratio of people per unit size.</p>
+<dd><p>Loads data for the gpdpp inputs if it is of string type, but passes gpdpp
+thorugh if it’s not string and is just a number.
+Valid string keys are ‘ashLow’, ‘ashMed’, or ‘ecoMark’, and for the
+advanced processing of the California data
+use “CA”. If using the “CA” option the number of units by bedrooms (nBR)
+is needed. The CA data has assumtions about the ratio of people per unit
+size.</p>
 <dl class="field-list">
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><dl class="simple">
-<dt>Exception :</dt><dd><p>If asking for the “CA” option and the number of units by bedroom size and number of people aren’t defined</p>
+<dt>Exception :</dt><dd><p>If asking for the “CA” option and the number of units by bedroom size
+and number of people aren’t defined</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Attributes</dt>
 <dd class="field-even"><dl>
 <dt><strong>gpdpp</strong><span class="classifier">float/ string</span></dt><dd><blockquote>
-<div><p>The gallons per day per person value or a string key to lookup, valid keys are: ‘ashLow’, ‘ashMed’, or ‘ecoMark’, and “CA”</p>
+<div><p>The gallons per day per person value or a string key to lookup,
+valid keys are: ‘ashLow’, ‘ashMed’, or ‘ecoMark’, and “CA”</p>
 </div></blockquote>
 <dl class="simple">
-<dt>nBR<span class="classifier">list</span></dt><dd><p>List of the number of units by bedroom size for 0 bedroom units (studios) to 5+ bedroom units, for example: [ 0, 12, 12, 12, 0, 0]</p>
+<dt>nBR<span class="classifier">list</span></dt><dd><p>List of the number of units by bedroom size for 0 bedroom units
+(studios) to 5+ bedroom units, for example: [ 0, 12, 12, 12, 0, 0]</p>
 </dd>
 </dl>
 </dd>
@@ -823,7 +926,8 @@ use “CA”. If using the “CA” option the number of units by bedrooms (nBR)
 </dl>
 </dd></dl>
 
-<p>Copyright (C) 2020  Ecotope Inc.</p>
+<span class="target" id="module-Simulator"></span><p>HPWHulator
+Copyright (C) 2020  Ecotope Inc.</p>
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -837,23 +941,29 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 <dl class="py class">
 <dt id="Simulator.Simulator">
 <em class="property">class </em><code class="sig-prename descclassname">Simulator.</code><code class="sig-name descname">Simulator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">G_hw</span></em>, <em class="sig-param"><span class="n">D_hw</span></em>, <em class="sig-param"><span class="n">V0</span></em>, <em class="sig-param"><span class="n">Vtrig</span></em>, <em class="sig-param"><span class="n">Tcw</span></em>, <em class="sig-param"><span class="n">Tstorage</span></em>, <em class="sig-param"><span class="n">Tsupply</span></em>, <em class="sig-param"><span class="n">schematic</span><span class="o">=</span><span class="default_value">'primary'</span></em>, <em class="sig-param"><span class="n">swing_V0</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">swing_Ttrig</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">Qrecirc_W</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">Swing_Elem_kW</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Simulator.Simulator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simulator class runs a simplified simulation to check the primary and swing tank systems.</p>
-<p>This class will run the primary simulation (schematic = “primary”) or primary with swing tank
-simulation (schematic = “swingtank”). Both are run
-on a minute timestep to approximate the available storage volume in the primary system
-and the average tank temperature in the swing tank, if applicable.</p>
-<p>The primary system is run assuming the system is perfectly stratified and all of the hot water above the
-cold temperature line is at the storage temperature. Each time step some hot water is removed
-and some added according to the inputs.</p>
-<p>The swing tank is run assuming that the swing tank is well mixed and can be tracked by the average tank temperature
+<dd><p>Simulator class runs a simplified simulation to check the primary and swing
+tank systems.</p>
+<p>This class will run the primary simulation (schematic = “primary”) or
+primary with swing tank simulation (schematic = “swingtank”). Both are run
+on a minute timestep to approximate the available storage volume in the
+primary system and the average tank temperature in the swing tank, if
+applicable.</p>
+<p>The primary system is run assuming the system is perfectly stratified and
+all of the hot water above the
+cold temperature line is at the storage temperature. Each time step some
+hot water is removed and some added according to the inputs.</p>
+<p>The swing tank is run assuming that the swing tank is well mixed and can
+be tracked by the average tank temperature
 and that the system loses the recirculation loop losses as a constant Watts.
-Since the swing tank is in series with the primary system the temperature needs
-to be tracked to inform inputs for primary step, unlike the parallel loop tank
-which is separated from the primary system.</p>
-<p>The swing tank is also assumed to have an 8 °F deadband from the swing heating trigger temperature.</p>
+Since the swing tank is in series with the primary system the temperature
+needs to be tracked to inform inputs for primary step, unlike the parallel
+loop tank which is separated from the primary system.</p>
+<p>The swing tank is also assumed to have an 8 °F deadband from the swing
+heating trigger temperature.</p>
 <p class="rubric">Examples</p>
 <p>An example usage to simulate a swing tank system:</p>
-<p>First make sure the hot water draws are in gpm. For examples starting with gph for each hour of the day,
+<p>First make sure the hot water draws are in gpm. For examples starting with
+gph for each hour of the day,
 a list can be converted to gpm for each minute oof the day following:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cfg</span> <span class="kn">import</span> <span class="n">HRLIST_to_MINLIST</span>
@@ -880,7 +990,9 @@ a list can be converted to gpm for each minute oof the day following:</p>
 <span class="go">                        Swing_Elem_kW = 5 )</span>
 </pre></div>
 </div>
-<p>And then in order to find proper for the system in the order of primary storage volume, primary heating capacity, temperature maintenance storage volume, temperature maintenance heating capacity:</p>
+<p>And then in order to find proper for the system in the order of primary
+storage volume, primary heating capacity, temperature maintenance storage
+volume, temperature maintenance heating capacity:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">primaryVol</span><span class="p">,</span> <span class="n">G_hw</span><span class="p">,</span> <span class="n">D_hw</span><span class="p">,</span> <span class="n">primaryGen</span><span class="p">,</span> <span class="n">swingTemp</span><span class="p">,</span> <span class="n">swingHeat</span><span class="p">,</span> <span class="n">hw_outSwing</span> <span class="o">=</span> <span class="n">hpwhsim</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -893,7 +1005,8 @@ a list can be converted to gpm for each minute oof the day following:</p>
 </dd>
 <dt><strong>V0</strong><span class="classifier">float</span></dt><dd><p>The storage volume of the primary system at the storage temperature</p>
 </dd>
-<dt><strong>Vtrig</strong><span class="classifier">float</span></dt><dd><p>The remaining volume of the primary storage volume when heating is triggered, note this equals V0*(1 - aquaFract)</p>
+<dt><strong>Vtrig</strong><span class="classifier">float</span></dt><dd><p>The remaining volume of the primary storage volume when heating is
+triggered, note this equals V0*(1 - aquaFract)</p>
 </dd>
 <dt><strong>Tcw</strong><span class="classifier">float</span></dt><dd><p>The cold makeup water temperature</p>
 </dd>
@@ -901,15 +1014,20 @@ a list can be converted to gpm for each minute oof the day following:</p>
 </dd>
 <dt><strong>Tsupply</strong><span class="classifier">float</span></dt><dd><p>The hot water supply temperature to occupants.</p>
 </dd>
-<dt><strong>schematic</strong><span class="classifier">string</span></dt><dd><p>The schematic string, either “primary”, “paralleltank”, or “swingtank”. Controls the model run. Defaults to “primary”.</p>
+<dt><strong>schematic</strong><span class="classifier">string</span></dt><dd><p>The schematic string, either “primary”, “paralleltank”, or “swingtank”.
+Controls the model run. Defaults to “primary”.</p>
 </dd>
-<dt><strong>swing_V0</strong><span class="classifier">float</span></dt><dd><p>The storage volume of the swing tank. Is not need unless schematic is set to “swingtank”. Defaults to None.</p>
+<dt><strong>swing_V0</strong><span class="classifier">float</span></dt><dd><p>The storage volume of the swing tank. Is not need unless schematic is
+set to “swingtank”. Defaults to None.</p>
 </dd>
-<dt><strong>swing_Ttrig</strong><span class="classifier">float</span></dt><dd><p>The swing tank tempeature when the swing tank resistance elements turn on. Is not need unless schematic is set to “swingtank”. Defaults to None.</p>
+<dt><strong>swing_Ttrig</strong><span class="classifier">float</span></dt><dd><p>The swing tank tempeature when the swing tank resistance elements turn
+on. Is not need unless schematic is set to “swingtank”. Defaults to None.</p>
 </dd>
-<dt><strong>Qrecirc_W</strong><span class="classifier">float</span></dt><dd><p>The recirculation loop losses in Watts. Is not need unless schematic is set to “swingtank”. Defaults to None.</p>
+<dt><strong>Qrecirc_W</strong><span class="classifier">float</span></dt><dd><p>The recirculation loop losses in Watts. Is not need unless schematic
+is set to “swingtank”. Defaults to None.</p>
 </dd>
-<dt><strong>Swing_Elem_kW</strong><span class="classifier">float</span></dt><dd><p>The swing tank resistance elements power output in kWatts. Is not need unless schematic is set to “swingtank”. Defaults to None.</p>
+<dt><strong>Swing_Elem_kW</strong><span class="classifier">float</span></dt><dd><p>The swing tank resistance elements power output in kWatts. Is not need
+unless schematic is set to “swingtank”. Defaults to None.</p>
 </dd>
 </dl>
 </dd>
@@ -945,15 +1063,21 @@ stratified and all of the hot water above the cold temperature is at the storage
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>Vcurr (float)</strong><span class="classifier">The primary volume at the timestep.</span></dt><dd></dd>
-<dt><strong>hw_out (float)</strong><span class="classifier">The volume of DHW removed from the primary system, assumed that 100% of what of what is removed is replaced</span></dt><dd></dd>
-<dt><strong>hw_in (float)</strong><span class="classifier">The volume of hot water generated in a time step</span></dt><dd></dd>
+<dt><strong>Vcurr</strong><span class="classifier">float</span></dt><dd><p>The primary volume at the timestep.</p>
+</dd>
+<dt><strong>hw_out</strong><span class="classifier">float</span></dt><dd><p>The volume of DHW removed from the primary system, assumed that
+100% of what of what is removed is replaced</p>
+</dd>
+<dt><strong>hw_in</strong><span class="classifier">float</span></dt><dd><p>The volume of hot water generated in a time step</p>
+</dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt><strong>Vnew (float)</strong><span class="classifier">The new primary volume at the timestep.</span></dt><dd></dd>
-<dt><strong>did_run (float)</strong><span class="classifier">The volume of hot water generated during the time step.</span></dt><dd></dd>
+<dt><strong>Vnew</strong><span class="classifier">float</span></dt><dd><p>The new primary volume at the timestep.</p>
+</dd>
+<dt><strong>did_run</strong><span class="classifier">float</span></dt><dd><p>The volume of hot water generated during the time step.</p>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -962,23 +1086,30 @@ stratified and all of the hot water above the cold temperature is at the storage
 <dl class="py method">
 <dt id="Simulator.Simulator.runOneSwingStep">
 <code class="sig-name descname">runOneSwingStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Tcurr</span></em>, <em class="sig-param"><span class="n">hw_out</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Simulator.Simulator.runOneSwingStep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs one step on the swing tank step. Since the swing tank is in series with the primary system
-the temperature needs to be tracked to inform inputs for primary step. The driving assumptions here
-are that the swing tank is well mixed and can be tracked by the average tank temperature
-and that the system loses the recirculation loop losses as a constant Watts and thus the
-actual flow rate and return temperature from the loop are irrelevant.</p>
+<dd><p>Runs one step on the swing tank step. Since the swing tank is in series
+with the primary system the temperature needs to be tracked to inform
+inputs for primary step. The driving assumptions hereare that the swing
+tank is well mixed and can be tracked by the average tank temperature
+and that the system loses the recirculation loop losses as a constant
+Watts and thus the actual flow rate and return temperature from the
+loop are irrelevant.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>Tcurr (float)</strong><span class="classifier">The current temperature at the timestep.</span></dt><dd></dd>
-<dt><strong>hw_out (float)</strong><span class="classifier">The volume of DHW removed from the swing tank system.</span></dt><dd></dd>
-<dt><strong>hw_in (float)</strong><span class="classifier">The volume of DHW added to the system.</span></dt><dd></dd>
+<dt><strong>Tcurr</strong><span class="classifier">float</span></dt><dd><p>The current temperature at the timestep.</p>
+</dd>
+<dt><strong>hw_out</strong><span class="classifier">float</span></dt><dd><p>The volume of DHW removed from the swing tank system.</p>
+</dd>
+<dt><strong>hw_in</strong><span class="classifier">float</span></dt><dd><p>The volume of DHW added to the system.</p>
+</dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt><strong>Tnew (float)</strong><span class="classifier">The new swing tank tempeature the timestep assuming the tank is well mixed.</span></dt><dd></dd>
-<dt><strong>did_run (float)</strong><span class="classifier">Logic if heated during time step (1) or not (0)</span></dt><dd></dd>
+<dt><strong>Tnew</strong><span class="classifier">float</span></dt><dd><p>The new swing tank tempeature the timestep assuming the tank is well mixed.</p>
+</dd>
+<dt><strong>did_run</strong><span class="classifier">int</span></dt><dd><p>Logic if heated during time step (1) or not (0)</p>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -996,7 +1127,8 @@ actual flow rate and return temperature from the loop are irrelevant.</p>
 
 </dd></dl>
 
-<p>Copyright (C) 2020  Ecotope Inc.</p>
+<span class="target" id="module-HPWHComponents"></span><p>HPWHulator
+Copyright (C) 2020  Ecotope Inc.</p>
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -1090,13 +1222,15 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 <dl class="py class">
 <dt id="HPWHComponents.PrimarySystem_SP">
 <em class="property">class </em><code class="sig-prename descclassname">HPWHComponents.</code><code class="sig-name descname">PrimarySystem_SP</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">totalHWLoad</span></em>, <em class="sig-param"><span class="n">loadShapeNorm</span></em>, <em class="sig-param"><span class="n">nPeople</span></em>, <em class="sig-param"><span class="n">incomingT_F</span></em>, <em class="sig-param"><span class="n">supplyT_F</span></em>, <em class="sig-param"><span class="n">storageT_F</span></em>, <em class="sig-param"><span class="n">percentUseable</span></em>, <em class="sig-param"><span class="n">compRuntime_hr</span></em>, <em class="sig-param"><span class="n">aquaFract</span></em>, <em class="sig-param"><span class="n">defrostFactor</span></em>, <em class="sig-param"><span class="n">swingTank</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.PrimarySystem_SP" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class containing attributes and methods to describe and size the primary heat pump and storage for single pass systems.</p>
+<dd><p>Class containing attributes and methods to describe and size the primary
+heat pump and storage for single pass systems.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>totalHWLoad</strong><span class="classifier">float</span></dt><dd><p>Total hot water load [btu/hr]</p>
 </dd>
-<dt><strong>loadShapeNorm</strong><span class="classifier">numpy array</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load.</p>
+<dt><strong>loadShapeNorm</strong><span class="classifier">numpy array</span></dt><dd><p>A one dimensional array with length 24 that describes the hot water
+usage for each hour of the day as a fraction of the total daily load.</p>
 </dd>
 <dt><strong>nPeople: integer</strong></dt><dd><p>Number of residents.</p>
 </dd>
@@ -1106,13 +1240,16 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 </dd>
 <dt><strong>supplyT_F</strong><span class="classifier">float</span></dt><dd><p>Supply hot water temperature to occupants, typically 120°F. [°F]</p>
 </dd>
-<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient thermal stratification.</p>
+<dt><strong>percentUsable</strong><span class="classifier">float</span></dt><dd><p>Percent of primary hot water storage that is usable due to sufficient
+thermal stratification.</p>
 </dd>
-<dt><strong>aquaFract: float</strong></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.</p>
+<dt><strong>aquaFract: float</strong></dt><dd><p>The fraction of the total hieght of the primary hot water tanks at
+which the Aquastat is located.</p>
 </dd>
 <dt><strong>compRuntime_hr</strong><span class="classifier">float</span></dt><dd><p>Hour per day central heat pump equipment can run, duty cycle [hrs/day]</p>
 </dd>
-<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.</p>
+<dt><strong>defrostFactor: float</strong></dt><dd><p>A factor that reduces heating capacity at low temperatures based on
+need for defrost cycles to remove ice from evaporator coils.</p>
 </dd>
 <dt><strong>PCap_kBTUhr</strong><span class="classifier">float</span></dt><dd><p>Primary heat pump water heater capacity [kBtu]</p>
 </dd>
@@ -1120,13 +1257,16 @@ along with this program.  If not, see &lt;<a class="reference external" href="ht
 </dd>
 <dt><strong>aquaFract</strong><span class="classifier">float</span></dt><dd><p>Fractional hieght of the aquastat in the tank.</p>
 </dd>
-<dt><strong>SwingTank</strong><span class="classifier">swingtank</span></dt><dd><p>The swing tank object associated with the primary system if there is one.</p>
+<dt><strong>SwingTank</strong><span class="classifier">swingtank</span></dt><dd><p>The swing tank object associated with the primary system if there is
+one.</p>
 </dd>
 <dt><strong>swingTankLoad_W</strong><span class="classifier">float</span></dt><dd><p>Extra load in Watts that is added to the primary system.</p>
 </dd>
-<dt><strong>fractDHW</strong><span class="classifier">float</span></dt><dd><p>Fraction describing the decreased total volume to be met for load shift based on the total number of days to meet.</p>
+<dt><strong>fractDHW</strong><span class="classifier">float</span></dt><dd><p>Fraction describing the decreased total volume to be met for load
+shift based on the total number of days to meet.</p>
 </dd>
-<dt><strong>LSconstrained</strong><span class="classifier">boolean</span></dt><dd><p>If the load shift requirement for the recommended system is larger than the system without load shift recommended.</p>
+<dt><strong>LSconstrained</strong><span class="classifier">boolean</span></dt><dd><p>If the load shift requirement for the recommended system is larger
+than the system without load shift recommended.</p>
 </dd>
 </dl>
 </dd>
@@ -1198,7 +1338,8 @@ fraction is too small for system and cuts the return arrays to match cutoff poin
 <dd class="field-odd"><dl class="simple">
 <dt><strong>heathours</strong><span class="classifier">float or numpy.ndarray</span></dt><dd><p>The number of hours primary heating equipment can run.</p>
 </dd>
-<dt><strong>effSwingVolFract</strong><span class="classifier">float or numpy.ndarray</span></dt><dd><p>The fractional adjustment to the total hot water load for the primary system. Only used in a swing tank system.</p>
+<dt><strong>effSwingVolFract</strong><span class="classifier">float or numpy.ndarray</span></dt><dd><p>The fractional adjustment to the total hot water load for the
+primary system. Only used in a swing tank system.</p>
 </dd>
 </dl>
 </dd>
@@ -1220,7 +1361,8 @@ fraction is too small for system and cuts the return arrays to match cutoff poin
 <dd class="field-odd"><dl class="simple">
 <dt><strong>schedule</strong><span class="classifier">array_like</span></dt><dd><p>List or array of 0’s and 1’s for don’t run and run.</p>
 </dd>
-<dt><strong>fractDHW</strong><span class="classifier">float</span></dt><dd><p>Fraction of DHW load corresponding to percent of days to be shifted in a load shift scenario</p>
+<dt><strong>fractDHW</strong><span class="classifier">float</span></dt><dd><p>Fraction of DHW load corresponding to percent of days to be
+shifted in a load shift scenario</p>
 </dd>
 </dl>
 </dd>
@@ -1284,19 +1426,11 @@ the primary system heat adds heat to cover about up to 70% of the reciculation l
 <tr class="row-odd"><td><p><a class="reference internal" href="#HPWHComponents.SwingTank.getSizingResults" title="HPWHComponents.SwingTank.getSizingResults"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getSizingResults</span></code></a>()</p></td>
 <td><p>Returns sizing results as array</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#HPWHComponents.SwingTank.sizeVol_Cap" title="HPWHComponents.SwingTank.sizeVol_Cap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sizeVol_Cap</span></code></a>([CA])</p></td>
-<td><p>Sizes the volume in gallons and heat capactiy in kBTU/hr</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#HPWHComponents.SwingTank.getSizingTable" title="HPWHComponents.SwingTank.getSizingTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getSizingTable</span></code></a>([CA])</p></td>
+<td><p>Returns sizing table for a swing tank</p></td>
 </tr>
-</tbody>
-</table>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 64%" />
-<col style="width: 36%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>getSizingTable</strong></p></td>
-<td></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#HPWHComponents.SwingTank.sizeVol_Cap" title="HPWHComponents.SwingTank.sizeVol_Cap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sizeVol_Cap</span></code></a>([CA])</p></td>
+<td><p>Sizes the volume in gallons and heat capactiy in kBTU/hr</p></td>
 </tr>
 </tbody>
 </table>
@@ -1308,6 +1442,20 @@ the primary system heat adds heat to cover about up to 70% of the reciculation l
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><dl class="simple">
 <dt>list</dt><dd><p>self.TMVol_G, self.TMCap_kBTUhr</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="HPWHComponents.SwingTank.getSizingTable">
+<code class="sig-name descname">getSizingTable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">CA</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#HPWHComponents.SwingTank.getSizingTable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns sizing table for a swing tank</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>list</dt><dd><p>self.Table_Napts, self.Table</p>
 </dd>
 </dl>
 </dd>

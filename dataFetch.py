@@ -1,5 +1,5 @@
 """
-	HPWHulator
+    HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
     This program is free software: you can redistribute it and/or modify
@@ -22,12 +22,11 @@ import os
 
 import json
 from scipy.stats import norm #lognorm
-#import scipy.stats as st
 
 class hpwhDataFetch():
-
     '''
-    Class used to retrieve data stored in .json file and perform specific calculations with that data.
+    Class used to retrieve data stored in .json file and perform specific 
+    calculations with that data.
 
     Attributes
     ----------
@@ -49,7 +48,8 @@ class hpwhDataFetch():
         Calculate fraction of strorage required percentage of load shift days.
 
     getCAGPDPPDaily()
-        Returns the expected daily gpdpp for every day of the year by bedroom size: studio, 1 bedroom, 2 bedroom, ...
+        Returns the expected daily gpdpp for every day of the year by bedroom
+        size: studio, 1 bedroom, 2 bedroom, ...
 
     '''
 
