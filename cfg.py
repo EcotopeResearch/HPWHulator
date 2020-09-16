@@ -26,7 +26,7 @@ W_TO_TONS = 0.000284345
 TONS_TO_KBTUHR = 12.
 
 pCompMinimumRunTime = 10./60.
-tmCompMinimumRunTime  = 20./60.
+tmCompMinimumRunTime = 20./60.
 
 def mixVolume(vol, hotT, coldT, outT):
     """

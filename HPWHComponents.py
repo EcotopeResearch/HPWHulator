@@ -1,5 +1,5 @@
 """
-	HPWHulator
+    HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
     This program is free software: you can redistribute it and/or modify
@@ -28,14 +28,16 @@ from Simulator import Simulator
 ##############################################################################
 class PrimarySystem_SP:
     """
-    Class containing attributes and methods to describe and size the primary heat pump and storage for single pass systems.
+    Class containing attributes and methods to describe and size the primary
+    heat pump and storage for single pass systems.
 
     Attributes
     ----------
     totalHWLoad : float
         Total hot water load [btu/hr]
     loadShapeNorm : numpy array
-        A one dimensional array with length 24 that describes the hot water usage for each hour of the day as a fraction of the total daily load.
+        A one dimensional array with length 24 that describes the hot water
+        usage for each hour of the day as a fraction of the total daily load.
     nPeople: integer
         Number of residents.
     incomingT_F : float
@@ -45,13 +47,16 @@ class PrimarySystem_SP:
     supplyT_F : float
         Supply hot water temperature to occupants, typically 120°F. [°F]
     percentUsable : float
-        Percent of primary hot water storage that is usable due to sufficient thermal stratification.
+        Percent of primary hot water storage that is usable due to sufficient
+        thermal stratification.
     aquaFract: float
-        The fraction of the total hieght of the primary hot water tanks at which the Aquastat is located.
+        The fraction of the total hieght of the primary hot water tanks at
+        which the Aquastat is located.
     compRuntime_hr : float
         Hour per day central heat pump equipment can run, duty cycle [hrs/day]
     defrostFactor: float
-        A factor that reduces heating capacity at low temperatures based on need for defrost cycles to remove ice from evaporator coils.
+        A factor that reduces heating capacity at low temperatures based on
+        need for defrost cycles to remove ice from evaporator coils.
     PCap_kBTUhr : float
         Primary heat pump water heater capacity [kBtu]
     PVol_G_atStorageT : float
@@ -59,54 +64,56 @@ class PrimarySystem_SP:
     aquaFract : float
         Fractional hieght of the aquastat in the tank.
     SwingTank : swingtank
-        The swing tank object associated with the primary system if there is one.
+        The swing tank object associated with the primary system if there is
+        one.
     swingTankLoad_W : float
         Extra load in Watts that is added to the primary system.
     fractDHW : float
-        Fraction describing the decreased total volume to be met for load shift based on the total number of days to meet.
+        Fraction describing the decreased total volume to be met for load
+        shift based on the total number of days to meet.
     LSconstrained : boolean
-        If the load shift requirement for the recommended system is larger than the system without load shift recommended.
+        If the load shift requirement for the recommended system is larger
+        than the system without load shift recommended.
     """
 
     def __init__(self, totalHWLoad, loadShapeNorm, nPeople,
                  incomingT_F, supplyT_F, storageT_F,
                  percentUseable, compRuntime_hr, aquaFract,
-                 defrostFactor, swingTank = None):
+                 defrostFactor, swingTank=None):
 
         #Initialize the sizer object with the inputs
-        self.totalHWLoad    = totalHWLoad
+        self.totalHWLoad = totalHWLoad
         if not isinstance(loadShapeNorm, np.ndarray):
-            self.loadShapeNorm  = np.array(loadShapeNorm)
+            self.loadShapeNorm = np.array(loadShapeNorm)
         else:
-            self.loadShapeNorm  = loadShapeNorm
-        self.nPeople        = nPeople
+            self.loadShapeNorm = loadShapeNorm
+        self.nPeople = nPeople
 
-        self.incomingT_F      = incomingT_F
-        self.storageT_F       = storageT_F
-        self.supplyT_F        = supplyT_F
+        self.incomingT_F = incomingT_F
+        self.storageT_F = storageT_F
+        self.supplyT_F = supplyT_F
 
-        self.defrostFactor      = defrostFactor
-        self.percentUseable     = percentUseable
-        self.compRuntime_hr     = compRuntime_hr
-        self.aquaFract          = aquaFract #Fraction
+        self.defrostFactor = defrostFactor
+        self.percentUseable = percentUseable
+        self.compRuntime_hr = compRuntime_hr
+        self.aquaFract = aquaFract #Fraction
 
-        if swingTank:
-            self.swingTank = swingTank
-        else:
-            self.swingTank = None
-        self.effSwingFract = 1.
+        self.swingTank = swingTank
 
         # Internal variables
+        self.effSwingFract = 1.
+
         self.maxDayRun_hr = compRuntime_hr
         self.LS_on_off = np.ones(24)
         self.loadShift = False
         self.fractDHW = 1.
+        self.LSconstrained = False
 
         # Outputs
-        self.PCap_kBTUhr       = 0. #kBTU/Hr
+        self.PCap_kBTUhr = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-    def setLoadShift(self, schedule, fractDHW = 1):
+    def setLoadShift(self, schedule, fractDHW=1):
         """
         Sets the load shifting schedule from input schedule
 
@@ -116,15 +123,16 @@ class PrimarySystem_SP:
             List or array of 0's and 1's for don't run and run.
 
         fractDHW : float
-            Fraction of DHW load corresponding to percent of days to be shifted in a load shift scenario
+            Fraction of DHW load corresponding to percent of days to be
+            shifted in a load shift scenario
 
         """
         # Coerce to 0s and 1s
         self.LS_on_off = np.where(schedule > 0, 1, 0)
         self.fractDHW = fractDHW
         self.loadShift = True
-        # Check if need to increase sizing to meet lower runtimes in a day for load shifting.
-        self.maxDayRun_hr = min(self.compRuntime_hr,sum(self.LS_on_off))
+        #Check if need to increase sizing to meet lower runtimes for load shift
+        self.maxDayRun_hr = min(self.compRuntime_hr, sum(self.LS_on_off))
 
     def _checkHeatHours(self, heathours):
         """
@@ -142,7 +150,7 @@ class PrimarySystem_SP:
             if heathours > 24 or heathours <= 0:
                 raise Exception("Heat hours is not within 1 - 24 hours")
 
-    def primaryHeatHrs2kBTUHR(self, heathours, effSwingVolFract = 1):
+    def primaryHeatHrs2kBTUHR(self, heathours, effSwingVolFract=1):
         """
         Converts from hours of heating in a day to heating capacity.
 
@@ -152,7 +160,8 @@ class PrimarySystem_SP:
             The number of hours primary heating equipment can run.
 
         effSwingVolFract : float or numpy.ndarray
-            The fractional adjustment to the total hot water load for the primary system. Only used in a swing tank system.
+            The fractional adjustment to the total hot water load for the
+            primary system. Only used in a swing tank system.
 
         Returns
         -------
@@ -183,9 +192,11 @@ class PrimarySystem_SP:
             The total storage volume in gallons adjusted to the storage tempreature
         """
         self._checkHeatHours(heatHrs)
-
-        effMixFract = 1. # Fraction used for adjusting swing tank volume.
-        largerLS = False # If the system is sized for load shift days or the load shift requirement is less than required
+        # Fraction used for adjusting swing tank volume.
+        effMixFract = 1.
+        # If the system is sized for load shift days or the load shift
+        # requirement is less than required
+        largerLS = False
 
         # Running vol
         if self.swingTank:
@@ -216,15 +227,14 @@ class PrimarySystem_SP:
 
 
         # Check the Cycling Volume ############################################
-        cyclingVol_G    = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
-        minRunVol_G     = pCompMinimumRunTime * (self.totalHWLoad * effMixFract / heatHrs) # (generation rate - no usage)
+        cyclingVol_G = totalVolMax * (self.aquaFract - (1 - self.percentUseable))
+        minRunVol_G = pCompMinimumRunTime * (self.totalHWLoad * effMixFract / heatHrs) # (generation rate - no usage)
 
         if minRunVol_G > cyclingVol_G:
             min_AF = minRunVol_G / totalVolMax + (1 - self.percentUseable)
             if min_AF < 1:
-                raise ValueError ("01", "The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: ", round(min_AF,3))
-            else:
-                raise ValueError ("02", "The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
+                raise ValueError("01", "The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: ", round(min_AF,3))
+            raise ValueError("02", "The minimum aquastat fraction is greater than 1. This is due to the storage efficency and/or the maximum run hours in the day may be too low. Try increasing these values, we reccomend 0.8 and 16 hours for these variables respectively." )
 
         # Return the temperature adjusted total volume ########################
         return totalVolMax, effMixFract, largerLS
@@ -237,34 +247,35 @@ class PrimarySystem_SP:
 
         Parameters
         ----------
-            heatHrs (float): The number of hours primary heating equipment can run in a day.
-            onOffArr (np.array): array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
+        heatHrs : float
+            The number of hours primary heating equipment can run in a day.
+        onOffArr : ndarray
+            array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
 
         Raises
         ------
-            Exception: Error if oversizeing system.
+        Exception: Error if oversizeing system.
 
         Returns
         -------
-            runV_G : float
+        runV_G : float
             The running volume in gallons
 
         """
 
         genrate = np.tile(onOffArr,2) / heatHrs #hourly
-        diffN   = genrate - np.tile(self.loadShapeNorm,2) #hourly
+        diffN = genrate - np.tile(self.loadShapeNorm,2) #hourly
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
         diffN *= self.totalHWLoad
         # Get the running volume ##############################################
         if len(diffInd) == 0:
             raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day", )
-        else:
-            runV_G = 0
-            for peakInd in diffInd:
-                #Get the rest of the day from the start of the peak
-                diffCum = np.cumsum(diffN[peakInd:])  #hourly
-                runV_G = max(runV_G, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
+        runV_G = 0
+        for peakInd in diffInd:
+            #Get the rest of the day from the start of the peak
+            diffCum = np.cumsum(diffN[peakInd:])  #hourly
+            runV_G = max(runV_G, -min(diffCum[diffCum<0.])) #Minimum value less than 0 or 0.
 
         return runV_G
 
@@ -298,47 +309,49 @@ class PrimarySystem_SP:
         # Get the running volume ##############################################
         if len(diffInd) == 0:
             raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day",)
-        else:
-            runV_G = 0
-            for peakInd in diffInd:
-                hw_out = np.tile(self.loadShapeNorm, 2)
-                hw_out = np.array(HRLIST_to_MINLIST(hw_out[peakInd:peakInd+24])) / 60 * self.totalHWLoad # to minute
 
-                # Simulate the swing tank assuming it hits the peak just above the supply temperature.
-                hpwhsim = Simulator([0]*len(hw_out), hw_out, 10, 1,
-                            Tcw = self.incomingT_F,
-                            Tstorage = self.storageT_F,
-                            Tsupply = self.supplyT_F,
-                            schematic = "swingtank",
-                            swing_V0 = int(self.swingTank.TMVol_G.split()[-1]), # -1 grabs the last element of list
-                            swing_Ttrig = self.supplyT_F,
-                            Qrecirc_W = self.swingTank.Wapt*self.swingTank.nApt,
-                            Swing_Elem_kW = self.swingTank.TMCap_kBTUhr/W_TO_BTUHR )
-                # Get the volume removed for the primary adjusted by the swing tank
-                [swingT, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F + 0.1)
+        runV_G = 0
+        for peakInd in diffInd:
+            hw_out = np.tile(self.loadShapeNorm, 2)
+            hw_out = np.array(HRLIST_to_MINLIST(hw_out[peakInd:peakInd+24])) \
+                / 60 * self.totalHWLoad # to minute
 
-                # Get the effective adjusted hot water demand on the primary system at the storage temperature.
-                temp_eff_HW_mix_faction = sum(hw_out_from_swing)/self.totalHWLoad #/2 because the sim goes for two days
-                genrate_min = np.array(HRLIST_to_MINLIST(genrate[peakInd:peakInd+24])) / 60 * self.totalHWLoad * temp_eff_HW_mix_faction # to minute
+            # Simulate the swing tank assuming it hits the peak just above the supply temperature.
+            hpwhsim = Simulator([0]*len(hw_out), hw_out, 10, 1,
+                                Tcw=self.incomingT_F,
+                                Tstorage=self.storageT_F,
+                                Tsupply=self.supplyT_F,
+                                schematic="swingtank",
+                                swing_V0=int(self.swingTank.TMVol_G.split()[-1]), # -1 grabs the last element of list
+                                swing_Ttrig=self.supplyT_F,
+                                Qrecirc_W=self.swingTank.Wapt*self.swingTank.nApt,
+                                Swing_Elem_kW=self.swingTank.TMCap_kBTUhr/W_TO_BTUHR )
+            #Get the volume removed for the primary adjusted by the swing tank
+            [_, _, hw_out_from_swing] = hpwhsim.simJustSwing(self.supplyT_F + 0.1)
 
-                # Get the new difference in generation and demand
-                diffN =  genrate_min - hw_out_from_swing
-                # Get the rest of the day from the start of the peak
-                diffCum = np.cumsum(diffN)
+            # Get the effective adjusted hot water demand on the primary system at the storage temperature.
+            temp_eff_HW_mix_faction = sum(hw_out_from_swing)/self.totalHWLoad #/2 because the sim goes for two days
+            genrate_min = np.array(HRLIST_to_MINLIST(genrate[peakInd:peakInd+24])) \
+                / 60 * self.totalHWLoad * temp_eff_HW_mix_faction # to minute
 
-                # from plotly.graph_objs import Figure, Scatter
-                # fig = Figure()
-                # fig.add_trace(Scatter(y=swingT, mode='lines', name='SwingT'))
-                # fig.add_trace(Scatter(y=hw_out_from_swing, mode='lines', name='hw_out_from_swing, fract='+str(temp_eff_HW_mix_faction)))
-                # fig.add_trace(Scatter(y=hw_out, mode='lines', name='hw_out'))
-                # fig.add_trace(Scatter(y=diffCum, mode='lines', name='diffCum'))
-                # fig.add_trace(Scatter(y=genrate_min, mode='lines', name='genrate'))
-                # fig.show()
+            # Get the new difference in generation and demand
+            diffN = genrate_min - hw_out_from_swing
+            # Get the rest of the day from the start of the peak
+            diffCum = np.cumsum(diffN)
 
-                new_runV_G = -min(diffCum[diffCum<0.])
-                if runV_G < new_runV_G:
-                    runV_G = new_runV_G #Minimum value less than 0 or 0.
-                    eff_HW_mix_faction = temp_eff_HW_mix_faction
+            # from plotly.graph_objs import Figure, Scatter
+            # fig = Figure()
+            # fig.add_trace(Scatter(y=swingT, mode='lines', name='SwingT'))
+            # fig.add_trace(Scatter(y=hw_out_from_swing, mode='lines', name='hw_out_from_swing, fract='+str(temp_eff_HW_mix_faction)))
+            # fig.add_trace(Scatter(y=hw_out, mode='lines', name='hw_out'))
+            # fig.add_trace(Scatter(y=diffCum, mode='lines', name='diffCum'))
+            # fig.add_trace(Scatter(y=genrate_min, mode='lines', name='genrate'))
+            # fig.show()
+
+            new_runV_G = -min(diffCum[diffCum<0.])
+            if runV_G < new_runV_G:
+                runV_G = new_runV_G #Minimum value less than 0 or 0.
+                eff_HW_mix_faction = temp_eff_HW_mix_faction
 
         return runV_G, eff_HW_mix_faction
 
@@ -394,7 +407,7 @@ class PrimarySystem_SP:
         if self.PVol_G_atStorageT == 0. or self.PCap_kBTUhr == 0.:
             raise Exception("The system hasn't been sized yet! Run sizeVol_Cap() first")
 
-        return [ self.PVol_G_atStorageT,  self.PCap_kBTUhr ]
+        return [self.PVol_G_atStorageT, self.PCap_kBTUhr]
 
 
 ##############################################################################
@@ -425,15 +438,15 @@ class ParallelLoopTank:
 
     def __init__(self, nApt, Wapt, safetyTM, setpointTM_F, TMonTemp_F, offTime_hr):
         # Inputs from primary system
-        self.nApt       = nApt
+        self.nApt = nApt
         # Inputs for temperature maintenance sizing
-        self.Wapt       = Wapt # W/ apartment
+        self.Wapt = Wapt # W/ apartment
 
-        self.safetyTM  = safetyTM # Safety factor
+        self.safetyTM = safetyTM # Safety factor
 
         self.setpointTM_F = setpointTM_F
-        self.TMonTemp_F    = TMonTemp_F
-        self.offTime_hr  = offTime_hr # Hour
+        self.TMonTemp_F = TMonTemp_F
+        self.offTime_hr = offTime_hr # Hour
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
         self.TMVol_G = 0 # Gallons
@@ -454,10 +467,6 @@ class ParallelLoopTank:
         Exceptions : If the system is sized too small and
         """
 
-        # self.TMCap_kBTUhr = self.nApt * self.Wapt * Wapt75 * TMSafetyFactor * W_TO_BTUHR/ 1000.
-        # self.TMVol_G = (1000.*self.TMCap_kBTUhr - self.nApt * self.Wapt * Wapt25 * W_TO_BTUHR ) * \
-        #                 self.minimumRunTime/(self.setpointTM_F - self.TMonTemp_F)/rhoCp
-
         self.TMVol_G  =  self.Wapt * self.nApt / rhoCp * \
             W_TO_BTUHR * self.offTime_hr / (self.setpointTM_F - self.TMonTemp_F)
 
@@ -473,9 +482,9 @@ class ParallelLoopTank:
         list
             self.TMVol_G, self.TMCap_kBTUhr
         """
-        return [ self.TMVol_G, self.TMCap_kBTUhr ]
+        return [self.TMVol_G, self.TMCap_kBTUhr]
 
-    def tempMaintCurve(self, runtime = tmCompMinimumRunTime):
+    def tempMaintCurve(self, runtime=tmCompMinimumRunTime):
         """
         Returns the sizing curve for a parallel loop tank
 
@@ -492,7 +501,7 @@ class ParallelLoopTank:
 
         keep = capacity >= self.TMCap_kBTUhr
 
-        return [ volN_G[keep], capacity[keep] ]
+        return [volN_G[keep], capacity[keep]]
 
 
 ##############################################################################
@@ -521,15 +530,15 @@ class SwingTank:
 
     def __init__(self, nApt, Wapt, safetyTM):
         # Inputs from primary system
-        self.nApt       = nApt
+        self.nApt = nApt
         # Inputs for temperature maintenance sizing
-        self.Wapt       = Wapt #W/ apartment
-        self.safetyTM   = safetyTM # Safety factor
+        self.Wapt = Wapt #W/ apartment
+        self.safetyTM = safetyTM # Safety factor
 
 
         # Outputs:
         self.TMCap_kBTUhr = 0 #kBTU/Hr
-        self.TMVol_G      = 0 # Gallons
+        self.TMVol_G = 0 # Gallons
 
         if self.Wapt == 0:
             raise Exception("Swing tank initialized with 0 W per apt heat loss")
@@ -566,14 +575,21 @@ class SwingTank:
         list
             self.TMVol_G, self.TMCap_kBTUhr
         """
-        return [ self.TMVol_G, self.TMCap_kBTUhr ]
+        return [self.TMVol_G, self.TMCap_kBTUhr]
 
 
-    def getSizingTable(self, CA = True):
+    def getSizingTable(self, CA=True):
+        """
+        Returns sizing table for a swing tank
+
+        Returns
+        -------
+        list
+            self.Table_Napts, self.Table
+        """
         if CA:
             return list(zip(self.Table_Napts, self.sizingTable_CA))
-        else:
-            return list(zip(self.Table_Napts, self.sizingTable_EMASHRAE))
+        return list(zip(self.Table_Napts, self.sizingTable_EMASHRAE))
 
 
 ##############################################################################
@@ -598,4 +614,3 @@ def getPeakIndices(diff1):
         diff1 = np.array(diff1)
     diff1 = np.insert(diff1, 0, 0)
     return np.where(np.diff(np.sign(diff1))<0)[0]
-

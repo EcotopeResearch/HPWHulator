@@ -1,5 +1,5 @@
 """
-	HPWHulator
+    HPWHulator
     Copyright (C) 2020  Ecotope Inc.
 
     This program is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@ from cfg import mixVolume
 
 
 def file_regression(fileRef, fileResults):
-        return filecmp.cmp(fileRef, fileResults)
+    return filecmp.cmp(fileRef, fileResults)
 
 @pytest.fixture
 def empty_sizer():
@@ -42,12 +42,14 @@ def empty_sizer():
 def units_sizer():
     '''Returns a HPWHsizer instance initialized to with by units'''
     hpwh = HPWHsizer.HPWHsizer()
-    hpwh.initPrimaryByUnits( [50,50,50,50,0,0], [1.374,1.74,2.567,3.109,4.225,3.769], [20,20,20,20,20,20],
-                     [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
-                      0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
-                      0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
-                     120, 50, 150, 16, 0.8,  0.4,
-                     'paralleltank', .9 )
+    hpwh.initPrimaryByUnits([50,50,50,50,0,0],
+                            [1.374,1.74,2.567,3.109,4.225,3.769],
+                            [20,20,20,20,20,20],
+                            [0.027,0.013,0.008,0.008,0.024,0.04 ,0.074,0.087,\
+                             0.082,0.067,0.04 ,0.034, 0.034,0.029,0.027,0.029,\
+                             0.035,0.04 ,0.048,0.051,0.055,0.059,0.051,0.038],
+                            120, 50, 150, 16, 0.8,  0.4,
+                            'paralleltank', .9 )
     hpwh.initTempMaint(100)
     return hpwh
 
@@ -56,9 +58,9 @@ def people_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 36, 22.,
-                      "stream",
-                    120, 50, 150., 18., 0.9, 0.4,
-                    "swingtank", 0.9 )
+                             "stream",
+                             120, 50, 150., 18., 0.9, 0.4,
+                             "swingtank", 0.9 )
     hpwh.initTempMaint(100)
 
     return hpwh
@@ -68,16 +70,16 @@ def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
     hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 36, 22, "stream",
-                    120, 50, 150., 16., .9, 0.4,
-                    "primary", .9 )
+                             120, 50, 150., 16., .9, 0.4,
+                             "primary", .9 )
     return hpwh
 
 @pytest.fixture
 def CA_sizer(): # Returns the hpwh sizer object designed for Cali options
     hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByUnits([6,12,12,6,0,0], "CA", "CA", "stream",
-                    125, 50, 150., 16., .8, 0.4,
-                    "swingtank")
+                            125, 50, 150., 16., .8, 0.4,
+                            "swingtank")
     hpwh.initTempMaint(100)
     return hpwh
 
@@ -130,16 +132,16 @@ def test_AF_initialize_error(empty_sizer):
                       [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                         0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                         0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                    120, 50, 150., 16., .9, 0.05,
-                    "primary", .9)
+                      120, 50, 150., 16., .9, 0.05,
+                      "primary", .9)
 
 def test_AF_sizing_error(empty_sizer):
     empty_sizer.initPrimaryByPeople(100, 22., 36,
                   [0.0158,0.0053,0.0029,0.0012,0.0018,0.0170,0.0674,0.1267,
                     0.0915,0.0856,0.0452,0.0282,0.0287,0.0223,0.0299,0.0287,
                     0.0276,0.0328,0.0463,0.0587,0.0856,0.0663,0.0487,0.0358],
-                120, 50, 150., 16., .9, 0.11,
-                "primary", .9)
+                  120, 50, 150., 16., .9, 0.11,
+                  "primary", .9)
     with pytest.raises(Exception, match =
                        "('01', 'The aquastat fraction is too low in the storge system recommend increasing the maximum run hours in the day or increasing to a minimum of: ', 0.209)"):
         empty_sizer.build_size()
@@ -167,9 +169,9 @@ def test_parallel_min_size(units_sizer):
 # Test the Fetcher
 def test_getLoadshape(fetcher):
     assert fetcher.getLoadshape() == [0.015197568,
- 			0.006079027,0.003039514,0.003039514,0.003039514,0.009118541,0.075987842,
- 			0.151975684,0.100303951,0.082066869,0.021276596,0.024316109, 0.021276596,
- 			0.024316109,	0.012158055,	0.006079027,	0.009118541,	0.036474164, 0.054711246,
+             0.006079027,0.003039514,0.003039514,0.003039514,0.009118541,0.075987842,
+             0.151975684,0.100303951,0.082066869,0.021276596,0.024316109, 0.021276596,
+             0.024316109,    0.012158055,    0.006079027,    0.009118541,    0.036474164, 0.054711246,
             0.072948328, 0.088145897, 0.09118541 , 0.063829787,0.024316109]
 def test_getGPDPP(fetcher):
     with pytest.raises(Exception):
