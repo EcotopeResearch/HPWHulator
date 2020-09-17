@@ -356,8 +356,6 @@ class PrimarySystem_SP:
         return runV_G, eff_HW_mix_faction
 
 
-
-
     def primaryCurve(self):
         """
         Sizes the primary system curve. Will catch the point at which the aquatstat
@@ -365,15 +363,26 @@ class PrimarySystem_SP:
 
         Returns
         -------
-        volN
+        volN : array
             Array of volume in the tank at each hour.
 
-        array
+        primaryHeatHrs2kBTUHR : array
             Array of heating capacity in kBTU/hr
+            
+        heatHours : array
+            Array of running hours per day corresponding to primaryHeatHrs2kBTUHR
+            
+        recIndex : int
+            The index of the recommended heating rate. 
         """
-
-        maxHeatHours = 1/(max(self.loadShapeNorm))*1.001
-        heatHours = np.linspace(24, maxHeatHours,30)
+        # Define the heating hours we'll check
+        delta = -0.25
+        maxHeatHours = 1/(max(self.loadShapeNorm))*1.001   
+        
+        arr1 = np.arange(24, self.maxDayRun_hr, delta)
+        recIndex = len(arr1)
+        heatHours = np.concatenate((arr1, np.arange(self.maxDayRun_hr, maxHeatHours, delta)))
+        
         volN = np.zeros(len(heatHours))
         effMixFract = np.ones(len(heatHours))
         for ii in range(0,len(heatHours)):
@@ -386,7 +395,7 @@ class PrimarySystem_SP:
         heatHours   = heatHours[:ii]
         effMixFract = effMixFract[:ii]
 
-        return [volN, self.primaryHeatHrs2kBTUHR(heatHours, effMixFract)]
+        return [volN, self.primaryHeatHrs2kBTUHR(heatHours, effMixFract), heatHours, recIndex]
 
     def sizeVol_Cap(self):
         """
