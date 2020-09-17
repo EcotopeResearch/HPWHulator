@@ -371,9 +371,13 @@ class PrimarySystem_SP:
         array
             Array of heating capacity in kBTU/hr
         """
+        # Define the heating hours we'll check
+        delta = -0.25
 
-        maxHeatHours = 1/(max(self.loadShapeNorm))*1.001
-        heatHours = np.linspace(24, maxHeatHours,30)
+        maxHeatHours = 1/(max(self.loadShapeNorm))*1.001        
+        heatHours = np.concatenate((np.arange(24, self.maxDayRun_hr, delta), 
+                                    np.arange(self.maxDayRun_hr, maxHeatHours, delta)))
+        
         volN = np.zeros(len(heatHours))
         effMixFract = np.ones(len(heatHours))
         for ii in range(0,len(heatHours)):
@@ -386,7 +390,7 @@ class PrimarySystem_SP:
         heatHours   = heatHours[:ii]
         effMixFract = effMixFract[:ii]
 
-        return [volN, self.primaryHeatHrs2kBTUHR(heatHours, effMixFract)]
+        return [volN, self.primaryHeatHrs2kBTUHR(heatHours, effMixFract), heatHours]
 
     def sizeVol_Cap(self):
         """

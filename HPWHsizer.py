@@ -718,11 +718,6 @@ class HPWHsizer:
                               hovertemplate=hovertext,
                               opacity=0.8, marker_color='green'))
 
-        # fig.add_trace(Scatter(x=(0,max(x_data[-1],x_data[-2], x_data[0])),
-        #                       y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
-        #                       mode='lines', name='Recommended Minimum Size',
-        #                       opacity=0.8, marker_color='grey'))
-
         fig.add_trace(Scatter(x=[self.primarySystem.PVol_G_atStorageT],
                               y=[self.primarySystem.PCap_kBTUhr],
                               mode='markers', marker_symbol="diamond", marker_size=10,
