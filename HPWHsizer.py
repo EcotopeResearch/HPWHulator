@@ -712,14 +712,14 @@ class HPWHsizer:
         #               hovertemplate = hovertext,
         #               name='ASHRAE Low Curve' ))
 
-        [x_data, y_data] = self.primarySystem.primaryCurve()
+        [x_data, y_data, _, recInd] = self.primarySystem.primaryCurve()
         fig.add_trace(Scatter(x=x_data, y=y_data,
                               mode='lines', name='Primary Sizing Curve',
                               hovertemplate=hovertext,
                               opacity=0.8, marker_color='green'))
 
-        fig.add_trace(Scatter(x=[self.primarySystem.PVol_G_atStorageT],
-                              y=[self.primarySystem.PCap_kBTUhr],
+        fig.add_trace(Scatter(x=[x_data[recInd]],
+                              y=[y_data[recInd]],
                               mode='markers', marker_symbol="diamond", marker_size=10,
                               name='Recommended Size',
                               opacity=0.8, marker_color='blue'))
