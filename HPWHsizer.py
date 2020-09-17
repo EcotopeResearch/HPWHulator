@@ -25,7 +25,7 @@ from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
-from plotly.graph_objs import Figure, Scatter
+from plotly.graph_objs import Figure, Scatter, Bar
 from plotly.offline import plot
 from plotly.subplots import make_subplots
 
@@ -697,41 +697,28 @@ class HPWHsizer:
             raise Exception("System must be sized first")
 
         fig = Figure()
-
-        hovertext = 'Storage Volume: %{x:.1f} gallons \nHeating Capacity: %{y:.1f}'
-
-        # [x_ash, y_ash] = self.ashraeSize.primaryCurve()
-        # fig.add_trace(Scatter(x=x_ash[:-1], y=y_ash[:-1], #Drops the last point
-        #                       mode='lines', name='ASHRAE Sizing Curve',
-        #                       hovertemplate = hovertext,
-        #                       opacity=0.8, marker_color='red'))
-
-        # [xlow, ylow] = self.ashraeSize.getLowCurve()
-        # fig.add_trace(Scatter(x=xlow[:-1], y=ylow[:-1], #Drops the last point
-        #               mode='lines',   opacity=0.4,  marker_color='crimson',
-        #               hovertemplate = hovertext,
-        #               name='ASHRAE Low Curve' ))
+        fig = make_subplots(rows=2, cols=1, vertical_spacing = 0.,
+                            specs=[[{"secondary_y": False}],
+                            [{"secondary_y": True}]])
 
         [x_data, y_data] = self.primarySystem.primaryCurve()
-        fig.add_trace(Scatter(x=x_data, y=y_data,
-                              mode='lines', name='Primary Sizing Curve',
-                              hovertemplate=hovertext,
-                              opacity=0.8, marker_color='green'))
+    
+        x = np.linspace(10,24,len(x_data))
+        fig.add_trace(Bar(x=x,y=y_data, marker_color="lightgreen"))
 
-        # fig.add_trace(Scatter(x=(0,max(x_data[-1],x_data[-2], x_data[0])),
-        #                       y=(self.primarySystem.PCap_kBTUhr,self.primarySystem.PCap_kBTUhr),
-        #                       mode='lines', name='Recommended Minimum Size',
-        #                       opacity=0.8, marker_color='grey'))
+        fig.add_trace(Bar(x=x, y=x_data, marker_color="orange"), row=2,col=1)#,secondary_y=True)
+        
+        fig.update_xaxes(visible=False, showticklabels=False, showgrid=False, row=1, col=1)
+        fig.update_yaxes(title_text="Heating Capacity", showgrid=False, row=1, col=1)
 
-        fig.add_trace(Scatter(x=[self.primarySystem.PVol_G_atStorageT],
-                              y=[self.primarySystem.PCap_kBTUhr],
-                              mode='markers', marker_symbol="diamond", marker_size=10,
-                              name='Recommended Size',
-                              opacity=0.8, marker_color='blue'))
-
+        fig.update_yaxes(autorange="reversed", title_text="Storage Volume Gallons",
+                         showgrid=False, row=2, col=1)#, secondary_y=True)
+                    
         fig.update_layout(title="Primary Sizing Curve",
-                          xaxis_title="Primary Tank Volume (Gallons) at Storage Temperature",
-                          yaxis_title="Primary Heating Capacity (kBTU/hr)")
+                          #xaxis_title="Primary Tank Volume (Gallons) at Storage Temperature",
+                          #yaxis_title="Primary Heating Capacity (kBTU/hr)",
+                          showlegend=False 
+                          )
 
         if return_as_div:
             plot_div = plot(fig, output_type='div', show_link=False, link_text="",
