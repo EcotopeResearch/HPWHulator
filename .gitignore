@@ -131,4 +131,4 @@ dmypy.json
 *.stats
 
 /.pylint.d
-version.txt
+_version.py

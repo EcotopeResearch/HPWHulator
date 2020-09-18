@@ -17,6 +17,7 @@
 
 """
 import numpy as np
+import os
 
 from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
                 pCompMinimumRunTime, tmCompMinimumRunTime

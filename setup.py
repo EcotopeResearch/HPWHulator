@@ -46,6 +46,10 @@ setup(
     install_requires=requirements,
 	
 	setup_requires=['setuptools_scm'],
-	use_scm_version=True,
+
+	use_scm_version={'root': '.',
+		'write_to': '_version.py'
+		},
+
 
 )

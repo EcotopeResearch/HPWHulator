@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
+import os
 import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank
@@ -28,7 +28,6 @@ from Simulator import Simulator
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
 from plotly.subplots import make_subplots
-from setuptools_scm import get_version
 
 hpwhData = hpwhDataFetch()
 
@@ -378,7 +377,8 @@ class HPWHsizer:
     as shown in previous examples.
 
     """
-    __version__ = get_version()
+    with open(os.path.join(os.path.dirname(__file__), '_version.py')) as version_file:
+        __version__ = version_file.readlines()[-1].split()[-1].split("'")[1] #some hacking of the 
 
     def __init__(self):
 
