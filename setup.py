@@ -18,19 +18,7 @@
 """
 
 
-from setuptools import find_packages, setup, Distribution
-
-# Make sure versiontag exists before going any further. This won't actually install
-# the package. It will just download the egg file into `.eggs` so that it can be used
-# henceforth in setup.py.
-Distribution().fetch_build_eggs('versiontag')
-
-# Import versiontag components
-from versiontag import get_version, cache_git_tag
-
-# This caches for version in version.txt so that it is still accessible if
-# the .git folder disappears, for example, after the slug is built on Heroku.
-cache_git_tag()
+from setuptools import find_packages, setup
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
