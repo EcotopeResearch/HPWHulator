@@ -28,6 +28,7 @@ from Simulator import Simulator
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
 from plotly.subplots import make_subplots
+from setuptools_scm import get_version
 
 hpwhData = hpwhDataFetch()
 
@@ -377,11 +378,13 @@ class HPWHsizer:
     as shown in previous examples.
 
     """
+    __version__ = get_version()
+
     def __init__(self):
 
-        print(" HPWHulator Copyright (C) 2020  Ecotope Inc. ")
+        print("HPWHulator Copyright (C) 2020  Ecotope Inc. ")
         print("This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute under certain conditions; details check GNU AFFERO GENERAL PUBLIC LICENSE_08102020.docx.")
-
+        
         self.validbuild = False
         self.systemSized = False
         self.doLoadShift = False
