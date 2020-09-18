@@ -46,8 +46,6 @@ setup(
     install_requires=requirements,
 	
 	setup_requires=['setuptools_scm'],
-	use_scm_version={
-        "root": "..",
-		},
+	use_scm_version=True,
 
 )
