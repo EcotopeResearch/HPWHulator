@@ -378,8 +378,9 @@ class HPWHsizer:
 
     """
     with open(os.path.join(os.path.dirname(__file__), '_version.py')) as version_file:
-        __version__ = version_file.readlines()[-1].split()[-1].split("'")[1] #some hacking of the 
-
+        __versionfull__ = version_file.readlines()[-1].split()[-1].split("'")[1] #some hacking of the 
+        __version__ = __versionfull__.split('d')[0]
+        
     def __init__(self):
 
         print("HPWHulator Copyright (C) 2020  Ecotope Inc. ")
