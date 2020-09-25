@@ -17,7 +17,6 @@
 
 """
 import numpy as np
-import os
 
 from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
                 pCompMinimumRunTime, tmCompMinimumRunTime
@@ -225,7 +224,6 @@ class PrimarySystem_SP:
             totalVolMax = runningVol_G / (1-self.aquaFract)
         else: # If the swing tank is not being used
             totalVolMax = mixVolume(runningVol_G, self.storageT_F, self.incomingT_F, self.supplyT_F) / (1-self.aquaFract)
-
 
         # Check the Cycling Volume ############################################
         cyclingVol_G = totalVolMax * (self.aquaFract - (1 - self.percentUseable))

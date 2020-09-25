@@ -959,7 +959,7 @@ class HPWHsizer:
 
         # Init the "simulation"
         V0 = Pvolume* self.primarySystem.percentUseable
-        Vtrig = Pvolume* (1 - self.primarySystem.aquaFract)
+        Vtrig = Pvolume * (1 - self.primarySystem.aquaFract) + 1 # To prevent negatives with any of that rounding math.
 
         if self.inputs.schematic == "swingtank" :
             hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,
