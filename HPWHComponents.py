@@ -311,6 +311,8 @@ class PrimarySystem_SP:
         if len(diffInd) == 0:
             raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day",)
 
+        # Watch out for cases swing cases where the heating is to close to the initial peak value so also check the hour afterwards too.
+        diffInd = np.append(diffInd, diffInd+1)
         runV_G = 0
         for peakInd in diffInd:
             hw_out = np.tile(self.loadShapeNorm, 2)
