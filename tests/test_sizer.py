@@ -340,20 +340,7 @@ def test_multipass(people_sizer):
 
 
 #############################################################################
-# Full model and file tests!
-@pytest.mark.parametrize("file1", [
-    "tests/test_60UnitSwing.txt",
-    "tests/test_200UnitTM.txt"
-])
-def test_hpwh_from_file(empty_sizer, file1):
-    empty_sizer.initializeFromFile(file1)
-    results = empty_sizer.build_size()
-    assert len(results) == 4
-    empty_sizer.writeToFile("tests/output/"+os.path.basename(file1))
-
-    assert file_regression("tests/ref/"+os.path.basename(file1),
-                            "tests/output/"+os.path.basename(file1))
-
+# Full model test! 
 def test_primarySizer(primary_sizer):
     with pytest.raises(Exception, match="The system can not be sized without a valid build"):
         assert primary_sizer.sizeSystem()
