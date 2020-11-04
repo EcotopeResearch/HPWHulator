@@ -342,8 +342,8 @@ class Simulator:
             did_run = hw_in * (1-time_over)
             self.pheating = False # Stop heating
 
-        if Vnew < 0:
-            raise Exception("Primary storage ran out of Volume!")
+        #if Vnew < 0:
+        #    raise Exception("Primary storage ran out of Volume!")
 
         return Vnew, did_run
 

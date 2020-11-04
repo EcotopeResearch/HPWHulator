@@ -764,6 +764,9 @@ class HPWHsizer:
         D_hw = np.array(D_hw[-(60*hrind_fromback):])*60
         V = np.array(V[-(60*hrind_fromback):])
 
+        if any(i < 0 for i in V):
+            raise Exception("Primary storage ran out of Volume!")
+
         if swingT:
             fig = make_subplots(rows=2, cols=1,
                                 specs=[[{"secondary_y": False}],
@@ -958,8 +961,8 @@ class HPWHsizer:
         D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
 
         # Init the "simulation"
-        V0 = Pvolume* self.primarySystem.percentUseable
-        Vtrig = Pvolume * (1 - self.primarySystem.aquaFract) + 1 # To prevent negatives with any of that rounding math.
+        V0 = np.ceil(Pvolume* self.primarySystem.percentUseable) 
+        Vtrig = np.ceil(Pvolume * (1 - self.primarySystem.aquaFract)) + 1 # To prevent negatives with any of that rounding math.
 
         if self.inputs.schematic == "swingtank" :
             hpwhsim = Simulator(G_hw, D_hw, V0, Vtrig,
