@@ -948,13 +948,17 @@ class HPWHsizer:
             else:
                 raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
 
-
+        if self.primarySystem.loadShift:
+            loadShapeN = self.primarySystem.avgLoadShape
+        else:
+            loadShapeN = self.primarySystem.loadShapeNorm
+        
         # Get the generation rate from the primary capacity
         G_hw = 1000 * Pcapacity / rhoCp / (self.primarySystem.supplyT_F - self.primarySystem.incomingT_F) \
                * self.primarySystem.defrostFactor * np.tile(self.primarySystem.LS_on_off,3)
 
         # Define the use of DHW with the normalized load shape
-        D_hw = self.primarySystem.totalHWLoad * self.primarySystem.fractDHW * np.tile(self.primarySystem.loadShapeNorm,3)
+        D_hw = self.primarySystem.totalHWLoad * self.primarySystem.fractDHW * np.tile(loadShapeN,3)
 
         # To per minute from per hour
         G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
