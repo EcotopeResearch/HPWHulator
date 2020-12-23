@@ -551,7 +551,7 @@ class HPWHsizer:
             self.inputs.initTempMaintInputs(Wapt, safetyTM, setpointTM_F, TMonTemp_F, offTime_hr)
 
 
-    def setLoadShiftforPrimary(self, ls_arr, cdf_shift=1):
+    def setLoadShiftforPrimary(self, ls_arr, cdf_shift=1, avgLoadShape="Stream_Avg"):
         """
         Sets the load shift to user defined list of 0s of false for force
         HPWH not to run, and 1s or true for run.
@@ -563,7 +563,7 @@ class HPWHsizer:
             define when HPWH's are allowed to run during a day for load shift.
 
         """
-        self.inputs.setLoadShift(ls_arr, cdf_shift)
+        self.inputs.setLoadShift(ls_arr, cdf_shift, avgLoadShape)
         self.doLoadShift = True
 
     def buildSystem(self):
@@ -617,7 +617,7 @@ class HPWHsizer:
                                                   self.inputs.defrostFactor,
                                                   self.tempmaintSystem if self.inputs.schematic == "swingtank" else None)
             if self.doLoadShift:
-                self.primarySystem.setLoadShift(self.inputs.loadshift, self.inputs.fract_total_vol)
+                self.primarySystem.setLoadShift(self.inputs.loadshift, self.inputs.fract_total_vol, self.inputs.avgLoadShape)
 
         elif not self.inputs.singlePass:
             # Multipass systems not yet supported
@@ -948,13 +948,17 @@ class HPWHsizer:
             else:
                 raise Exception("The system hasn't been sized yet! Either specify capacity AND volume or size the system.")
 
-
+        if self.primarySystem.loadShift:
+            loadShapeN = self.primarySystem.avgLoadShape
+        else:
+            loadShapeN = self.primarySystem.loadShapeNorm
+        
         # Get the generation rate from the primary capacity
         G_hw = 1000 * Pcapacity / rhoCp / (self.primarySystem.supplyT_F - self.primarySystem.incomingT_F) \
                * self.primarySystem.defrostFactor * np.tile(self.primarySystem.LS_on_off,3)
 
         # Define the use of DHW with the normalized load shape
-        D_hw = self.primarySystem.totalHWLoad * self.primarySystem.fractDHW * np.tile(self.primarySystem.loadShapeNorm,3)
+        D_hw = self.primarySystem.totalHWLoad * self.primarySystem.fractDHW * np.tile(loadShapeN,3)
 
         # To per minute from per hour
         G_hw = np.array(HRLIST_to_MINLIST(G_hw)) / 60
@@ -1025,8 +1029,10 @@ class HPWHsizerRead:
         self.offTime_hr = 0.
         self.safetyTM = 0.
 
-        self.loadshift      = np.ones(24) # The load shift array
-        self.fract_total_vol=1
+        self.loadshift = np.ones(24) # The load shift array
+        self.fract_total_vol = 1
+        self.avgLoadShape = np.zeros(24)
+        
         self.singlePass = True # Single pass or multipass
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
@@ -1132,7 +1138,7 @@ class HPWHsizerRead:
 
 
 
-    def setLoadShift(self, ls_arr, cdf_shift):
+    def setLoadShift(self, ls_arr, cdf_shift, avgLoadShape):
         """
         Checks and initilize the load shift variable.
 
@@ -1157,7 +1163,8 @@ class HPWHsizerRead:
         #    raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
         self.fract_total_vol = self.__cdfShift(cdf_shift) # fraction of total volume for for load shifting
-
+        self.avgLoadShape = hpwhData.getLoadshape("Stream_Avg") #The average load shape
+        
     def __cdfShift(self, cdf_shift=1):
         # adjust for cdf_shift
         if cdf_shift == 1: # meaing 100% of days covered by load shift

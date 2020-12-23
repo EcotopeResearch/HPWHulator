@@ -57,8 +57,11 @@ class hpwhDataFetch():
         with open(os.path.join(os.path.dirname(__file__), 'hpwhdata.json')) as json_file:
             self.dataDict = json.load(json_file)
 
-    def getLoadshape(self):
-        return self.dataDict['loadshapes']['Stream']
+    def getLoadshape(self, shape = 'Stream'):
+        try: 
+            return self.dataDict['loadshapes'][shape]
+        except KeyError:
+            raise KeyError("Mapping key not found for loadshapes, valid keys are: 'Stream', or 'Stream_Avg'")
 
     def getGPDPP(self, key):
         try:

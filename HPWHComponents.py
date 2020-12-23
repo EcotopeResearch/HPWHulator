@@ -22,7 +22,6 @@ from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
                 pCompMinimumRunTime, tmCompMinimumRunTime
 from Simulator import Simulator
 
-
 ##############################################################################
 ## Components of a HPWH system given below:
 ##############################################################################
@@ -108,12 +107,13 @@ class PrimarySystem_SP:
         self.loadShift = False
         self.fractDHW = 1.
         self.LSconstrained = False
-
+        self.avgLoadShape = None
+         
         # Outputs
         self.PCap_kBTUhr = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-    def setLoadShift(self, schedule, fractDHW=1):
+    def setLoadShift(self, schedule, fractDHW, avgLoadShape):
         """
         Sets the load shifting schedule from input schedule
 
@@ -133,7 +133,9 @@ class PrimarySystem_SP:
         self.loadShift = True
         #Check if need to increase sizing to meet lower runtimes for load shift
         self.maxDayRun_hr = min(self.compRuntime_hr, sum(self.LS_on_off))
-
+         
+        self.avgLoadShape = np.array(avgLoadShape)
+        
     def _checkHeatHours(self, heathours):
         """
         Quick check to see if heating hours is a valid number between 1 and 24
@@ -209,9 +211,9 @@ class PrimarySystem_SP:
             LSrunningVol_G = 0
             LSeffMixFract = 0
             if self.swingTank:
-                LSrunningVol_G, LSeffMixFract = self.__calcRunningVolSwingTank(heatHrs, self.LS_on_off)
+                LSrunningVol_G, LSeffMixFract = self.__calcRunningVolSwingTank(heatHrs, self.LS_on_off, self.avgLoadShape)
             else:
-                LSrunningVol_G = self.__calcRunningVol(heatHrs, self.LS_on_off)
+                LSrunningVol_G = self.__calcRunningVol(heatHrs, self.LS_on_off, self.avgLoadShape)
             LSrunningVol_G *= self.fractDHW
 
             # Get total volume from max of primary method or load shift method
@@ -238,7 +240,7 @@ class PrimarySystem_SP:
         # Return the temperature adjusted total volume ########################
         return totalVolMax, effMixFract, largerLS
 
-    def __calcRunningVol(self, heatHrs, onOffArr):
+    def __calcRunningVol(self, heatHrs, onOffArr, loadShapeN = None):
         """
         Function to find the running volume for the hot water storage tank, which
         is needed for calculating the total volume for primary sizing and in the event of load shift sizing
@@ -250,7 +252,10 @@ class PrimarySystem_SP:
             The number of hours primary heating equipment can run in a day.
         onOffArr : ndarray
             array of 1/0's where 1's allow heat pump to run and 0's dissallow. of length 24.
-
+            
+        loadShape : ndarray
+            defaults to memember design load shape.
+        
         Raises
         ------
         Exception: Error if oversizeing system.
@@ -261,9 +266,11 @@ class PrimarySystem_SP:
             The running volume in gallons
 
         """
-
+        if loadShapeN is None:
+            loadShapeN = self.loadShapeNorm
+            
         genrate = np.tile(onOffArr,2) / heatHrs #hourly
-        diffN = genrate - np.tile(self.loadShapeNorm,2) #hourly
+        diffN = genrate - np.tile(loadShapeN,2) #hourly
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
 
         diffN *= self.totalHWLoad
@@ -278,7 +285,7 @@ class PrimarySystem_SP:
 
         return runV_G
 
-    def __calcRunningVolSwingTank(self, heatHrs, onOffArr):
+    def __calcRunningVolSwingTank(self, heatHrs, onOffArr, loadShapeN=None):
         """
         Function to find the running volume for the hot water storage tank, which
         is needed for calculating the total volume for primary sizing and in the event of load shift sizing
@@ -301,10 +308,13 @@ class PrimarySystem_SP:
             The running volume in gallons
 
         """
+        if loadShapeN is None:
+            loadShapeN = self.loadShapeNorm
+                    
         genrate = np.tile(onOffArr,2) / heatHrs #hourly
-        diffN   = genrate - np.tile(self.loadShapeNorm,2) #hourly
+        diffN   = genrate - np.tile(loadShapeN,2) #hourly
         diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
-
+                
         # Get the running volume ##############################################
         if len(diffInd) == 0:
             raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day",)
@@ -313,7 +323,7 @@ class PrimarySystem_SP:
         diffInd = np.append(diffInd, diffInd+1)
         runV_G = 0
         for peakInd in diffInd:
-            hw_out = np.tile(self.loadShapeNorm, 2)
+            hw_out = np.tile(loadShapeN, 2)
             hw_out = np.array(HRLIST_to_MINLIST(hw_out[peakInd:peakInd+24])) \
                 / 60 * self.totalHWLoad # to minute
 
@@ -350,6 +360,7 @@ class PrimarySystem_SP:
             # fig.show()
 
             new_runV_G = -min(diffCum[diffCum<0.])
+            
             if runV_G < new_runV_G:
                 runV_G = new_runV_G #Minimum value less than 0 or 0.
                 eff_HW_mix_faction = temp_eff_HW_mix_faction
