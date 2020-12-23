@@ -21,9 +21,6 @@ import numpy as np
 from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, mixVolume, \
                 pCompMinimumRunTime, tmCompMinimumRunTime
 from Simulator import Simulator
-from dataFetch import hpwhDataFetch
-
-hpwhData = hpwhDataFetch()
 
 ##############################################################################
 ## Components of a HPWH system given below:
@@ -116,7 +113,7 @@ class PrimarySystem_SP:
         self.PCap_kBTUhr = 0. #kBTU/Hr
         self.PVol_G_atStorageT = 0. # Gallons
 
-    def setLoadShift(self, schedule, fractDHW=1):
+    def setLoadShift(self, schedule, fractDHW, avgLoadShape):
         """
         Sets the load shifting schedule from input schedule
 
@@ -137,7 +134,7 @@ class PrimarySystem_SP:
         #Check if need to increase sizing to meet lower runtimes for load shift
         self.maxDayRun_hr = min(self.compRuntime_hr, sum(self.LS_on_off))
          
-        self.avgLoadShape = np.array(hpwhData.getLoadshape("Stream_Avg"))
+        self.avgLoadShape = np.array(avgLoadShape)
         
     def _checkHeatHours(self, heathours):
         """
