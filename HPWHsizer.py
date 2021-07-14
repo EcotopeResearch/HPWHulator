@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-import os
-import numpy as np
 
 from HPWHComponents import PrimarySystem_SP, ParallelLoopTank, SwingTank
 from ashraesizer import ASHRAEsizer
@@ -25,6 +23,9 @@ from cfg import rhoCp, W_TO_BTUHR, HRLIST_to_MINLIST, tmCompMinimumRunTime
 from dataFetch import hpwhDataFetch
 from Simulator import Simulator
 
+
+import os
+import numpy as np
 from plotly.graph_objs import Figure, Scatter
 from plotly.offline import plot
 from plotly.subplots import make_subplots
@@ -302,11 +303,11 @@ class HPWHsizer:
                                 rBR = "CA",
                                 gpdpp_BR = "CA",
                                 loadShapeNorm = "stream",
-                                supplyT_F = 125,
-                                incomingT_F = 50,
+                                supplyT_F = 125.,
+                                incomingT_F = 50.,
                                 storageT_F= 150.,
                                 compRuntime_hr = 16.,
-                                percentUseable = .8,
+                                percentUseable = 0.8,
                                 aquaFract = 0.4,
                                 schematic = "swingtank")
 
@@ -1328,3 +1329,15 @@ def loadgpdpp( gpdpp, nBR=None):
             gpdpp = hpwhData.getGPDPP(gpdpp)[0]
 
     return gpdpp
+	
+	
+def getLoadshape( loadshapeKey = "Stream"):
+    """
+    Get loadshape for the data dictionary. Valid keys are: 'Stream', or 'Stream_Avg'
+
+    Attributes
+    ----------
+		loadshapeKey: string. Key to look up loadshape
+    """
+	
+	return hpwhData.getLoadshape(shape)
