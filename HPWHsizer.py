@@ -379,14 +379,14 @@ class HPWHsizer:
 
     """
     with open(os.path.join(os.path.dirname(__file__), '_version.py')) as version_file:
-        __versionfull__ = version_file.readlines()[-1].split()[-1].split("'")[1] #some hacking of the 
+        __versionfull__ = version_file.readlines()[-1].split()[-1].split("'")[1] #some hacking of the
         __version__ = __versionfull__.split('d')[0]
-        
+
     def __init__(self):
 
         print("HPWHulator Copyright (C) 2020  Ecotope Inc. ")
         print("This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute under certain conditions; details check GNU AFFERO GENERAL PUBLIC LICENSE_08102020.docx.")
-        
+
         self.validbuild = False
         self.systemSized = False
         self.doLoadShift = False
@@ -953,7 +953,7 @@ class HPWHsizer:
             loadShapeN = self.primarySystem.avgLoadShape
         else:
             loadShapeN = self.primarySystem.loadShapeNorm
-        
+
         # Get the generation rate from the primary capacity
         G_hw = 1000 * Pcapacity / rhoCp / (self.primarySystem.supplyT_F - self.primarySystem.incomingT_F) \
                * self.primarySystem.defrostFactor * np.tile(self.primarySystem.LS_on_off,3)
@@ -966,7 +966,7 @@ class HPWHsizer:
         D_hw = np.array(HRLIST_to_MINLIST(D_hw)) / 60
 
         # Init the "simulation"
-        V0 = np.ceil(Pvolume* self.primarySystem.percentUseable) 
+        V0 = np.ceil(Pvolume* self.primarySystem.percentUseable)
         Vtrig = np.ceil(Pvolume * (1 - self.primarySystem.aquaFract)) + 1 # To prevent negatives with any of that rounding math.
 
         if self.inputs.schematic == "swingtank" :
@@ -1033,28 +1033,27 @@ class HPWHsizerRead:
         self.loadshift = np.ones(24) # The load shift array
         self.fract_total_vol = 1
         self.avgLoadShape = np.zeros(24)
-        
+
         self.singlePass = True # Single pass or multipass
 
     def initPrimaryByUnits(self, nBR, rBR, gpdpp_BR, loadShapeNorm, supplyT_F, incomingT_F,
-                    storageT_F, compRuntime_hr, percentUseable,  aquaFract,
-                    schematic, defrostFactor, singlePass = True):
+                           storageT_F, compRuntime_hr, percentUseable,  aquaFract,
+                           schematic, defrostFactor, singlePass=True):
 
-        self.nBR            = np.array(nBR) # Number of bedrooms 0Br, 1Br...
+        self.nBR = np.array(nBR)  # Number of bedrooms 0Br, 1Br...
         # Calc the number of apartments
         nApt = sum(self.nBR)
 
         # Check if rBR is a string input
-        if type(rBR) is str: # if the input here is a string get the loadshape.
+        if type(rBR) is str:  # if the input here is a string get the loadshape.
             self.rBR = hpwhData.getRPepperBR(rBR)
         else:
-            self.rBR = np.array(rBR) # Ratio of people bedrooms 0Br, 1Br...
-        #Now get the number of people
+            self.rBR = np.array(rBR)  # Ratio of people bedrooms 0Br, 1Br...
+        # Now get the number of people
         nPeople = sum(self.nBR * self.rBR)
 
-
         # Check if gpdpp_BR is a string input and get the gpdpp
-        if type(gpdpp_BR) is str: # if the input here is a string get the loadshape.
+        if type(gpdpp_BR) is str:  # if the input here is a string get the loadshape.
             self.gpdpp_BR = loadgpdpp(gpdpp_BR, self.nBR)
             gpdpp = self.gpdpp_BR
         else:
@@ -1165,7 +1164,7 @@ class HPWHsizerRead:
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
         self.fract_total_vol = self.__cdfShift(cdf_shift) # fraction of total volume for for load shifting
         self.avgLoadShape = hpwhData.getLoadshape("Stream_Avg") #The average load shape
-        
+
     def __cdfShift(self, cdf_shift=1):
         # adjust for cdf_shift
         if cdf_shift == 1: # meaing 100% of days covered by load shift
@@ -1328,9 +1327,8 @@ def loadgpdpp( gpdpp, nBR=None):
         else:
             gpdpp = hpwhData.getGPDPP(gpdpp)[0]
 
-	return gpdpp
+    return gpdpp
 
-	
 def getLoadshape(loadshapeKey = "Stream"):
     """
     Get loadshape for the data dictionary. Valid keys are: 'Stream', or 'Stream_Avg'
@@ -1339,5 +1337,5 @@ def getLoadshape(loadshapeKey = "Stream"):
     ----------
 		loadshapeKey: string. Key to look up loadshape
     """
-	
-    return hpwhData.getLoadshape(shape)
+
+    return hpwhData.getLoadshape(loadshapeKey)
