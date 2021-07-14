@@ -1328,10 +1328,10 @@ def loadgpdpp( gpdpp, nBR=None):
         else:
             gpdpp = hpwhData.getGPDPP(gpdpp)[0]
 
-    return gpdpp
+	return gpdpp
+
 	
-	
-def getLoadshape( loadshapeKey = "Stream"):
+def getLoadshape(loadshapeKey = "Stream"):
     """
     Get loadshape for the data dictionary. Valid keys are: 'Stream', or 'Stream_Avg'
 
@@ -1340,4 +1340,4 @@ def getLoadshape( loadshapeKey = "Stream"):
 		loadshapeKey: string. Key to look up loadshape
     """
 	
-	return hpwhData.getLoadshape(shape)
+    return hpwhData.getLoadshape(shape)
