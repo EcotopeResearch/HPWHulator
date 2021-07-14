@@ -1189,8 +1189,8 @@ class HPWHsizerRead:
             raise Exception('Invalid input given for aquaFract, it must be between 0 and 1.\n')
         if aquaFract < (1-percentUseable): # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for aquaFract, it must be greater than (1 - percentUseable) otherwise the aquastat is in the cold part of the storage tank.\n')
-        if gpdpp > 49: # or self.gpdpp < 20:
-            raise Exception('\nERROR: Please ensure your gallons per day per person is less than 49, the recommend max volume used per day\n')
+        #if gpdpp > 49: # or self.gpdpp < 20:
+        #    raise Exception('\nERROR: Please ensure your gallons per day per person is less than 49, the recommend max volume used per day\n')
 
         # Check temperature inputs
         if not checkLiqudWater(supplyT_F):
