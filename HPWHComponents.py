@@ -634,4 +634,5 @@ def getPeakIndices(diff1):
     if not isinstance(diff1, np.ndarray):
         diff1 = np.array(diff1)
     diff1 = np.insert(diff1, 0, 0)
+    diff1[diff1==0] = .0001 #Got to catch this error in the algorithm. Damn 0s.
     return np.where(np.diff(np.sign(diff1))<0)[0]
