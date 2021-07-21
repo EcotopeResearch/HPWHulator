@@ -271,7 +271,7 @@ class PrimarySystem_SP:
             
         genrate = np.tile(onOffArr,2) / heatHrs #hourly
         diffN = genrate - np.tile(loadShapeN,2) #hourly
-        diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
+        diffInd = getPeakIndices(diffN[0:24]) #Days repeat so just get first day!
 
         diffN *= self.totalHWLoad
         # Get the running volume ##############################################
@@ -313,7 +313,7 @@ class PrimarySystem_SP:
                     
         genrate = np.tile(onOffArr,2) / heatHrs #hourly
         diffN   = genrate - np.tile(loadShapeN,2) #hourly
-        diffInd = getPeakIndices(diffN[0:23]) #Days repeat so just get first day!
+        diffInd = getPeakIndices(diffN[0:24]) #Days repeat so just get first day!
                 
         # Get the running volume ##############################################
         if len(diffInd) == 0:
