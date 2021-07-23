@@ -359,7 +359,7 @@ class PrimarySystem_SP:
             # fig.add_trace(Scatter(y=genrate_min, mode='lines', name='genrate'))
             # fig.show()
 			
-			new_runV_G = 0.
+            new_runV_G = 0.
             if any(diffCum<0.):
                 new_runV_G = -min(diffCum[diffCum<0.])
             
