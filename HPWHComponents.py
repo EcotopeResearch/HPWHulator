@@ -320,7 +320,9 @@ class PrimarySystem_SP:
             raise Exception("ERROR ID 03","The heating rate is greater than the peak volume the system is oversized! Try increasing the hours the heat pump runs in a day",)
 
         # Watch out for cases swing cases where the heating is to close to the initial peak value so also check the hour afterwards too.
+        nRealpeaks = len(diffInd);
         diffInd = np.append(diffInd, diffInd+1)
+        diffInd = diffInd[diffInd < 24]
         runV_G = 0
         for peakInd in diffInd:
             hw_out = np.tile(loadShapeN, 2)
@@ -358,10 +360,13 @@ class PrimarySystem_SP:
             # fig.add_trace(Scatter(y=diffCum, mode='lines', name='diffCum'))
             # fig.add_trace(Scatter(y=genrate_min, mode='lines', name='genrate'))
             # fig.show()
-			
-            new_runV_G = 0.
-            if any(diffCum<0.):
-                new_runV_G = -min(diffCum[diffCum<0.])
+
+            # Check if additional cases saftey checks have oversized the system.
+            if(np.where(diffInd == peakInd)[0][0] >= nRealpeaks):
+                if not any(diffCum < 0.):
+                    continue
+
+            new_runV_G = -min(diffCum[diffCum<0.])
             
             if runV_G < new_runV_G:
                 runV_G = new_runV_G #Minimum value less than 0 or 0.
