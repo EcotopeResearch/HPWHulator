@@ -315,7 +315,9 @@ def test_swing_loadshapes(people_sizer, loadshape):
     people_sizer.inputs.calcedVariables()
 
     # Size the system
-    people_sizer.build_size()
+    [PV, PV, _, TMC] =people_sizer.build_size()
+    assert all(i > 0 for i in [PV, PV, TMC])
+
     # Check the simulation plot is all >= 0
     [ V, G_hw, D_hw, run, _, _, _ ] = people_sizer.runStorage_Load_Sim()
     # fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
