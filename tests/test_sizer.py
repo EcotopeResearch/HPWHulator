@@ -298,6 +298,32 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     assert all(i >= 0 for i in V + G_hw + D_hw + run)
     assert min(swingT) >= nSupplyT
 
+@pytest.mark.parametrize("loadshape", [
+    (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+    (1/2, 1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2, 1/2),
+    (1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/4, 1/4),
+    (1/4, 1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/4),
+    (1/4, 1/4, 1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ])
+def test_swing_loadshapes(people_sizer, loadshape):
+    people_sizer.inputs.loadShapeNorm
+    
+    # Recalc inputs
+    people_sizer.inputs.calcedVariables()
+
+    # Size the system
+    [PV, PV, _, TMC] =people_sizer.build_size()
+    assert all(i > 0 for i in [PV, PV, TMC])
+
+    # Check the simulation plot is all >= 0
+    [ V, G_hw, D_hw, run, _, _, _ ] = people_sizer.runStorage_Load_Sim()
+    # fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
+    # fig.write_html("tests/output/" + str(nSupplyT) + "_"+ str(nStorageT_F)+"_"+str(nPep) +"_"+str(nApt)+ "_"+ str(Wapt)+ "_"  +".html")
+    assert all(i >= 0 for i in V + G_hw + D_hw + run)
+
 ##############################################################################
 # Init Tests
 def test_default_init(empty_sizer):
