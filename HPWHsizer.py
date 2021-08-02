@@ -1070,10 +1070,9 @@ class HPWHsizerRead:
                     storageT_F, compRuntime_hr, percentUseable,  aquaFract,
                     schematic, defrostFactor, singlePass = True):
 
-        loadShapeNorm = np.array(loadShapeNorm)
-        # loadShapeNorm have been coeerced to np.arrays so check these for string inputs
-        if loadShapeNorm.dtype.type is np.str_: # if the input here is a any string get the loadshape.
+        if isinstance(loadShapeNorm, str): # if the input here is a any string get the loadshape.
             loadShapeNorm = hpwhData.getLoadshape()
+        loadShapeNorm = np.array(loadShapeNorm)
 
         gpdpp =  loadgpdpp(gpdpp)
 
@@ -1152,7 +1151,7 @@ class HPWHsizerRead:
         ls_arr = np.array(ls_arr, dtype = bool) # Coerce to numpy array of data type boolean
         # Check
         if len(ls_arr) != 24 :
-            raise Exception("loadshift is not of length 24 but instead has length of "+str(len(self.loadShapeNorm))+".")
+            raise Exception("loadshift is not of length 24 but instead has length of "+str(len(ls_arr))+".")
         if sum(ls_arr) == 0 :
             raise Exception("When using Load shift the HPWH's must run for at least 1 hour each day.")
         if cdf_shift < 0.25 :
@@ -1161,9 +1160,15 @@ class HPWHsizerRead:
             raise Exception("Cannot load shift for more than 100 percent of days")
        # if sum(ls_arr) == 24 :
         #    raise Exception("If the HPWH's are free to run 24 hours a day, you aren't really loadshifting")
+        if isinstance(avgLoadShape, str):
+            self.avgLoadShape = hpwhData.getLoadshape(avgLoadShape) #The average load shape
+        elif isinstance(avgLoadShape, list) or isinstance(avgLoadShape, np.ndarray):
+            avgLoadShape = np.array(avgLoadShape)
+            self.__checkLoadShapeInputs(avgLoadShape, "avgLoadShape")
+            self.avgLoadShape = avgLoadShape
+
         self.loadshift = np.array(ls_arr, dtype = float)# Coerce to numpy array of data type float
         self.fract_total_vol = self.__cdfShift(cdf_shift) # fraction of total volume for for load shifting
-        self.avgLoadShape = hpwhData.getLoadshape("Stream_Avg") #The average load shape
 
     def __cdfShift(self, cdf_shift=1):
         # adjust for cdf_shift
@@ -1179,8 +1184,9 @@ class HPWHsizerRead:
                     storageT_F, compRuntime_hr, percentUseable, aquaFract,
                     schematic, defrostFactor, singlePass):
         """Checks inputs are all valid"""
-        if sum(loadShapeNorm) > 1 + 1e3 or sum(loadShapeNorm) < 1 - 1e3:
-            raise Exception("Sum of the loadShapeNorm does not equal 1 but "+str(sum(loadShapeNorm))+".")
+
+        self.__checkLoadShapeInputs(loadShapeNorm, "loadShapeNorm")
+
         if schematic not in self.schematicNames:
             raise Exception('Invalid input given for the schematic: "'+ schematic +'".\n')
         if percentUseable > 1 or percentUseable < 0: # Check to make sure the percent is stored as anumber 0 to 1.
@@ -1210,6 +1216,13 @@ class HPWHsizerRead:
         if defrostFactor > 1 or defrostFactor < 0: # Check to make sure the percent is stored as anumber 0 to 1.
             raise Exception('Invalid input given for defrostFactor, it must be between 0 and 1.\n')
 
+    def __checkLoadShapeInputs(self, loadshape, varName):
+        if len(loadshape) != 24:
+            raise Exception(varName + " is must be of length 24 but instead has length of "+str(len(loadshape))+".")
+        if sum(loadshape) > 1 + 1e-3 or sum(loadshape) < 1 - 1e-3:
+            raise Exception("Sum of the " + varName + " does not equal 1 but "+str(sum(loadshape))+".")
+        if any(loadshape < 0):
+            raise Exception("Can not have negative load shape values in" + varName + ".")
 
     def calcedVariables(self):
         """ Calculate other variables needed."""

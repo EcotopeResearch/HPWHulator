@@ -23,7 +23,7 @@ import pytest
 import filecmp
 import numpy as np
 
-import os
+import os, sys
 import HPWHsizer
 import dataFetch
 from HPWHComponents import getPeakIndices
@@ -33,15 +33,26 @@ from cfg import mixVolume
 def file_regression(fileRef, fileResults):
     return filecmp.cmp(fileRef, fileResults)
 
+class Shhh:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
 @pytest.fixture
 def empty_sizer():
     '''Returns a HPWHsizer instance initialized to zeros'''
-    return HPWHsizer.HPWHsizer()
+    with Shhh():
+        hpwh = HPWHsizer.HPWHsizer()
+    return hpwh
 
 @pytest.fixture
 def units_sizer():
     '''Returns a HPWHsizer instance initialized to with by units'''
-    hpwh = HPWHsizer.HPWHsizer()
+    with Shhh():
+        hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByUnits([50,50,50,50,0,0],
                             [1.374,1.74,2.567,3.109,4.225,3.769],
                             [20,20,20,20,20,20],
@@ -56,7 +67,8 @@ def units_sizer():
 @pytest.fixture
 def people_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
-    hpwh = HPWHsizer.HPWHsizer()
+    with Shhh():
+        hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 36, 22.,
                              "stream",
                              120, 50, 150., 18., 0.9, 0.4,
@@ -68,7 +80,8 @@ def people_sizer():
 @pytest.fixture
 def primary_sizer():
     '''Returns a HPWHsizer instance initialized by nPeople inputs'''
-    hpwh = HPWHsizer.HPWHsizer()
+    with Shhh():
+        hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByPeople(100, 36, 22, "stream",
                              120, 50, 150., 16., .9, 0.4,
                              "primary", .9 )
@@ -76,7 +89,8 @@ def primary_sizer():
 
 @pytest.fixture
 def CA_sizer(): # Returns the hpwh sizer object designed for Cali options
-    hpwh = HPWHsizer.HPWHsizer()
+    with Shhh():
+        hpwh = HPWHsizer.HPWHsizer()
     hpwh.initPrimaryByUnits([6,12,12,6,0,0], "CA", "CA", "stream",
                             125, 50, 150., 16., .8, 0.4,
                             "swingtank")
@@ -166,6 +180,28 @@ def test_parallel_min_size(units_sizer):
     with pytest.raises(Exception, match="The expected run time of the parallel tank is less time the minimum runtime for a HPWH of 20.0 minutes."):
         units_sizer.initTempMaint( 100, safetyTM = 5, offTime_hr = .5)
 
+
+@pytest.mark.parametrize("loadshape", [
+    ([-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ([1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1/2]),
+    ([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
+    ([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1]),
+    ([-1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1]),
+    ("loadshape"), ([1]), ([-1]), ([1, -1]), ([1000, -1]), ([10]*24)
+    ])
+class TestParametrizedLoadShapeErrors:
+    def test_loadShapeNorm_errors(self, empty_sizer, loadshape):
+        # Check the init is bad for the load shape norm
+        with pytest.raises(Exception):
+            empty_sizer.initPrimaryByPeople(100, 50, 20, loadshape,
+                        120, 50, 150., 16., 0.4, 0.11, "primary")
+            
+    def test_LS_loadshape_errors(self, primary_sizer, loadshape):
+        # Check the init is bad for the load shape norm
+        with pytest.raises(Exception):
+            primary_sizer.setLoadShiftforPrimary([1]*24, avgLoadShape = loadshape)
+
 # Test the Fetcher
 def test_getLoadshape(fetcher):
     assert fetcher.getLoadshape() == [0.015197568,
@@ -221,6 +257,9 @@ def test_loadgpdpp_errs():
         assert HPWHsizer.loadgpdpp('CA',1)
     with pytest.raises(Exception):
         assert HPWHsizer.loadgpdpp('CA',[12,12,12,12])
+    with pytest.raises(Exception):
+        assert HPWHsizer.loadgpdpp('CA',[12,12,12,12,12,12,12])
+        
 
 # Test on the loadgpdpp function utilizing fetcher it operates as expected
 @pytest.mark.parametrize("x, nBR, expected", [
@@ -299,17 +338,19 @@ def test_swing_sim_limits(CA_sizer, nSupplyT, nStorageT_F, nPep, nApt, Wapt):
     assert min(swingT) >= nSupplyT
 
 @pytest.mark.parametrize("loadshape", [
-    (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
-    (1/2, 1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2),
-    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2, 1/2),
-    (1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/4, 1/4),
-    (1/4, 1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/4),
-    (1/4, 1/4, 1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]),
+    ([1/2, 1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ([1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2]),
+    ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2, 1/2]),
+    ([1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/4, 1/4]),
+    ([1/4, 1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/4]),
+    ([1/4, 1/4, 1/4, 1/4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
     ])
-def test_swing_loadshapes(people_sizer, loadshape):
-    people_sizer.inputs.loadShapeNorm
+def test_swing_custom_loadshapes(people_sizer, loadshape):
+    print((loadshape))
+    print(len(loadshape))
+    people_sizer.inputs.loadShapeNorm = loadshape
     
     # Recalc inputs
     people_sizer.inputs.calcedVariables()
@@ -435,13 +476,33 @@ def test_size_LS(primary_sizer, file1, LS):
     primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
     assert file_regression("tests/ref/"+os.path.basename(file1),
                             "tests/output/"+os.path.basename(file1))
+# Load Shift Shapes
+@pytest.mark.parametrize("LS", [
+    ([0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0]),
+])
+@pytest.mark.parametrize("file1, loadshape", [
+    ("test_primaryLS_CustomShape1.txt", [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ("test_primaryLS_CustomShape2.txt", [1/2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1/2]),
+    ("test_primaryLS_CustomShape3.txt", [1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ])
+def test_size_LS(primary_sizer, LS, file1, loadshape):
+    primary_sizer.setLoadShiftforPrimary(LS, avgLoadShape = loadshape)
+    primary_sizer.build_size()
+
+    fig = primary_sizer.plotStorageLoadSim(return_as_div=False)
+    # Print figures for visualizatoin.
+    #fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+
+    primary_sizer.writeToFile("tests/output/"+os.path.basename(file1))
+    assert file_regression("tests/ref/"+os.path.basename(file1),
+                            "tests/output/"+os.path.basename(file1))
 
 ##############################################################################
 ## Test ploting outputs stay same
 def test_plot_primaryCurve(primary_sizer):
     primary_sizer.build_size()
     fig = primary_sizer.plotSizingCurve(return_as_div=False)
-    fig.write_html("tests/output/test_plot_primaryCurve.html")
+    #fig.write_html("tests/output/test_plot_primaryCurve.html") # we don't need to test the we can write to html
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
     with open('tests/output/test_plot_primaryCurve.txt', 'w') as file:
@@ -456,14 +517,14 @@ def test_parallel_curve(units_sizer):
 
     with open('tests/output/test_plot_parallelCurve.txt', 'w') as file:
         file.write(str(fig))
-    fig.write_html("tests/output/test_plot_parallelCurve.html")
+    #fig.write_html("tests/output/test_plot_parallelCurve.html")
     assert file_regression("tests/ref/test_plot_parallelCurve.txt",
                             "tests/output/test_plot_parallelCurve.txt")
 
 def test_plot_simPrimary(primary_sizer):
     primary_sizer.build_size()
     fig = primary_sizer.plotStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/test_plot_simPrimary.html")
+    #fig.write_html("tests/output/test_plot_simPrimary.html") # we don't need to test the we can write to html
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
     with open('tests/output/test_plot_simPrimary.txt', 'w') as file:
@@ -474,7 +535,7 @@ def test_plot_simPrimary(primary_sizer):
 def test_plot_simSwing(CA_sizer):
     CA_sizer.build_size()
     fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/test_plot_simSwing.html")
+    #fig.write_html("tests/output/test_plot_simSwing.html")  # we don't need to test the we can write to html
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
     with open('tests/output/test_plot_simSwing.txt', 'w') as file:
@@ -493,7 +554,7 @@ def test_plot_LS(primary_sizer, file1, LS):
     primary_sizer.build_size()
 
     fig = primary_sizer.plotStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
+    #fig.write_html("tests/output/" + os.path.splitext(file1)[0] +".html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
@@ -510,7 +571,7 @@ def test_swing_LS(CA_sizer, file1, LS):
     CA_sizer.build_size()
 
     fig = CA_sizer.plotStorageLoadSim(return_as_div=False)
-    fig.write_html("tests/output/" + os.path.splitext(file1)[0] + ".html")
+    #fig.write_html("tests/output/" + os.path.splitext(file1)[0] + ".html")
     fig.layout = {} #Set figure layout to blank, save's space and we're testing the importand data part.
 
     with open("tests/output/"+os.path.basename(file1), 'w') as file:
