@@ -2,5 +2,6 @@ numpy==1.18.3
 scipy==1.5.1
 plotly==4.11.0
 plotly_express==0.4.0
+spyder-kernels==1.9.0
 pytest
 setuptools_scm
