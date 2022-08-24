@@ -12,7 +12,7 @@ Steps for installing conda environment from the Anaconda prompt
 	$ conda env list
 4. Activate new environment
 
-	$ conda activate HPWHSizer
+	$ conda activate HPWHulator
 
 If an environment already exits it can be removed with:
 
