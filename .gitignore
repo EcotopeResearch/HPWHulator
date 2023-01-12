@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# html extentions
+*.html
+
 # Distribution / packaging
 tests/output/*
 
