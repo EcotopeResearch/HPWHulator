@@ -14,11 +14,17 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    
+    MJ's edits:
+    First attempt to add loadshift controls to simulator for SCL study. Turn 
+    runOnePrimaryStep into a function of Vtrig[i]. 
 
 """
-
+import numpy as np
 from cfg import rhoCp, W_TO_BTUHR, mixVolume, roundList
-
+from plotly.graph_objs import Figure, Scatter
+from plotly.offline import plot
+from plotly.subplots import make_subplots
 
 ###############################################################################
 class Simulator:
@@ -50,13 +56,13 @@ class Simulator:
     Attributes
     ----------
     G_hw : list
-        The primary hot water generation rate in gallons per minute .
+        The primary hot water generation rate in gallons per minute.
 
     D_hw : list
         The hot water draw rate at the supply temperature.
 
     V0 : float
-        The storage volume of the primary system at the storage temperature
+        The storage volume of the primary system at the storage temperature.
 
     Vtrig : float
         The remaining volume of the primary storage volume when heating is
@@ -157,9 +163,10 @@ class Simulator:
         V0 : float
             The storage volume of the primary system at the storage temperature
 
-        Vtrig : float
+        Vtrig : list
             The remaining volume of the primary storage volume when heating
-            is triggered, note this equals V0*(1 - aquaFract)
+            is triggered at each hour to allow for load shift controls. Note
+            this equals V0*(1 - aquaFract) for the first timestep.
 
         Tcw : float
             The cold makeup water temperature
@@ -231,10 +238,12 @@ class Simulator:
     def __checkInputs(self, G_hw, D_hw, V0, Vtrig):
         if len(G_hw) != len(D_hw):
             raise Exception("Hot water generation and domestic hot water use must have the same length, i.e. time")
-        if V0 <= Vtrig:
+        if len(G_hw) != len(Vtrig):
+            raise Exception("Hot water generation and AQ fraction vector must have the same length, i.e. time")
+        if V0 <= Vtrig[0]:
             raise Exception("The initial storage volume can't be less than or equal to the volume to trigger heating.")
 
-    def simulate(self, initPV=None, initST=None):
+    def simulate(self, ls, initPV=None, initST=None):
         """
         Inputs
         ------
@@ -243,7 +252,7 @@ class Simulator:
         initST : float
             Primary Swing tank at start of the simulation
         """
-
+        total_shed_heating = 0
         if initPV:
             self.pV[0] = initPV
         if initST:
@@ -258,23 +267,28 @@ class Simulator:
                 self.swingT[ii], self.srun[ii] = self.runOneSwingStep(self.swingT[ii-1], self.hw_outSwing[ii])
                 #Get the mixed generation
                 mixedGHW = mixVolume(self.G_hw[ii], self.Tstorage, self.Tcw, self.Tsupply)
-                self.pV[ii], self.prun[ii] = self.runOnePrimaryStep(self.pV[ii-1], self.hw_outSwing[ii], mixedGHW)
+                self.pV[ii], self.prun[ii], shed_heating = self.runOnePrimaryStep(self.pV[ii-1], self.hw_outSwing[ii], mixedGHW, self.Vtrig[ii], ls[ii], ls[ii-1])
 
             elif self.schematic == "primary" or self.schematic == "paralleltank":
                 mixedDHW = mixVolume(self.D_hw[ii], self.Tstorage, self.Tcw, self.Tsupply)
                 mixedGHW = mixVolume(self.G_hw[ii], self.Tstorage, self.Tcw, self.Tsupply)
-                self.pV[ii], self.prun[ii] = self.runOnePrimaryStep(self.pV[ii-1], mixedDHW, mixedGHW)
-
+                self.pV[ii], self.prun[ii], shed_heating = self.runOnePrimaryStep(self.pV[ii-1], mixedDHW, mixedGHW, self.Vtrig[ii], ls[ii], ls[ii-1])
+                if ii > 1255 and ii < 1265:
+                    print(self.pV[ii])
             else:
                 raise Exception(self.schematic + " is not a valid schematic")
 
+            total_shed_heating += shed_heating
+            
         return [roundList(self.pV, 3),
                 roundList(self.G_hw, 3),
                 roundList(self.D_hw, 3),
                 roundList(self.prun, 3),
                 roundList(self.swingT, 3) if self.swingT else None,
                 roundList(self.srun, 3) if self.srun else None,
-                self.hw_outSwing if self.hw_outSwing else None]
+                self.hw_outSwing if self.hw_outSwing else None,
+                total_shed_heating]
+    
 
     def simJustSwing(self, initST=None):
         """
@@ -297,7 +311,7 @@ class Simulator:
             return [self.swingT, self.srun, self.hw_outSwing]
         raise Exception("Invalid schematic")
 
-    def runOnePrimaryStep(self, Vcurr, hw_out, hw_in):
+    def runOnePrimaryStep(self, Vcurr, hw_out, hw_in, Vtrig, ls, ls_prev):
         """
         Runs one step on the primary system. This changes the volume of the primary system
         by assuming there is hot water removed at a volume of hw_out and hot water
@@ -322,18 +336,25 @@ class Simulator:
             The volume of hot water generated during the time step.
 
         """
+        
         did_run = 0
         Vnew = 0
         if self.pheating:
-            Vnew = Vcurr + hw_in - hw_out # If heating, generate HW and lose HW
-            did_run = hw_in
+            #madison's edit here: if transitioning into shed and Vcurr > Vtrig, turn off heat pump. 
+            if ls == 0 and ls_prev == 1 and Vcurr > Vtrig:
+                Vnew = Vcurr - hw_out
+                self.pheating = False
+            else:
+                Vnew = Vcurr + hw_in - hw_out # If heating, generate HW and lose HW
+                did_run = hw_in
 
         else:  # Else not heating,
             Vnew = Vcurr - hw_out # So lose HW
-            if Vnew < self.Vtrig: # If should heat
-                time_missed = (self.Vtrig - Vnew)/hw_out # Volume below turn on / rate of draw gives time below tigger
-                Vnew += hw_in * time_missed # Start heating
-                did_run = hw_in * time_missed
+            if Vnew < Vtrig: # If should heat
+            #ISSUE IS HERE I THINK 
+                time_missed = (Vtrig - Vnew)/hw_out # Volume below turn on / rate of draw gives time below tigger
+                Vnew += hw_in #* time_missed # Start heating
+                did_run = hw_in #* time_missed
                 self.pheating = True
 
         if Vnew > self.V0: # If overflow
@@ -344,8 +365,10 @@ class Simulator:
 
         #if Vnew < 0:
         #    raise Exception("Primary storage ran out of Volume!")
-
-        return Vnew, did_run
+        #if shed event is not met, count how many minutes 
+        shed_heating = 1 if ls == 0 and self.pheating == True else 0
+        
+        return Vnew, did_run, shed_heating
 
     def runOneSwingStep(self, Tcurr, hw_out):
         """
@@ -406,6 +429,65 @@ class Simulator:
         if Tnew < self.Tsupply: # Check for errors
             raise Exception("The swing tank dropped below the supply temperature! The system is undersized")
 
-        #print(Tnew, Tcurr, self.swing_Ttrig, self.swingheating, did_run )
 
         return Tnew, did_run
+    
+#add plotting function, copied from HPWHsizer.py
+#remove system sized requirement
+
+
+def plotStorageLoadSim2(simulator_object, normalCapacity, loadUpCapacity, loadshift):
+    """
+    Returns a plot of the of the simulation for the minimum sized primary
+    system as a div or plotly figure. Can plot the minute level simulation
+
+    Parameters
+    ----------
+    return_as_div 
+        A logical on the output, as a div (true) or as a figure (false)
+
+    Returns
+    -------
+    div/fig
+
+    """
+    [V, G_hw, D_hw, run, swingT, srun, hw_out_swing, total_shed_heating] = simulator_object.simulate(ls = loadshift)
+
+    hrind_fromback = 24 # Look at the last 24 hours of the simulation not the whole thing
+    run = np.array(run[-(60*hrind_fromback):])*60
+    G_hw = np.array(G_hw[-(60*hrind_fromback):])*60
+    D_hw = np.array(D_hw[-(60*hrind_fromback):])*60
+    V = np.array(V[-(60*hrind_fromback):])
+    
+    x_data = list(range(len(V)))
+    ls_off = [0 if i == 1 else 2000 for i in loadshift]
+    
+    fig = Figure()
+    
+    fig.add_trace(Scatter(x=x_data, y=ls_off, name='Load Shift Goal',
+                                  mode='lines', line_shape='hv',
+                                  opacity=0.5, marker_color='grey',
+                                  fill='tonexty'))
+                                  
+    fig.add_trace(Scatter(x=x_data, y=V, name='Useful Storage Volume at Storage Temperature',
+                          mode='lines', line_shape='hv',
+                          opacity=0.8, marker_color='green'))
+    fig.add_trace(Scatter(x=x_data, y=run, name = "Hot Water Generation at Storage Temperature",
+                          mode='lines', line_shape='hv',
+                          opacity=0.8, marker_color='red'))
+    fig.add_trace(Scatter(x=x_data, y=D_hw, name='Hot Water Demand at Supply Temperature',
+                          mode='lines', line_shape='hv',
+                          opacity=0.8, marker_color='blue'))
+    fig.update_yaxes(range=[0, np.ceil(max(np.append(V,D_hw))/100)*100])
+
+    fig.update_layout(title="<b>Hot Water Simulation</b> <br>" \
+                      + '<span style="font-size: 12px;">Primary Capcity: ' + str(normalCapacity) + "kBtu/hr & Load Up Capacity: " + str(loadUpCapacity) + "kBtu/hr<span>",
+                      xaxis_title= "Minute of Day",
+                      xaxis = dict(tickvals = list(range(0, 1440, 120))),
+                      yaxis_title="Gallons or\nGallons per Hour",
+                      width=900,
+                      height=700)                               
+
+    #print(V[1258:1262], run[1258:1262])
+    return fig, V, total_shed_heating
+
