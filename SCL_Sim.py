@@ -88,12 +88,12 @@ def runSimulation():
     
         shed_heating_time.append(total_shed_heating)
         
-        percent_captured = 1 - (total_shed_heating / sum(loadshift))
+        percent_captured = 1 - (total_shed_heating / (1440 - sum(loadshift)))
         percent_shed_met.append(percent_captured)
         
         result = 1 if total_shed_heating == 0 else 0
         results.append(result)
-    
+        print(1440 - sum(loadshift))
     return results, shed_heating_time, percent_shed_met
     
 results, shed_heating_time, percent_shed_met = runSimulation()
