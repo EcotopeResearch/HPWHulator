@@ -50,7 +50,7 @@ def runSimulation():
         Tcity = 50 if np.isnan(row.T_cw) else row.T_cw
         Tstorage = 150 if np.isnan(row.T_storage) else row.T_storage
         defrost_factor = 1 if np.isnan(row.defrost_factor) else row.defrost_factor
-        V0 = row.V0
+        V0 = row.V0 * 0.8 #storage efficiency
     
         Vtrig = V0 * (1- aq)
     
@@ -72,10 +72,10 @@ def runSimulation():
                     Tstorage = Tstorage,
                     Tsupply = Tsupply,
                     schematic = "swingtank",
-                    swing_V0 = 80,
+                    swing_V0 = 120, #From Ecosizer Market 
                     swing_Ttrig = 121,
                     Qrecirc_W = 2700,
-                    Swing_Elem_kW = 5)
+                    Swing_Elem_kW = 17.5) #From Ecosizer Market
     
     
         fig, V, total_shed_heating = plotStorageLoadSim2(sim, capacity_normal, capacity_loadUp, loadshift)
