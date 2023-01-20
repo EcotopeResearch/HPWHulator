@@ -137,3 +137,7 @@ dmypy.json
 /.pylint.d
 _version.py
 hpwhulator.code-workspace
+
+#input and output CSVs
+SCL_Results.xlsx
+SCL_Sim_Inputs.xlsx
